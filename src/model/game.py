@@ -2,6 +2,7 @@ import html
 import string
 import time
 from enum import Enum
+from typing import Any
 
 from PyQt6.QtCore import QTimer
 from PyQt6.QtCore import pyqtSignal
@@ -11,6 +12,8 @@ from src.model.modelitem import ModelItem
 from src.model.transaction import transactional
 from src.util.gameurl import GameUrl
 from src.util.gameurl import GameUrlType
+
+ServerMessage = dict[str, Any]
 
 
 class GameState(Enum):
@@ -23,6 +26,12 @@ class GameState(Enum):
 class GameVisibility(Enum):
     PUBLIC = "public"
     FRIENDS = "friends"
+
+
+class GameType(Enum):
+    COOP = "coop"
+    CUSTOM = "custom"
+    MATCHMAKER = "matchmaker"
 
 
 @with_logger
@@ -63,6 +72,7 @@ class Game(ModelItem):
         sim_mods,
         password_protected,
         visibility,
+        game_type: str,
         **kwargs,
     ):
 
@@ -84,6 +94,7 @@ class Game(ModelItem):
         self.add_field("sim_mods", sim_mods)
         self.add_field("password_protected", password_protected)
         self.add_field("visibility", visibility)
+        self.add_field("game_type", GameType(game_type))
         self._aborted = False
 
         self._live_replay_timer = QTimer()
@@ -261,18 +272,14 @@ class Game(ModelItem):
         return pretty
 
 
-def message_to_game_args(m):
-    # FIXME - this should be fixed on the server
-    if 'featured_mod' in m and m["featured_mod"] == "coop":
-        if 'max_players' in m:
-            m["max_players"] = 4
-
+def message_to_game_args(m: ServerMessage) -> bool:
     if "command" in m:
         del m["command"]
 
     try:
         m['state'] = GameState(m['state'])
         m['visibility'] = GameVisibility(m['visibility'])
+        m["game_type"] = GameType(m["game_type"])
         # Server sends HTML-escaped names, which is needlessly confusing
         m['title'] = html.unescape(m['title'])
     except (KeyError, ValueError):
