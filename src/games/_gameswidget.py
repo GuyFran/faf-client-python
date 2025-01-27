@@ -84,6 +84,7 @@ class GamesWidget(FormClass, BaseClass):
         self._game_filter_controller = GamesSortFilterController(
             self._game_filter_model,
             self.gamesShownCountLabel,
+            self.applyFilters,
             self.hideGamesWithPw,
             self.hideGamesWithMods,
             self.manageGameFiltersButton,

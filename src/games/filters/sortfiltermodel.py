@@ -97,6 +97,7 @@ class GameSortModel(QSortFilterProxyModel):
 class CustomGameFilterModel(GameSortModel):
     def __init__(self, relations: UserRelations, model: GameModel) -> None:
         GameSortModel.__init__(self, relations, model)
+        self._apply_custom_filters = False
         self._hide_private_games = False
         self._hide_modded_games = False
         self.filter_manager = GameFilterManager()
@@ -110,11 +111,21 @@ class CustomGameFilterModel(GameSortModel):
             return False
         if self.hide_modded_games and game.sim_mods:
             return False
-        for game_filter in self.filter_manager.filters:
-            if game_filter.rejects(game):
-                return False
+        if self.apply_custom_filters:
+            for game_filter in self.filter_manager.filters:
+                if game_filter.rejects(game):
+                    return False
 
         return True
+
+    @property
+    def apply_custom_filters(self) -> bool:
+        return self._apply_custom_filters
+
+    @apply_custom_filters.setter
+    def apply_custom_filters(self, value: bool) -> None:
+        self._apply_custom_filters = value
+        self.invalidateFilter()
 
     @property
     def hide_private_games(self):

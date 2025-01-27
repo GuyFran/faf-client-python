@@ -758,7 +758,7 @@ QScrollBar::sub-page
     background-color: #1f1f1f;
 }
 
-QCheckBox#hideGamesWithPw,#hideGamesWithMods
+QCheckBox#hideGamesWithPw,#hideGamesWithMods,#applyFilters
 {
     color:white;
     background-color: #111111;

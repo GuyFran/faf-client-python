@@ -9,6 +9,11 @@ from src.games.filters.sortfiltermodel import CustomGameFilterModel
 
 
 class GamesSortFilterController:
+    apply_custom_filters = Settings.persisted_property(
+        "play/applyCustomFilters",
+        default_value=False,
+        type=bool,
+    )
     hide_private_games = Settings.persisted_property(
         "play/hidePrivateGames",
         default_value=False,
@@ -29,18 +34,22 @@ class GamesSortFilterController:
             self,
             game_filter_model: CustomGameFilterModel,
             games_shown: QLabel,
+            apply_filters: QCheckBox,
             hide_private: QCheckBox,
             hide_modded: QCheckBox,
             filter_button: QPushButton,
             sort_combobox: QComboBox,
     ) -> None:
         self.gamesShownCountLabel = games_shown
+        self.applyFiltersCheckBox = apply_filters
         self.hidePrivateGamesCheckBox = hide_private
         self.hideModdedGamesCheckBox = hide_modded
         self.sortGamesComboBox = sort_combobox
 
         self.game_filter_model = game_filter_model
 
+        self.applyFiltersCheckBox.checkStateChanged.connect(self.toggle_filters)
+        self.applyFiltersCheckBox.setChecked(self.apply_custom_filters)
         self.hidePrivateGamesCheckBox.checkStateChanged.connect(self.toggle_private_games)
         self.hidePrivateGamesCheckBox.setChecked(self.hide_private_games)
         self.hideModdedGamesCheckBox.checkStateChanged.connect(self.toggle_modded_games)
@@ -73,6 +82,11 @@ class GamesSortFilterController:
         total = self.game_filter_model.total_games()
         self.gamesShownCountLabel.setText(f"Games shown: {shown}/{total}")
 
+    def toggle_filters(self, state: Qt.CheckState) -> None:
+        self.apply_custom_filters = state == Qt.CheckState.Checked
+        self.game_filter_model.apply_custom_filters = state == Qt.CheckState.Checked
+        self.on_games_count_changed()
+
     def toggle_private_games(self, state: Qt.CheckState) -> None:
         self.hide_private_games = state == Qt.CheckState.Checked
         self.game_filter_model.hide_private_games = state == Qt.CheckState.Checked
@@ -83,6 +97,6 @@ class GamesSortFilterController:
         self.game_filter_model.hide_modded_games = state == Qt.CheckState.Checked
         self.on_games_count_changed()
 
-    def on_sort_games_combo_changed(self, index: int):
+    def on_sort_games_combo_changed(self, index: int) -> None:
         self.sort_games_index = index
         self.game_filter_model.sort_type = self.game_filter_model.SortType(index)
