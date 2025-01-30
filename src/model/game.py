@@ -164,11 +164,12 @@ class Game(ModelItem):
         self._aborted = True
         self.emit_update(old, _transaction)
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         data = self.field_dict
         data["uid"] = self.uid
         data["state"] = data["state"].name
         data["visibility"] = data["visibility"].name
+        data["game_type"] = data["game_type"].name
         data["command"] = "game_info"   # For compatibility
         return data
 
