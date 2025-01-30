@@ -73,6 +73,7 @@ class Game(ModelItem):
         password_protected,
         visibility,
         game_type: str,
+        hosted_at: str | None,
         **kwargs,
     ):
 
@@ -95,6 +96,7 @@ class Game(ModelItem):
         self.add_field("password_protected", password_protected)
         self.add_field("visibility", visibility)
         self.add_field("game_type", GameType(game_type))
+        self.add_field("hosted_at", hosted_at)
         self._aborted = False
 
         self._live_replay_timer = QTimer()

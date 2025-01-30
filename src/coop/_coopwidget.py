@@ -100,6 +100,9 @@ class CoopWidget(FormClass, BaseClass, BusyWidget):
 
         self.selectedItem = None
 
+        self.gamelist_update_timer = QtCore.QTimer()
+        self.gamelist_update_timer.timeout.connect(self.gameList.update)
+
     def load_stylesheet(self):
         self.setStyleSheet(
             util.THEME.readstylesheet("coop/formatters/style.css"),
@@ -141,9 +144,13 @@ class CoopWidget(FormClass, BaseClass, BusyWidget):
         w.setItemDelegate(CoopLeaderboardItemDelegate(self))
         self.leaderBoard.setVisible(True)
 
-    def busy_entered(self):
+    def busy_entered(self) -> None:
         if not self.loaded:
             self.coop_api.request_coop_scenarios()
+        self.gamelist_update_timer.start(1000)
+
+    def busy_left(self) -> None:
+        self.gamelist_update_timer.stop()
 
     def ask_leaderboard(self) -> None:
         """

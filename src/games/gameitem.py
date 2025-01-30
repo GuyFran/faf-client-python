@@ -1,5 +1,6 @@
 import html
 import os
+from datetime import timedelta
 
 import jinja2
 from PyQt6 import QtCore
@@ -8,6 +9,8 @@ from PyQt6 import QtWidgets
 
 from src import util
 from src.fa import maps
+from src.games.gamemodelitem import GameModelItem
+from src.model.game import Game
 from src.qt.itemviews.styleditemdelegate import StyledItemDelegate
 
 
@@ -155,7 +158,7 @@ class GameTooltipFilter(QtCore.QObject):
 
 
 class GameItemFormatter:
-    FORMATTER_FAF = str(util.THEME.readfile("games/formatters/faf.qthtml"))
+    FORMATTER_FAF = str(util.THEME.readfile("games/formatters/faf.html"))
     FORMATTER_MOD = str(util.THEME.readfile("games/formatters/mod.qthtml"))
 
     def __init__(self, playercolors, me):
@@ -170,7 +173,12 @@ class GameItemFormatter:
         hostid = game.host_player.id if game.host_player is not None else -1
         return self._colors.get_user_color(hostid)
 
-    def text(self, data):
+    def _age(self, game: Game) -> timedelta:
+        hosted = QtCore.QDateTime.fromString(game.hosted_at, QtCore.Qt.DateFormat.ISODate)
+        delta = hosted.secsTo(QtCore.QDateTime.currentDateTime())
+        return timedelta(seconds=delta)
+
+    def text(self, data: GameModelItem) -> str:
         game = data.game
         players = game.num_players - len(game.observers)
         formatting = {
@@ -182,6 +190,15 @@ class GameItemFormatter:
             "players": players,
             "playerstring": "player" if players == 1 else "players",
             "avgrating": int(game.average_rating),
+            # HACK/FIXME: we don't use separate timer to update items periodically, because
+            # gameswidget has automatch frames, each of which has timer to update its 'Matching In'
+            # label and label updates trigger repaint for all of the items in the gameList listview.
+            # This weird coupling could be eliminated if labels' layout size constraint were fixed,
+            # but it implies reworking even more of the games.ui and would require new timer.
+            # It can happen when/if ladder will eventually get its own tab as suggested in
+            # https://github.com/FAForever/client/issues/754#issuecomment-308861910
+            # but for now we will exploit this
+            "age": self._age(game),
         }
         if self._featured_mod(game):
             return self.FORMATTER_FAF.format(**formatting)
