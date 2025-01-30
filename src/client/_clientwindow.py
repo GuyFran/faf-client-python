@@ -903,14 +903,14 @@ class ClientWindow(FormClass, BaseClass):
         self.lobby_reconnector.enabled = True
         self.try_to_auto_login()
 
-    def disconnect_(self):
+    def disconnect_(self) -> None:
         if self.state != ClientState.DISCONNECTED:
             # Used when the user explicitly demanded to stay offline.
             self._auto_relogin = self.remember
             self.lobby_reconnector.enabled = False
             self.lobby_connection.disconnect_()
             self._chatMVC.connection.disconnect_()
-            self.games.onLogOut()
+            self.games.on_logout()
             self.oauth_flow.stop_checking_expiration()
             config.Settings.set("oauth/token", None, persist=False)
 

@@ -108,7 +108,7 @@ class GamesWidget(FormClass, BaseClass):
         self.client.matchmaker_info.connect(self.handle_matchmaker_info)
         self.client.game_enter.connect(self.stopSearch)
         self.client.viewing_replay.connect(self.stopSearch)
-        self.client.authorized.connect(self.onAuthorized)
+        self.client.authorized.connect(self.on_authorized)
 
         self.modList.itemDoubleClicked.connect(self.hostGameClicked)
         self.teamList.itemPressed.connect(self.teamListItemClicked)
@@ -121,20 +121,17 @@ class GamesWidget(FormClass, BaseClass):
         self.searching = {"ladder1v1": False}
         self.matchmakerShortcuts = []
 
-        self.matchmakerFramesInitialized = False
-
     def refreshMods(self):
         self.apiConnector.requestData()
 
-    def onAuthorized(self, me):
+    def on_authorized(self, me: User) -> None:
         if not self.mods:
             self.refreshMods()
         if self.party is None:
             self.party = Party(me.id, PartyMember(me.id))
-        if not self.matchmakerFramesInitialized:
-            self.client.lobby_connection.send(dict(command="matchmaker_info"))
+        self.client.lobby_connection.send({"command": "matchmaker_info"})
 
-    def onLogOut(self):
+    def on_logout(self) -> None:
         self.stopSearch()
         self.party = None
         while self.matchmakerQueues.widget(0) is not None:
@@ -144,7 +141,6 @@ class GamesWidget(FormClass, BaseClass):
             shortcut.setEnabled(False)
             shortcut.deleteLater()
         self.matchmakerShortcuts.clear()
-        self.matchmakerFramesInitialized = False
 
     @pyqtSlot(dict)
     def process_mod_info(self, message: dict) -> None:
@@ -369,20 +365,13 @@ class GamesWidget(FormClass, BaseClass):
             return True
 
     def handle_matchmaker_info(self, message: ServerMessage) -> None:
-        # there were cases when ladder info came earlier than the answer
-        # to client's matchmaker_info request, so we make sure that there
-        # are at least 2 queues in message
-        if (
-            not self.matchmakerFramesInitialized
-            and len(message.get("queues", {})) > 1
-        ):
-            logger.info("Initializing matchmaker queue frames")
-            queues = message.get("queues", {})
-            queues.sort(key=lambda queue: queue["team_size"])
-            for index, queue in enumerate(queues):
+        for queue in message.get("queues", {}):
+            insert_to = queue["team_size"] - 1
+            existing_queue = self.matchmakerQueues.widget(insert_to)
+            if existing_queue is None or existing_queue.teamSize != queue["team_size"]:
+                logger.info(f"Adding matchmaker queue {queue['queue_name']}...")
                 mqueue = MatchmakerQueue(self, self.client, queue["queue_name"], queue["team_size"])
                 mqueue.handleQueueInfo(message)
                 tab_name = "&{teamSize} vs {teamSize}".format(teamSize=queue["team_size"])
-                self.matchmakerQueues.insertTab(index, mqueue, tab_name)
-                self.matchmakerQueues.tabBar().setTabTextColor(index, QColor("silver"))
-            self.matchmakerFramesInitialized = True
+                self.matchmakerQueues.insertTab(insert_to, mqueue, tab_name)
+                self.matchmakerQueues.tabBar().setTabTextColor(insert_to, QColor("silver"))
