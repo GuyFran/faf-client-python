@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING
+from typing import Any
 from typing import Self
 
 from PyQt6 import QtWidgets
@@ -30,6 +31,8 @@ if TYPE_CHECKING:
     from src.client._clientwindow import ClientWindow
 
 logger = logging.getLogger(__name__)
+
+ServerMessage = dict[str, Any]
 
 FormClass, BaseClass = util.THEME.loadUiType("games/games.ui")
 
@@ -102,7 +105,7 @@ class GamesWidget(FormClass, BaseClass):
         self.ispassworded = False
         self.party = None
 
-        self.client.matchmaker_info.connect(self.handleMatchmakerInfo)
+        self.client.matchmaker_info.connect(self.handle_matchmaker_info)
         self.client.game_enter.connect(self.stopSearch)
         self.client.viewing_replay.connect(self.stopSearch)
         self.client.authorized.connect(self.onAuthorized)
@@ -365,11 +368,10 @@ class GamesWidget(FormClass, BaseClass):
         else:
             return True
 
-    def handleMatchmakerInfo(self, message):
+    def handle_matchmaker_info(self, message: ServerMessage) -> None:
         # there were cases when ladder info came earlier than the answer
-        # to client's matchmaker_info request, so probably it will need to be
-        # fully hardcoded when everything comes out, but for now just
-        # need to be sure that there are at least 2 queues in message
+        # to client's matchmaker_info request, so we make sure that there
+        # are at least 2 queues in message
         if (
             not self.matchmakerFramesInitialized
             and len(message.get("queues", {})) > 1
@@ -378,18 +380,9 @@ class GamesWidget(FormClass, BaseClass):
             queues = message.get("queues", {})
             queues.sort(key=lambda queue: queue["team_size"])
             for index, queue in enumerate(queues):
-                self.matchmakerQueues.insertTab(
-                    index,
-                    MatchmakerQueue(
-                        self, self.client,
-                        queue["queue_name"], queue["team_size"],
-                    ),
-                    "&{teamSize} vs {teamSize}".format(
-                        teamSize=queue["team_size"],
-                    ),
-                )
-            for index in range(self.matchmakerQueues.tabBar().count()):
-                self.matchmakerQueues.tabBar().setTabTextColor(
-                    index, QColor("silver"),
-                )
+                mqueue = MatchmakerQueue(self, self.client, queue["queue_name"], queue["team_size"])
+                mqueue.handleQueueInfo(message)
+                tab_name = "&{teamSize} vs {teamSize}".format(teamSize=queue["team_size"])
+                self.matchmakerQueues.insertTab(index, mqueue, tab_name)
+                self.matchmakerQueues.tabBar().setTabTextColor(index, QColor("silver"))
             self.matchmakerFramesInitialized = True
