@@ -30,7 +30,10 @@ from PyQt6 import QtGui
 from PyQt6 import QtNetwork
 from PyQt6 import QtWidgets
 
+from src import util
 from src.fa.maps import downloadMap
+from src.fa.maps import getBaseMapsFolder
+from src.fa.maps import getUserMapsFolder
 from src.fa.maps import isMapAvailable
 from src.mapGenerator.mapgenManager import MapGeneratorManager
 from src.mapGenerator.mapgenUtils import isGeneratedMap
@@ -42,8 +45,6 @@ from src.replays.replaydetails.replayreader import ReplayException
 from src.replays.replaydetails.replayreader import ReplayParser
 from src.replays.replaydetails.utils import ACTION_ICONS
 from src.replays.replaydetails.utils import PLAYER_COLORS
-from src.util import COMMON_DIR
-from src.util import THEME
 
 
 @lru_cache(1)
@@ -111,7 +112,7 @@ class ReplayLoader(QtCore.QThread):
 class ReplayDetailsCard(QtWidgets.QDialog):
     def __init__(self, *args, **kwargs) -> None:
         QtWidgets.QDialog.__init__(self, *args, **kwargs)
-        self.setStyleSheet(THEME.readstylesheet("client/client.css"))
+        self.setStyleSheet(util.THEME.readstylesheet("client/client.css"))
         self.setWindowFlags(QtCore.Qt.WindowType.Widget)
         self.setModal(True)
 
@@ -195,8 +196,9 @@ class ReplayDetailsCard(QtWidgets.QDialog):
 
         self.actionsDisplay = QtWidgets.QTextBrowser()
 
-        self.action_pixes = action_pixmaps(os.path.join(COMMON_DIR, "replays", "actions48.png"))
-        self.unit_pixes = units_pixmaps(os.path.join(COMMON_DIR, "unitdb", "units"))
+        action_icons = os.path.join(util.COMMON_DIR, "replays", "actions48.png")
+        self.action_pixes = action_pixmaps(action_icons)
+        self.unit_pixes = units_pixmaps(os.path.join(util.COMMON_DIR, "unitdb", "units"))
 
         self.chartsTabLayout = QtWidgets.QVBoxLayout()
         self.chartsTabLayout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
@@ -221,7 +223,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.statusBar.setSizeGripEnabled(False)
         self.statusBar.addWidget(self.loadingBar, 1)
 
-        db_path = os.path.join(COMMON_DIR, "unitdb", "unitdb.json")
+        db_path = os.path.join(util.COMMON_DIR, "unitdb", "unitdb.json")
         with open(db_path) as file:
             self.unitsdb = json.loads(file.read())
 
@@ -308,20 +310,17 @@ class ReplayDetailsCard(QtWidgets.QDialog):
 
     def map_preview_pixmap(self, map_path: str) -> QtGui.QPixmap:
         try:
+            # FIXME: both functions from fa.maps and map_path include "/maps/" suffix/prefix
             mapdirs = [
-                os.path.join(
-                    os.environ["USERPROFILE"],
-                    r"Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance",
-                ),
-                r"C:\Program Files (x86)\THQ\Gas Powered Games\Supreme Commander - Forged Alliance",
-                r"C:\Program Files\THQ\Gas Powered Games\Supreme Commander - Forged Alliance",
-                r"C:\Program Files (x86)\Steam\steamapps\common\Supreme Commander Forged Alliance",
+                os.path.dirname(getBaseMapsFolder()),
+                os.path.dirname(getUserMapsFolder()),
             ]
 
-            fafPath = r"C:\ProgramData\FAForever\fa_path.lua"
-            if os.path.exists(fafPath):
+            faf_path = os.path.join(util.APPDATA_DIR, "fa_path.lua")
+            if os.path.exists(faf_path):
                 try:
-                    mapdir = open(fafPath, "rt").readline().split("'")[1].replace("\\\\", "\\")
+                    with open(faf_path, "rt") as f:
+                        mapdir = f.readline().split("'")[1].replace("\\\\", "\\")
                     if os.path.exists(mapdir):
                         mapdirs.append(mapdir)
                 except Exception:
@@ -370,7 +369,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
                                     army = None
 
                         # draw positions to the map preview image
-                        acuIcon = QtGui.QPixmap(os.path.join(COMMON_DIR, "replays", "acu.png"))
+                        acuIcon = QtGui.QPixmap(os.path.join(util.COMMON_DIR, "replays", "acu.png"))
                         color = QtGui.QColor(192, 165, 32)
                         mask = acuIcon.createMaskFromColor(color, QtCore.Qt.MaskMode.MaskOutColor)
 
@@ -405,7 +404,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
             else:
                 raise IOError
         except IOError:
-            return QtGui.QPixmap(os.path.join(COMMON_DIR, "replays", "nomap.png"))
+            return QtGui.QPixmap(os.path.join(util.COMMON_DIR, "replays", "nomap.png"))
 
     def show_about(self) -> None:
         # flags = QtCore.Qt.WindowType.WindowTitleHint | QtCore.Qt.WindowType.WindowSystemMenuHint
@@ -553,7 +552,8 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         file, _ = QtWidgets.QFileDialog.getOpenFileName(
             None,
             "Select FA replay",
-            r"C:/ProgramData/FAForever/replays", "*.fafreplay;;*.SCFAReplay",
+            os.path.join(util.APPDATA_DIR, "replays"),
+            "*.fafreplay;;*.SCFAReplay",
         )
         if file:
             self.replay(file)
