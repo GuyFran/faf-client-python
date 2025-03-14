@@ -34,15 +34,9 @@ import zstandard
 from PyQt6.QtCore import QByteArray
 from PyQt6.QtCore import QDataStream
 from PyQt6.QtCore import QObject
-from PyQt6.QtCore import Qt
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtCore import qUncompress
-from PyQt6.QtGui import QPixmap
 from PyQt6.QtNetwork import QNetworkReply
-from PyQt6.QtWidgets import QHBoxLayout
-from PyQt6.QtWidgets import QLabel
-from PyQt6.QtWidgets import QSizePolicy
-from PyQt6.QtWidgets import QSpacerItem
 
 from src.mapGenerator.mapgenUtils import isGeneratedMap
 from src.replays.replaydetails.replayformat import LUA_TYPE
@@ -358,37 +352,38 @@ class ReplayParser(QObject):
         h, m = divmod(m, 60)
         return "%d:%02d:%02d" % (h, m, s)
 
-    def _player(
-            self,
-            faction: float,
-            country: str,
-            nick: str,
-            rating: int,
-            apm: float,
-    ) -> QHBoxLayout:
-        main_layout = QHBoxLayout()
-        faction_label = QLabel()
-        faction_label.setPixmap(QPixmap(self.get_faction_img_path(faction)).scaled(24, 24))
-        flag = QLabel()
-        flag.setPixmap(QPixmap(self.get_country_img_path(country)))
-        flag.setToolTip(country)
-        description = QLabel(f"<b>{nick}</b><br>Rating: {rating}, apm: {round(apm, 2)}")
-        description.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        description.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
-
-        main_layout.addWidget(faction_label)
-        main_layout.addItem(QSpacerItem(30, 20))
-        main_layout.addWidget(flag)
-        main_layout.addItem(QSpacerItem(30, 20))
-        main_layout.addWidget(description)
-
-        return main_layout
-
-    def get_info(self) -> str:
+    def _coop_teams(self) -> dict[int, list[int]]:
         teams = defaultdict(list)
         for id, player in self.army.items():
-            if id != 255:
-                teams[player["Team"]].append(id)
+            # FIXME: figure out how to determine teams more accurately
+            if player["Human"] or player["StartSpot"] != 1:
+                teams[1].append(id)
+            elif id != 255:
+                teams[2].append(id)
+        return teams
+
+    def _non_coop_teams(self) -> dict[int, list[int]]:
+        teams = defaultdict(list)
+        ffa_team = 1
+        for id, player in self.army.items():
+            if id == 255:
+                continue
+            team = player["Team"]
+            if team == 1:
+                teams[ffa_team].append(id)
+                ffa_team += 1
+            else:
+                teams[team].append(id)
+        return teams
+
+    def get_teams(self) -> dict[int, list[int]]:
+        if self.faf_info.get("featured_mod", "") == "coop":
+            return self._coop_teams()
+        else:
+            return self._non_coop_teams()
+
+    def get_info(self) -> str:
+        teams = self.get_teams()
 
         tmp = f"<center><h2>{self.faf_info['title']}</h2>"
         tmp += f"<center><h3>{self.replayPatchFieldId}</h3>"
