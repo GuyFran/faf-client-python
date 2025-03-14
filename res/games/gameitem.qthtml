@@ -39,7 +39,7 @@
                 {{ player_login }}
             </td>
             <td>
-                <img src='{{ player_country_path }}'>
+                <img width="16" height="16" src='{{ player_country_path }}'>
             </td>
             <td align='right' width='10'>
                 ({{ player_global_rating }})
@@ -49,7 +49,7 @@
                 ({{ player_global_rating }})
             </td>
             <td>
-                <img src='{{ player_country_path }}'>
+                <img width="16" height="16" src='{{ player_country_path }}'>
             </td>
             <td align='left' width={{ width }}>
                 {{ player_login }}
@@ -77,7 +77,7 @@
         {% set observer_country = iconpath~observer.country~".png" %}
         {% set observer_global_rating = observer.global_estimate %}
         {% set observer_login = observer.login %}
-        <br/>{{ observer_login }} <img src='{{ observer_country }}'> ({{ observer_global_rating }})
+        <br/>{{ observer_login }} <img width="16" height="16" src='{{ observer_country }}'> ({{ observer_global_rating }})
     {% else %}
         <br/>{{ observer }}
     {% endif %}
