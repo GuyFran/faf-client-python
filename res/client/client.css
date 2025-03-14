@@ -1088,3 +1088,8 @@ QProgressBar#achievementBar::chunk
 {
     background-color: orange;
 }
+
+QStatusBar
+{
+    color: yellow;
+}

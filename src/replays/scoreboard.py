@@ -136,7 +136,7 @@ class Scoreboard(QWidget):
         # there must be a way to dissect all of the layouts and widgets
         # with all of their paddings, spacings, margins etc. to determine
         # scoreboard's precise height, but this works good enough
-        magic = 40
+        magic = 50
         if len(self.teams) == 2:
             return self._height + max(self._team_heights) + magic
         return sum((self._height, *self._team_heights, magic))

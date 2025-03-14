@@ -23,6 +23,7 @@ from src.downloadManager import DownloadRequest
 from src.fa.replay import replay
 from src.model.game import GameState
 from src.replays.models import MetadataModel
+from src.replays.replaydetails.replaycard import ReplayDetailsCard
 from src.replays.replayitem import ReplayItem
 from src.replays.replayitem import ReplayItemDelegate
 from src.replays.replayToolbox import ReplayToolboxHandler
@@ -700,9 +701,18 @@ class ReplayVaultWidgetHandler(object):
         _w.automaticCheckbox.setChecked(self.automatic)
         _w.spoilerCheckbox.setChecked(self.spoiler_free)
         _w.hideUnrCheckbox.setChecked(self.hide_unranked)
+        _w.detailsButton.clicked.connect(self.show_replay_details)
+        _w.detailsButton.setVisible(False)
 
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.stopSearchVault)
+
+    def show_replay_details(self) -> None:
+        item = self._w.onlineTree.currentItem()
+        if item is not None and hasattr(item, "url"):
+            replay_details = ReplayDetailsCard()
+            replay_details.download_by_url(QtCore.QUrl(item.url))
+            replay_details.exec()
 
     def on_authorized(self) -> None:
         if self._w.leaderboardList.count() == 1:
@@ -891,6 +901,7 @@ class ReplayVaultWidgetHandler(object):
             scoreboard = layout_item.widget()
             scoreboard.setParent(None)
             self._w.replayScoreLayout.removeWidget(scoreboard)
+            self._w.detailsButton.setVisible(False)
             scoreboard.deleteLater()
 
     def adjust_scoreboard_size(self, width: int, height: int) -> None:
@@ -914,6 +925,8 @@ class ReplayVaultWidgetHandler(object):
             self.add_scoreboard(item)
             if self.toolboxHandler.mapPreview:
                 self.toolboxHandler.updateMapPreview()
+            details_visible = hasattr(item, "duration") and "playing" not in item.duration
+            self._w.detailsButton.setVisible(details_visible)
 
     def onlineTreeDoubleClicked(self, item):
         if (
