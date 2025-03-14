@@ -30,6 +30,7 @@ from PyQt6 import QtGui
 from PyQt6 import QtNetwork
 from PyQt6 import QtWidgets
 
+from src.mapGenerator.mapgenManager import MapGeneratorManager
 from src.replays.replaydetails.chart import ChartWidget
 from src.replays.replaydetails.heatmap import Heatmap
 from src.replays.replaydetails.replayformat import cmdTypeToString
@@ -157,6 +158,8 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.map_description = QtWidgets.QLabel()
         self.map_description.setWordWrap(True)
         self.map_description.setMaximumWidth(256)
+        interaction_flag = QtCore.Qt.TextInteractionFlag.TextSelectableByMouse
+        self.map_description.setTextInteractionFlags(interaction_flag)
         self.map_layout = QtWidgets.QHBoxLayout()
         self.map_layout.setSpacing(6)
         self.map_layout.addWidget(self.replayInfoMap)
@@ -225,9 +228,15 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self._layout.setMenuBar(menubar)
         self.setLayout(self._layout)
         self.resize(1024, 768)
+        self.generator = MapGeneratorManager()
+
+    def update_map_pixmap(self) -> None:
+        pixmap = self.map_preview_pixmap(self.loader.replay.luaScenarioInfo["map"])
+        self.replayInfoMap.setPixmap(pixmap)
 
     def generate_map(self) -> None:
-        raise NotImplementedError
+        self.generator.generateMap(self.loader.replay.map_display_name())
+        self.update_map_pixmap()
 
     def show_replay_exception_msg(self, msg: str) -> None:
         self.statusBar.showMessage("")
@@ -432,8 +441,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.heatmap_tab.create_(self.loader.replay.ticks)
 
         self.statusBar.showMessage(f"Replay loaded in {ms} ms")
-        pixmap = self.map_preview_pixmap(self.loader.replay.luaScenarioInfo["map"])
-        self.replayInfoMap.setPixmap(pixmap)
+        self.update_map_pixmap()
         mapname = self.loader.replay.map_display_name()
         self.replayInfoMap.setToolTip(mapname)
         self.map_description.setText(self.loader.replay.luaScenarioInfo["description"])
