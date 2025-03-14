@@ -44,6 +44,7 @@ from PyQt6.QtWidgets import QLabel
 from PyQt6.QtWidgets import QSizePolicy
 from PyQt6.QtWidgets import QSpacerItem
 
+from src.mapGenerator.mapgenUtils import isGeneratedMap
 from src.replays.replaydetails.replayformat import LUA_TYPE
 from src.replays.replaydetails.replayformat import STITARGET
 from src.replays.replaydetails.replayformat import ECmdStreamOp
@@ -451,9 +452,22 @@ class ReplayParser(QObject):
         tmp += "</table></p>"
         return tmp
 
+    def generated_map_size(self) -> str:
+        desc = self.luaScenarioInfo["description"].split("\r\n")
+        for line in desc:
+            if "Map Size" in line:
+                size = int(line.split(":")[-1])
+                return f"{size/51.2:.2f}x{size/51.2:.2f}"
+        return ""
+
     def map_display_size(self) -> str:
         (a, b) = self.luaScenarioInfo["size"][1.0], self.luaScenarioInfo["size"][2.0]
         return f"{int(a/51.2)}x{int(b/51.2)}"
+
+    def actual_map_size(self) -> str:
+        if isGeneratedMap(self.map_folder_name()):
+            return self.generated_map_size()
+        return self.map_display_size()
 
     def map_display_name(self) -> str:
         return self.luaScenarioInfo["name"]
@@ -481,7 +495,7 @@ class ReplayParser(QObject):
     def get_settings(self) -> str:
         tmp = (
             f"<center><h2>{self.map_display_name()}</h2><h4>"
-            f"{self.map_display_size()}</h4></center><table>"
+            f"{self.actual_map_size()}</h4></center><table>"
         )
         for k, v in self.luaScenarioInfo["Options"].items():
             if k not in ["Ratings", "ScenarioFile", "ReplayID"]:

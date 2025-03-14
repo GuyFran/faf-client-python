@@ -1,7 +1,3 @@
-import re
-
-GENERATED_MAP_PATTERN = re.compile("neroxis_map_generator_([0-9.]+)_.+")
-
 PLAYER_COLORS = [
     # this is from faf.nxt/lua/GameColors.lua
     "#e80a0a",  # (01) Cybran red

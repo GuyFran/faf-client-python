@@ -33,6 +33,7 @@ from PyQt6 import QtWidgets
 from src.fa.maps import downloadMap
 from src.fa.maps import isMapAvailable
 from src.mapGenerator.mapgenManager import MapGeneratorManager
+from src.mapGenerator.mapgenUtils import isGeneratedMap
 from src.replays.replaydetails.chart import ChartWidget
 from src.replays.replaydetails.heatmap import Heatmap
 from src.replays.replaydetails.replayformat import cmdTypeToString
@@ -40,7 +41,6 @@ from src.replays.replaydetails.replayreader import Replay
 from src.replays.replaydetails.replayreader import ReplayException
 from src.replays.replaydetails.replayreader import ReplayParser
 from src.replays.replaydetails.utils import ACTION_ICONS
-from src.replays.replaydetails.utils import GENERATED_MAP_PATTERN
 from src.replays.replaydetails.utils import PLAYER_COLORS
 from src.util import COMMON_DIR
 from src.util import THEME
@@ -238,7 +238,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
 
     def obtain_map(self) -> None:
         map_folder = self.loader.replay.map_folder_name()
-        if GENERATED_MAP_PATTERN.match(map_folder):
+        if isGeneratedMap(map_folder):
             self.generator.generateMap(map_folder)
         else:
             downloadMap(map_folder)
@@ -457,7 +457,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
     def update_get_map_button(self) -> None:
         map_folder = self.loader.replay.map_folder_name()
         self.get_map_button.setVisible(not isMapAvailable(map_folder))
-        text = "Generate map" if GENERATED_MAP_PATTERN.match(map_folder) else "Download map"
+        text = "Generate map" if isGeneratedMap(map_folder) else "Download map"
         self.get_map_button.setText(text)
 
     def add_resources(self) -> None:
