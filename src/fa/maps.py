@@ -26,11 +26,11 @@ route = Settings.get('content/host')
 __exist_maps = None
 
 
-def isBase(mapname):
+def isBase(mapname: str) -> bool:
     """
     Returns true if mapname is the name of an official map
     """
-    return mapname in maps
+    return mapname.lower() in maps
 
 
 def getUserMaps():

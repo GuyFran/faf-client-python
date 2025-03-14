@@ -30,6 +30,8 @@ from PyQt6 import QtGui
 from PyQt6 import QtNetwork
 from PyQt6 import QtWidgets
 
+from src.fa.maps import downloadMap
+from src.fa.maps import isMapAvailable
 from src.mapGenerator.mapgenManager import MapGeneratorManager
 from src.replays.replaydetails.chart import ChartWidget
 from src.replays.replaydetails.heatmap import Heatmap
@@ -169,14 +171,14 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.settingsTab.setReadOnly(True)
         self.settingsTab.setVisible(False)
 
-        self.generate_map_button = QtWidgets.QPushButton("Generate map")
-        self.generate_map_button.setVisible(False)
-        self.generate_map_button.clicked.connect(self.generate_map)
+        self.get_map_button = QtWidgets.QPushButton("Generate map")
+        self.get_map_button.setVisible(False)
+        self.get_map_button.clicked.connect(self.obtain_map)
 
         self.replayInfoTabLayout = QtWidgets.QGridLayout()
         self.replayInfoTabLayout.addWidget(self.replayInfo, 0, 0, 4, 1)
         self.replayInfoTabLayout.addItem(self.map_layout, 0, 1)
-        self.replayInfoTabLayout.addWidget(self.generate_map_button, 1, 1)
+        self.replayInfoTabLayout.addWidget(self.get_map_button, 1, 1)
         self.replayInfoTabLayout.addWidget(self.settingsTab, 2, 1)
 
         self.replayInfoTab = QtWidgets.QWidget()
@@ -234,9 +236,14 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         pixmap = self.map_preview_pixmap(self.loader.replay.luaScenarioInfo["map"])
         self.replayInfoMap.setPixmap(pixmap)
 
-    def generate_map(self) -> None:
-        self.generator.generateMap(self.loader.replay.map_display_name())
+    def obtain_map(self) -> None:
+        map_folder = self.loader.replay.map_folder_name()
+        if GENERATED_MAP_PATTERN.match(map_folder):
+            self.generator.generateMap(map_folder)
+        else:
+            downloadMap(map_folder)
         self.update_map_pixmap()
+        self.update_get_map_button()
 
     def show_replay_exception_msg(self, msg: str) -> None:
         self.statusBar.showMessage("")
@@ -442,11 +449,16 @@ class ReplayDetailsCard(QtWidgets.QDialog):
 
         self.statusBar.showMessage(f"Replay loaded in {ms} ms")
         self.update_map_pixmap()
-        mapname = self.loader.replay.map_display_name()
-        self.replayInfoMap.setToolTip(mapname)
+        self.replayInfoMap.setToolTip(self.loader.replay.map_display_name())
         self.map_description.setText(self.loader.replay.luaScenarioInfo["description"])
-        self.generate_map_button.setVisible(bool(GENERATED_MAP_PATTERN.match(mapname)))
+        self.update_get_map_button()
         self.gen_chart()
+
+    def update_get_map_button(self) -> None:
+        map_folder = self.loader.replay.map_folder_name()
+        self.get_map_button.setVisible(not isMapAvailable(map_folder))
+        text = "Generate map" if GENERATED_MAP_PATTERN.match(map_folder) else "Download map"
+        self.get_map_button.setText(text)
 
     def add_resources(self) -> None:
         document = self.actionsDisplay.document()
