@@ -386,10 +386,9 @@ class ReplayParser(QObject):
             if id != 255:
                 teams[player["Team"]].append(id)
 
-        tmp = f"<center><h2>{self.replayPatchFieldId}</h2>"
-
-        if self.faf_info:
-            tmp += f"<h3>{self.faf_info['title']}</h3>"
+        tmp = f"<center><h2>{self.faf_info['title']}</h2>"
+        tmp += f"<center><h3>{self.replayPatchFieldId}</h3>"
+        tmp += f"<center><h4>host: {self.faf_info['host']}</h4>"
 
         tmp += (
             f"<h3>{self.seconds_to_human(self.ticks // 10)}</h3>"
