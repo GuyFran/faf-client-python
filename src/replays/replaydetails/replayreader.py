@@ -341,12 +341,10 @@ class ReplayParser(QObject):
             if datetime.fromtimestamp(start).day == datetime.fromtimestamp(end).day:
                 start_str = datetime.fromtimestamp(start).strftime("%Y-%m-%d (%A)<br/> %H:%M:%S")
                 end_str = datetime.fromtimestamp(end).strftime("%H:%M:%S")
-                return f"{start_str} - {end_str} (UTC)"
-
             else:
-                start = self.to_readable_date(self.faf_info["game_time"])
-                end = self.to_readable_date(self.faf_info["game_end"])
-                return f"{start} - {end} (UTC)"
+                start_str = self.to_readable_date(start)
+                end_str = self.to_readable_date(end)
+            return f"{start_str} - {end_str} <br/> ({self.seconds_to_human(end - start)})"
         except Exception:  # sometimes theres no such info
             return ""
 
