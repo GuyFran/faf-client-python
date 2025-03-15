@@ -20,6 +20,21 @@ from src.config import Settings
 from src.replays.replaydetails.rangeslider import RangeSlider
 
 
+def create_colorbar_hist() -> pg.HistogramLUTWidget:
+    hist = pg.HistogramLUTWidget()
+    cmap_name = Settings.get("replaycard.heatmap/colormap", "preset-gradient:flame")
+    if cmap_name.startswith("preset-gradient"):
+        hist.item.gradient.loadPreset(cmap_name.split(":")[1])
+    else:
+        cmap = pg.colormap.get(cmap_name)
+        hist.item.gradient.setColorMap(cmap)
+        hist.item.gradient.showTicks(False)
+    hist.item.gradient.menu.sigColorMapTriggered.connect(
+        lambda colormap: Settings.set("replaycard.heatmap/colormap", colormap.name),
+    )
+    return hist
+
+
 class HeatmapProperties(NamedTuple):
     height: int = 1024
     width: int = 1024
@@ -39,7 +54,7 @@ class Heatmap(QWidget):
 
         _graphics_layout.addWidget(_graphics_view, 0, 0, 7, 1)
 
-        self.hist = self.color_bar_hist()
+        self.hist = create_colorbar_hist()
         self.hist.setImageItem(self.heatmap)
         _graphics_layout.addWidget(self.hist, 0, 1)
 
@@ -125,20 +140,6 @@ class Heatmap(QWidget):
         self.heatmap_properties = HeatmapProperties()
 
         self.pts_norm = []
-
-    def color_bar_hist(self) -> pg.HistogramLUTWidget:
-        hist = pg.HistogramLUTWidget()
-        cmap_name = Settings.get("replaycard.heatmap/colormap", "preset-gradient:flame")
-        if cmap_name.startswith("preset-gradient"):
-            hist.item.gradient.loadPreset(cmap_name.split(":")[1])
-        else:
-            cmap = pg.colormap.get(cmap_name)
-            hist.item.gradient.setColorMap(cmap)
-            hist.item.gradient.showTicks(False)
-        hist.item.gradient.menu.sigColorMapTriggered.connect(
-            lambda colormap: Settings.set("replaycard.heatmap/colormap", colormap.name),
-        )
-        return hist
 
     def generate_new_heatmap(self) -> None:
         if len(self.pts_norm) == 0:
