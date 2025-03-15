@@ -209,6 +209,9 @@ class ReplayParser(QObject):
         self.randomSeed = self.binary.readUInt32()
 
     def parse_ticks(self) -> None:
+        device = self.binary.device()
+        assert device is not None
+
         prev_tick = -1
         prev_digest = None
 
@@ -250,14 +253,19 @@ class ReplayParser(QObject):
                         raise ReplayException("Not valid stitarget", stitarget)
 
                 case ECmdStreamOp.CMDST_LuaSimCallback:
+                    callback_start = device.pos()
+
                     function = self.return_next_string()
                     lua = self.parse_lua()
 
                     self.append_chatline(function, lua)
 
-                    # entity ids (maybe..)
-                    for _ in range(self.binary.readUInt32()):
-                        self.binary.readUInt32()
+                    callback_end = device.pos()
+                    # MOST of the time it works with the default `skipRawData(readUInt32() * 4)`
+                    # (default means all other faf replay parsers implement it this way)
+                    # BUT there was a case with the replay 24470050, where only 3 bytes left
+                    # after reading function and lua, which is not enough to read u32
+                    self.binary.skipRawData(message_len - 3 - (callback_end - callback_start))
 
                 case ECmdStreamOp.CMDST_IssueCommand | ECmdStreamOp.CMDST_IssueFactoryCommand:
                     self.CPM[player] += 1  # increase commands number
