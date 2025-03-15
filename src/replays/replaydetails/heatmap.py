@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import QSpinBox
 from PyQt6.QtWidgets import QVBoxLayout
 from PyQt6.QtWidgets import QWidget
 
+from src.config import Settings
 from src.replays.replaydetails.rangeslider import RangeSlider
 
 
@@ -39,25 +40,45 @@ class Heatmap(QWidget):
 
         _graphics_layout.addWidget(_graphics_view, 0, 0, 7, 1)
 
-        self.hist = pg.HistogramLUTWidget()
+        self.hist = self.color_bar_hist()
         self.hist.setImageItem(self.heatmap)
         _graphics_layout.addWidget(self.hist, 0, 1)
 
-        self.smooth_button = QCheckBox("Smoothing")
-        self.smooth_button.checkStateChanged.connect(self._generate_new_heatmap)
-        _graphics_layout.addWidget(self.smooth_button, 1, 1)
+        self.smooth_check_box = QCheckBox("Smoothing")
+        smoothing = Settings.get("replaycard.heatmap/smoothing", True, type=bool)
+        self.smooth_check_box.setChecked(smoothing)
+        self.smooth_check_box.checkStateChanged.connect(self._generate_new_heatmap)
+        self.smooth_check_box.checkStateChanged.connect(
+            lambda state: Settings.set(
+                "replaycard.heatmap/smoothing",
+                state == Qt.CheckState.Checked,
+            ),
+        )
+        _graphics_layout.addWidget(self.smooth_check_box, 1, 1)
 
         debounce_layout = QHBoxLayout()
 
         self.debounce_check_box = QCheckBox("Debounce:")
         debounce_tooltip = "Delay between selecting time range and applying smoothing"
         self.debounce_check_box.setToolTip(debounce_tooltip)
+        debounce = Settings.get("replaycard.heatmap/debounce", True, type=bool)
+        self.debounce_check_box.setChecked(debounce)
+        self.debounce_check_box.checkStateChanged.connect(
+            lambda state: Settings.set(
+                "replaycard.heatmap/smoothing",
+                state == Qt.CheckState.Checked,
+            ),
+        )
 
         self.debounce_spin_box = QSpinBox()
         self.debounce_spin_box.setMinimum(0)
         self.debounce_spin_box.setMaximum(1000)
-        self.debounce_spin_box.setValue(100)
+        debounce_time_ms = Settings.get("replaycard.heatmap/debounce_time_ms", 100, type=int)
+        self.debounce_spin_box.setValue(debounce_time_ms)
         self.debounce_spin_box.setSuffix(" ms")
+        self.debounce_spin_box.valueChanged.connect(
+            lambda value: Settings.set("replaycard.heatmap/debounce_time_ms", value),
+        )
 
         debounce_layout.addWidget(self.debounce_check_box)
         debounce_layout.addWidget(self.debounce_spin_box)
@@ -106,6 +127,20 @@ class Heatmap(QWidget):
 
         self.pts_norm = []
 
+    def color_bar_hist(self) -> pg.HistogramLUTWidget:
+        hist = pg.HistogramLUTWidget()
+        cmap_name = Settings.get("replaycard.heatmap/colormap", "preset-gradient:flame")
+        if cmap_name.startswith("preset-gradient"):
+            hist.item.gradient.loadPreset(cmap_name.split(":")[1])
+        else:
+            cmap = pg.colormap.get(cmap_name)
+            hist.item.gradient.setColorMap(cmap)
+            hist.item.gradient.showTicks(False)
+        hist.item.gradient.menu.sigColorMapTriggered.connect(
+            lambda colormap: Settings.set("replaycard.heatmap/colormap", colormap.name),
+        )
+        return hist
+
     def _generate_new_heatmap(self) -> None:
         if len(self.pts_norm) == 0:
             return
@@ -114,7 +149,7 @@ class Heatmap(QWidget):
         hightick = self.heatmapRangeSlider.high()
         img = self.return_heatmap(lowtick, hightick)
 
-        if self.smooth_button.isChecked() and not self.debounce_timer.isActive():
+        if self.smooth_check_box.isChecked() and not self.debounce_timer.isActive():
             img = pg.gaussianFilter(img, (self.x_sigma.value(), self.y_sigma.value(), 0))
 
         self.heatmap.setImage(img)
@@ -165,11 +200,11 @@ class Heatmap(QWidget):
         ]
 
     def create_(self, ticks: int) -> None:
-        self.heatmap.setImage(self.return_heatmap())
         self.heatmapRangeSlider.setMinimum(0)
         self.heatmapRangeSlider.setMaximum(ticks)
         self.heatmapRangeSlider.setLow(0)
         self.heatmapRangeSlider.setHigh(ticks)
+        self._generate_new_heatmap()
 
     @pyqtSlot(int, int)
     def generate_new_heatmap(self, lowtick: int, hightick: int) -> None:
