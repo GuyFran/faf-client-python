@@ -290,8 +290,6 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.downloader.get(QtNetwork.QNetworkRequest(QtCore.QUrl(url)))
 
     def download_by_url(self, qurl: QtCore.QUrl) -> None:
-        # url = f"https://replay.faforever.com/{id}"
-        print(qurl.url())
         self.statusBar.showMessage("Downloading replay...")
         self.downloader.get(QtNetwork.QNetworkRequest(qurl))
 
