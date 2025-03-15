@@ -444,7 +444,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.settingsTab.setText(self.loader.replay.get_settings())
 
         self.heatmap_tab.set_pts(self.loader.replay.pts)
-        self.heatmap_tab.create_(self.loader.replay.ticks)
+        self.heatmap_tab.create_heatmap(self.loader.replay.ticks)
 
         self.statusBar.showMessage(f"Replay loaded in {ms} ms")
         self.update_map_pixmap()

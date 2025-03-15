@@ -7,7 +7,6 @@ import numpy as np
 import pyqtgraph as pg
 from PyQt6.QtCore import Qt
 from PyQt6.QtCore import QTimer
-from PyQt6.QtCore import pyqtSlot
 from PyQt6.QtWidgets import QCheckBox
 from PyQt6.QtWidgets import QGridLayout
 from PyQt6.QtWidgets import QHBoxLayout
@@ -47,7 +46,7 @@ class Heatmap(QWidget):
         self.smooth_check_box = QCheckBox("Smoothing")
         smoothing = Settings.get("replaycard.heatmap/smoothing", True, type=bool)
         self.smooth_check_box.setChecked(smoothing)
-        self.smooth_check_box.checkStateChanged.connect(self._generate_new_heatmap)
+        self.smooth_check_box.checkStateChanged.connect(self.generate_new_heatmap)
         self.smooth_check_box.checkStateChanged.connect(
             lambda state: Settings.set(
                 "replaycard.heatmap/smoothing",
@@ -86,7 +85,7 @@ class Heatmap(QWidget):
 
         self.debounce_timer = QTimer()
         self.debounce_timer.setSingleShot(True)
-        self.debounce_timer.timeout.connect(self._generate_new_heatmap)
+        self.debounce_timer.timeout.connect(self.generate_new_heatmap)
 
         sigma_layout = QHBoxLayout()
         self.x_sigma = QSpinBox()
@@ -103,7 +102,7 @@ class Heatmap(QWidget):
         sigma_layout.addWidget(self.y_sigma)
 
         self.regen_button = QPushButton("Regenerate heatmap")
-        self.regen_button.clicked.connect(self._generate_new_heatmap)
+        self.regen_button.clicked.connect(self.generate_new_heatmap)
 
         _graphics_layout.addWidget(QLabel("Standard deviation for Gaussian kernel:"), 4, 1)
         _graphics_layout.addItem(sigma_layout, 5, 1)
@@ -141,7 +140,7 @@ class Heatmap(QWidget):
         )
         return hist
 
-    def _generate_new_heatmap(self) -> None:
+    def generate_new_heatmap(self) -> None:
         if len(self.pts_norm) == 0:
             return
 
@@ -161,12 +160,9 @@ class Heatmap(QWidget):
         )
 
     def debounce(self) -> None:
-        self._generate_new_heatmap()
+        self.generate_new_heatmap()
         if self.debounce_check_box.isChecked():
             self.debounce_timer.start(self.debounce_spin_box.value())
-
-    def redraw_heatmap(self) -> None:
-        self.generate_new_heatmap(self.heatmapRangeSlider.low(), self.heatmapRangeSlider.high())
 
     def seconds_to_human(self, seconds: int) -> str:
         m, s = divmod(seconds, 60)
@@ -202,23 +198,12 @@ class Heatmap(QWidget):
             for tick, x, y in pts
         ]
 
-    def create_(self, ticks: int) -> None:
+    def create_heatmap(self, ticks: int) -> None:
         self.heatmapRangeSlider.setMinimum(0)
         self.heatmapRangeSlider.setMaximum(ticks)
         self.heatmapRangeSlider.setLow(0)
         self.heatmapRangeSlider.setHigh(ticks)
-        self._generate_new_heatmap()
-
-    @pyqtSlot(int, int)
-    def generate_new_heatmap(self, lowtick: int, hightick: int) -> None:
-        img = self.return_heatmap(lowtick, hightick)
-        self.heatmap.setImage(img)
-        self.heatmapSliderText.setText(
-            self.seconds_to_human(lowtick // 10)
-            + " (" + str(lowtick) + ") - "
-            + self.seconds_to_human(hightick // 10)
-            + " (" + str(hightick) + ")",
-        )
+        self.generate_new_heatmap()
 
     def return_heatmap(self, fromTick: int = 0, toTick: int = -1) -> np.ndarray | None:
         pts = self.return_pts(fromTick, toTick)
