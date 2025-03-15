@@ -190,6 +190,9 @@ class Heatmap(QWidget):
         w = self.heatmap_properties.width - 1
         h = self.heatmap_properties.height - 1
 
+        if max_x == min_x and max_y == min_y:
+            return [(tick, 0, 0) for tick, _, _ in pts]
+
         return [
             (
                 tick,
