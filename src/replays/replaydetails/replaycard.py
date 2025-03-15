@@ -204,7 +204,11 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.chartsTabLayout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
 #        self.chartsTabLayout.setMargin(0)
         self.chartsTabLayout.addWidget(self.cpms)
-        self.chartsTabLayout.addWidget(self.actionsDisplay)
+        actions_layout = QtWidgets.QHBoxLayout()
+        actions_layout.addWidget(self.actionsDisplay)
+        self.playerActionFilter = QtWidgets.QWidget()
+        actions_layout.addWidget(self.playerActionFilter)
+        self.chartsTabLayout.addItem(actions_layout)
 
         self.chartsTab = QtWidgets.QWidget()
         self.chartsTab.setLayout(self.chartsTabLayout)
@@ -450,6 +454,45 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.map_description.setText(self.loader.replay.luaScenarioInfo["description"])
         self.update_get_map_button()
         self.gen_chart()
+        self.populate_player_selection()
+
+    def populate_player_selection(self) -> None:
+        select_all = QtWidgets.QCheckBox("Select all")
+        select_all.setChecked(True)
+        select_all.checkStateChanged.connect(
+            lambda state: [
+                checkbox.setChecked(state == QtCore.Qt.CheckState.Checked)
+                for key, checkbox in self.show_player_actions.items()
+                if key != "all"
+            ],
+        )
+
+        self.show_player_actions = {"all": select_all}
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(select_all)
+        army = self.loader.replay.army
+        for id, name in self.loader.replay.players.items():
+            line = QtWidgets.QHBoxLayout()
+            line.setSpacing(6)
+
+            checkbox = QtWidgets.QCheckBox(text=name)
+            checkbox.setChecked(True)
+
+            label = QtWidgets.QLabel()
+            label.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
+            label.setMaximumSize(10, 10)
+
+            pixmap = QtGui.QPixmap(10, 10)
+            pixmap.fill(QtGui.QColor(PLAYER_COLORS[int(army[id]["PlayerColor"]) - 1]))
+            label.setPixmap(pixmap)
+
+            line.addWidget(checkbox)
+            line.addWidget(label)
+
+            layout.addItem(line)
+            self.show_player_actions[id] = checkbox
+        self.playerActionFilter.setLayout(layout)
 
     def update_get_map_button(self) -> None:
         map_folder = self.loader.replay.map_folder_name()
@@ -508,14 +551,15 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         if not self.loader.replay.commands:
             return
 
-        playersNum = len(self.loader.replay.cpmChart)
-
         text = (
             f"time: {seconds_to_human(tick//10)}"
             f" to {seconds_to_human(min(tick+600, self.loader.replay.ticks)//10)}"
             f"<br/>"
         )
-        for playerId in range(playersNum):
+        for playerId in self.loader.replay.cpmChart:
+            if not self.show_player_actions[playerId].isChecked():
+                continue
+
             text += (
                 f"<b style='color:{self.cpms.colors[playerId]}'>"
                 f"{self.loader.replay.army[playerId]['PlayerName']}</b>: "
