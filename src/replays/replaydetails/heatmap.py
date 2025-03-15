@@ -104,17 +104,24 @@ class Heatmap(QWidget):
 
         sigma_layout = QHBoxLayout()
         self.x_sigma = QSpinBox()
-        self.x_sigma.setMinimum(0)
-        self.x_sigma.setMaximum(100)
-        self.x_sigma.setPrefix("x: ")
-        self.x_sigma.setValue(2)
+        self.x_sigma.setObjectName("x_sigma")
         self.y_sigma = QSpinBox()
-        self.y_sigma.setMinimum(0)
-        self.y_sigma.setMaximum(100)
-        self.y_sigma.setPrefix("y: ")
-        self.y_sigma.setValue(2)
-        sigma_layout.addWidget(self.x_sigma)
-        sigma_layout.addWidget(self.y_sigma)
+        self.y_sigma.setObjectName("y_sigma")
+
+        kernel_settings = (self.x_sigma, self.y_sigma)
+        for setting in kernel_settings:
+            name = setting.objectName()
+            setting.setMinimum(0)
+            setting.setMaximum(100)
+            setting.setPrefix(f"{name.split('_')[0]}: ")
+            setting.setValue(Settings.get(f"replaycard.heatmap/{name}", 2, type=int))
+            sigma_layout.addWidget(setting)
+        self.x_sigma.valueChanged.connect(
+            lambda value: Settings.set("replaycard.heatmap/x_sigma", value),
+        )
+        self.y_sigma.valueChanged.connect(
+            lambda value: Settings.set("replaycard.heatmap/y_sigma", value),
+        )
 
         self.regen_button = QPushButton("Regenerate heatmap")
         self.regen_button.clicked.connect(self.generate_new_heatmap)
