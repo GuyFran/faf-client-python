@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import html
 import json
+import logging
 import os
 from collections import Counter
 from collections import defaultdict
@@ -44,6 +45,8 @@ from src.replays.replaydetails.replayformat import STITARGET
 from src.replays.replaydetails.replayformat import ECmdStreamOp
 from src.replays.replaydetails.utils import PLAYER_COLORS
 from src.util import COMMON_DIR
+
+logger = logging.getLogger(__name__)
 
 
 def uncompress(compressed: bytes, compression: str = "base64") -> QByteArray:
@@ -112,6 +115,7 @@ class ReplayParser(QObject):
 
         self.cpmChart = defaultdict(list)
         self.commands = defaultdict(list)
+        self.game_stats = {}
 
     def set_file(self, file: str) -> None:
         self.filename = file
@@ -258,6 +262,7 @@ class ReplayParser(QObject):
                     function = self.return_next_string()
                     lua = self.parse_lua()
 
+                    self.process_moderator_event(function, lua)
                     self.append_chatline(function, lua)
 
                     callback_end = device.pos()
@@ -309,6 +314,20 @@ class ReplayParser(QObject):
                     self.binary.skipRawData(message_len - 3)
 
         self.replayPercentage.emit(100)
+
+    def process_moderator_event(self, function: str, lua: dict) -> None:
+        if (
+            function != "ModeratorEvent"
+            or "Message" not in lua
+            or not lua["Message"].startswith("GpgNetSend with command 'JsonStats'")
+        ):
+            return
+
+        if not self.game_stats:
+            try:
+                self.game_stats = json.loads(lua["Message"][46:-2])
+            except json.JSONDecodeError as e:
+                logger.exception(f"Error while parsing game stats: {e}, lua: {lua}")
 
     def append_chatline(self, function: str, lua: dict) -> None:
         if function != "GiveResourcesToPlayer" or "Msg" not in lua:

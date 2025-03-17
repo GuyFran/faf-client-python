@@ -38,6 +38,7 @@ from src.fa.maps import isMapAvailable
 from src.mapGenerator.mapgenManager import MapGeneratorManager
 from src.mapGenerator.mapgenUtils import isGeneratedMap
 from src.replays.replaydetails.chart import ChartWidget
+from src.replays.replaydetails.gamestats import StatsVisualizer
 from src.replays.replaydetails.heatmap import Heatmap
 from src.replays.replaydetails.replayformat import cmdTypeToString
 from src.replays.replaydetails.replayreader import Replay
@@ -213,11 +214,14 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.chartsTab = QtWidgets.QWidget()
         self.chartsTab.setLayout(self.chartsTabLayout)
 
+        self.game_stats_tab = StatsVisualizer()
+
         self.replayTabs = QtWidgets.QTabWidget()
         self.replayTabs.addTab(self.replayInfoTab, "Info")
         self.replayTabs.addTab(self.chatTab, "Chat")
         self.replayTabs.addTab(self.heatmap_tab, "Heatmap")
         self.replayTabs.addTab(self.chartsTab, "Graph")
+        self.replayTabs.addTab(self.game_stats_tab, "Game Stats")
 #        self.replayTabs.addTab(self.settingsTab,"Settings")
 
         self.loadingBar = QtWidgets.QProgressBar()
@@ -455,6 +459,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.update_get_map_button()
         self.gen_chart()
         self.populate_player_selection()
+        self.game_stats_tab.draw_stats(self.loader.replay.game_stats)
 
     def populate_player_selection(self) -> None:
         select_all = QtWidgets.QCheckBox("Select all")
