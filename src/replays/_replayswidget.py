@@ -713,6 +713,7 @@ class ReplayVaultWidgetHandler(object):
             replay_details = ReplayDetailsCard()
             replay_details.download_by_url(QtCore.QUrl(item.url))
             replay_details.exec()
+            replay_details.deleteLater()
 
     def on_authorized(self) -> None:
         if self._w.leaderboardList.count() == 1:
@@ -913,6 +914,8 @@ class ReplayVaultWidgetHandler(object):
         scoreboard = item.generate_scoreboard()
         self._w.replayScoreLayout.addWidget(scoreboard)
         self.adjust_scoreboard_size(scoreboard.width(), scoreboard.height())
+        details_visible = hasattr(item, "duration") and "playing" not in item.duration
+        self._w.detailsButton.setVisible(details_visible)
 
     def online_tree_clicked(self, item: ReplayItem | QTreeWidgetItem) -> None:
         if not isinstance(item, ReplayItem):
@@ -925,8 +928,6 @@ class ReplayVaultWidgetHandler(object):
             self.add_scoreboard(item)
             if self.toolboxHandler.mapPreview:
                 self.toolboxHandler.updateMapPreview()
-            details_visible = hasattr(item, "duration") and "playing" not in item.duration
-            self._w.detailsButton.setVisible(details_visible)
 
     def onlineTreeDoubleClicked(self, item):
         if (
