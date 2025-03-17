@@ -124,6 +124,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.setBaseSize(800, 700)
         self.loader = ReplayLoader()
         self.loader.replayLoaded.connect(self.populatePages)
+        self.loader.replayException.connect(self.show_replay_exception_msg)
 
         self.downloader = QtNetwork.QNetworkAccessManager(self)
         self.downloader.finished.connect(self.on_download_finished)
