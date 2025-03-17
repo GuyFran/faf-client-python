@@ -170,9 +170,9 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.map_layout.addWidget(self.replayInfoMap)
         self.map_layout.addWidget(self.map_description)
 
-        self.settingsTab = QtWidgets.QTextBrowser()
-        self.settingsTab.setReadOnly(True)
-        self.settingsTab.setVisible(False)
+        self.lobby_options = QtWidgets.QTextBrowser()
+        self.lobby_options.setReadOnly(True)
+        self.lobby_options.setVisible(False)
 
         self.get_map_button = QtWidgets.QPushButton("Generate map")
         self.get_map_button.setVisible(False)
@@ -182,7 +182,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.replayInfoTabLayout.addWidget(self.replayInfo, 0, 0, 4, 1)
         self.replayInfoTabLayout.addItem(self.map_layout, 0, 1)
         self.replayInfoTabLayout.addWidget(self.get_map_button, 1, 1)
-        self.replayInfoTabLayout.addWidget(self.settingsTab, 2, 1)
+        self.replayInfoTabLayout.addWidget(self.lobby_options, 2, 1)
 
         self.replayInfoTab = QtWidgets.QWidget()
         self.replayInfoTab.setLayout(self.replayInfoTabLayout)
@@ -198,13 +198,11 @@ class ReplayDetailsCard(QtWidgets.QDialog):
 
         self.actionsDisplay = QtWidgets.QTextBrowser()
 
-        action_icons = os.path.join(util.COMMON_DIR, "replays", "actions48.png")
-        self.action_pixes = action_pixmaps(action_icons)
-        self.unit_pixes = units_pixmaps(os.path.join(util.COMMON_DIR, "unitdb", "units"))
+        self.action_icons = os.path.join(util.COMMON_DIR, "replays", "actions48.png")
+        self.units_icons = os.path.join(util.COMMON_DIR, "unitdb", "units")
 
         self.chartsTabLayout = QtWidgets.QVBoxLayout()
         self.chartsTabLayout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-#        self.chartsTabLayout.setMargin(0)
         self.chartsTabLayout.addWidget(self.cpms)
         actions_layout = QtWidgets.QHBoxLayout()
         actions_layout.addWidget(self.actionsDisplay)
@@ -223,12 +221,10 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.replayTabs.addTab(self.heatmap_tab, "Heatmap")
         self.replayTabs.addTab(self.chartsTab, "Graph")
         self.replayTabs.addTab(self.game_stats_tab, "Game Stats")
-#        self.replayTabs.addTab(self.settingsTab,"Settings")
 
         self.loadingBar = QtWidgets.QProgressBar()
         self.loadingBar.hide()
         self.statusBar = QtWidgets.QStatusBar()
-        # self.statusBar.setMaximumHeight(20)
         self.statusBar.setSizeGripEnabled(False)
         self.statusBar.addWidget(self.loadingBar, 1)
 
@@ -262,14 +258,15 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         QtWidgets.QMessageBox.warning(self, "Error", msg)
 
     def download_dialog(self) -> None:
+
         def start_it():
             try:
                 self.download_by_id(int(replayInput.text()))
                 dialog.close()
             except ValueError:
-                QtWidgets.QMessageBox.warning(self, 'Error', 'Replay id must be number')
+                QtWidgets.QMessageBox.warning(self, "Error", "Replay id must be number")
                 replayInput.clear()
-                pass
+
         dialog = QtWidgets.QDialog(
             None,
             QtCore.Qt.WindowType.WindowTitleHint
@@ -422,14 +419,14 @@ class ReplayDetailsCard(QtWidgets.QDialog):
                 <h3>Based on Synced Live Replay server</h3>
                 <h5>by PattogoTehen in 2013</h5>
                 <p>
-                    More info on faf forum: <a href="http://forums.faforever.com/viewtopic.php?f=41&t=5774">http://forums.faforever.com/viewtopic.php?f=41&t=5774</a> <br/>  # noqa: E501
-                    Source available on GitHub: <a href="https://github.com/fafafaf/livereplayserver">https://github.com/fafafaf/livereplayserver</a> <br/>  # noqa: E501
-                    Online replay parser: <a href="https://fafafaf.github.io">https://fafafaf.github.io<a/>  # noqa: E501
+                    More info on faf forum: <a href="http://forums.faforever.com/viewtopic.php?f=41&t=5774">http://forums.faforever.com/viewtopic.php?f=41&t=5774</a> <br/>
+                    Source available on GitHub: <a href="https://github.com/fafafaf/livereplayserver">https://github.com/fafafaf/livereplayserver</a> <br/>
+                    Online replay parser: <a href="https://fafafaf.github.io">https://fafafaf.github.io<a/>
                 </p>
                 <p>
                     Huge thanks to Aulex and TA4Life for testing, and Domino for lua support
                 </p>
-            """
+            """  # noqa: E501
         )
         aboutLabel = QtWidgets.QLabel(aboutText)
         aboutLabel.setWordWrap(True)
@@ -447,8 +444,8 @@ class ReplayDetailsCard(QtWidgets.QDialog):
     def populatePages(self, ms: int) -> None:
         self.replayInfo.setText(self.loader.replay.get_info())
         self.chatTab.setText(self.loader.replay.get_chat())
-        self.settingsTab.setVisible(True)
-        self.settingsTab.setText(self.loader.replay.get_settings())
+        self.lobby_options.setVisible(True)
+        self.lobby_options.setText(self.loader.replay.get_settings())
 
         self.heatmap_tab.set_pts(self.loader.replay.pts)
         self.heatmap_tab.create_heatmap(self.loader.replay.ticks)
@@ -510,9 +507,9 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         document = self.actionsDisplay.document()
         assert document is not None
         source_type = document.ResourceType.ImageResource
-        for name, pixmap_ in self.action_pixes.items():
+        for name, pixmap_ in action_pixmaps(self.action_icons).items():
             document.addResource(source_type, QtCore.QUrl(name), pixmap_)
-        for name, pixmap_ in self.unit_pixes.items():
+        for name, pixmap_ in units_pixmaps(self.units_icons).items():
             document.addResource(source_type, QtCore.QUrl(name), pixmap_)
 
     def gen_chart(self) -> None:
