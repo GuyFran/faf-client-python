@@ -40,6 +40,7 @@ from src.mapGenerator.mapgenUtils import isGeneratedMap
 from src.replays.replaydetails.chart import ChartWidget
 from src.replays.replaydetails.gamestats import StatsVisualizer
 from src.replays.replaydetails.heatmap import Heatmap
+from src.replays.replaydetails.helpers import seconds_to_human
 from src.replays.replaydetails.replayformat import cmdTypeToString
 from src.replays.replaydetails.replayreader import Replay
 from src.replays.replaydetails.replayreader import ReplayException
@@ -68,12 +69,6 @@ def action_pixmaps(file: str) -> dict[str, QtGui.QPixmap]:
         name: pixmap.copy(0, i * 48, 48, 48)
         for i, name in enumerate(ACTION_ICONS)
     }
-
-
-def seconds_to_human(seconds: int) -> str:
-    m, s = divmod(seconds, 60)
-    h, m = divmod(m, 60)
-    return "%d:%02d:%02d" % (h, m, s)
 
 
 class ReplayLoader(QtCore.QThread):

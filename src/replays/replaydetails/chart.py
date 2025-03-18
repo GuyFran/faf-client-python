@@ -23,11 +23,7 @@ from PyQt6 import QtCore
 from PyQt6 import QtGui
 from PyQt6 import QtWidgets
 
-
-def seconds_to_human(seconds):
-    m, s = divmod(seconds, 60)
-    h, m = divmod(m, 60)
-    return "%dh%02dm%02ds" % (h, m, s) if h else "%2dm%02ds" % (m, s) if m else "%2ds" % s
+from src.replays.replaydetails.helpers import seconds_to_human
 
 
 class ChartWidget(QtWidgets.QWidget):
@@ -137,7 +133,8 @@ class ChartWidget(QtWidgets.QWidget):
                     100,
                     10,
                 )
-                text = seconds_to_human(i * space_between_x_axis_text * num_of_sample / 10)
+                seconds = round(i * space_between_x_axis_text * num_of_sample / 10)
+                text = seconds_to_human(seconds, sep="", full=False)
                 p.drawText(rect, text, QtGui.QTextOption(QtCore.Qt.AlignmentFlag.AlignCenter))
                 p.drawLine(
                     self.l_margin + (i * space_between_x_axis_text),

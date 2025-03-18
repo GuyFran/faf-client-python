@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import QVBoxLayout
 from PyQt6.QtWidgets import QWidget
 
 from src.config import Settings
+from src.replays.replaydetails.helpers import seconds_to_human
 from src.replays.replaydetails.rangeslider import RangeSlider
 
 
@@ -161,9 +162,9 @@ class Heatmap(QWidget):
 
         self.heatmap.setImage(img)
         self.heatmapSliderText.setText(
-            f"{self.seconds_to_human(lowtick // 10)}"
+            f"{seconds_to_human(lowtick // 10)}"
             f"({lowtick})"
-            f"{self.seconds_to_human(hightick // 10)}"
+            f"{seconds_to_human(hightick // 10)}"
             f"({hightick})",
         )
 
@@ -171,11 +172,6 @@ class Heatmap(QWidget):
         self.generate_new_heatmap()
         if self.debounce_check_box.isChecked():
             self.debounce_timer.start(self.debounce_spin_box.value())
-
-    def seconds_to_human(self, seconds: int) -> str:
-        m, s = divmod(seconds, 60)
-        h, m = divmod(m, 60)
-        return "%d:%02d:%02d" % (h, m, s)
 
     def set_pts(self, pts: list) -> None:
         self.pts_norm = self.points_normalized(pts)

@@ -40,6 +40,7 @@ from PyQt6.QtCore import qUncompress
 from PyQt6.QtNetwork import QNetworkReply
 
 from src.mapGenerator.mapgenUtils import isGeneratedMap
+from src.replays.replaydetails.helpers import seconds_to_human
 from src.replays.replaydetails.replayformat import LUA_TYPE
 from src.replays.replaydetails.replayformat import STITARGET
 from src.replays.replaydetails.replayformat import ECmdStreamOp
@@ -363,19 +364,10 @@ class ReplayParser(QObject):
             else:
                 start_str = self.to_readable_date(start)
                 end_str = self.to_readable_date(end)
-            return f"{start_str} - {end_str} <br/> ({self.seconds_to_human(end - start)})"
+            duration = seconds_to_human(end - start, sep=" ", full=False)
+            return f"{start_str} - {end_str} <br/> ({duration})"
         except Exception:  # sometimes theres no such info
             return ""
-
-    def seconds_to_human(self, seconds: int) -> str:
-        m, s = divmod(seconds, 60)
-        h, m = divmod(m, 60)
-        return "%dh %02dm %02ds" % (h, m, s) if h else "%2dm %02ds" % (m, s) if m else "%2ds" % s
-
-    def format_seconds(self, seconds: int) -> str:
-        m, s = divmod(seconds, 60)
-        h, m = divmod(m, 60)
-        return "%d:%02d:%02d" % (h, m, s)
 
     def _coop_teams(self) -> dict[int, list[int]]:
         teams = defaultdict(list)
@@ -415,7 +407,7 @@ class ReplayParser(QObject):
         tmp += f"<center><h4>host: {self.faf_info['host']}</h4>"
 
         tmp += (
-            f"<h3>{self.seconds_to_human(self.ticks // 10)}</h3>"
+            f"<h3>{seconds_to_human(self.ticks // 10, sep=' ', full=False)}</h3>"
             f"<h4>{self.real_time()}</h4>"
             "</center>"
         )
@@ -499,7 +491,7 @@ class ReplayParser(QObject):
             tmp += f"<tr bgcolor='{bgcolor}'>"
             for i, elem in enumerate(line[:-1]):
                 if i == 0:
-                    text = self.format_seconds(elem // 10)
+                    text = seconds_to_human(elem // 10)
                 else:
                     text = elem
                 tmp += f"<td style='color: silver;'>{text}</td>"
