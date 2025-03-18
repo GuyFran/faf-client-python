@@ -130,7 +130,6 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.downloader.finished.connect(self.on_download_finished)
 
         self.setWindowTitle("Replay Details")
-        # self.setWindowIcon(QtGui.QIcon(os.path.join(COMMON_DIR, "replays", "showreel.png")))
 
         downloadAction = QtGui.QAction('Download replay', self)
         downloadAction.triggered.connect(self.download_dialog)
@@ -560,14 +559,13 @@ class ReplayDetailsCard(QtWidgets.QDialog):
             f"<br/>"
         )
         for playerId in self.loader.replay.cpmChart:
-            if not self.show_player_actions[playerId].isChecked():
-                continue
-
             text += (
                 f"<b style='color:{self.cpms.colors[playerId]}'>"
                 f"{self.loader.replay.army[playerId]['PlayerName']}</b>: "
                 f"{self.cpmData[playerId][tick] or 'no'} actions<br/>"
             )
+            if not self.show_player_actions[playerId].isChecked():
+                continue
 
             for action in self.loader.replay.commands[playerId]:
                 if action["tick"] < tick or action["tick"] >= tick + 600:
