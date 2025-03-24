@@ -17,6 +17,7 @@ from src.api.models.Map import Map
 from src.api.vaults_api import MapApiConnector
 from src.api.vaults_api import MapPoolApiConnector
 from src.fa import maps
+from src.fa.maps_.map_utils import get_save_file
 from src.vaults import luaparser
 from src.vaults.mapvault.mapitem import MapListItem
 from src.vaults.vault import Vault
@@ -169,9 +170,7 @@ class MapVault(Vault):
                     else:
                         uploadmap = QtWidgets.QMessageBox.StandardButton.Yes
                     if uploadmap == QtWidgets.QMessageBox.StandardButton.Yes:
-                        savelua = luaparser.luaParser(
-                            os.path.join(mapDir, maps.getSaveFile(mapDir)),
-                        )
+                        savelua = luaparser.luaParser(get_save_file(mapDir) or "")
                         saveInfos = savelua.parse({
                             'markers>mass*>position': 'mass:__parent__',
                             'markers>hydro*>position': 'hydro:__parent__',

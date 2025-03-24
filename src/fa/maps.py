@@ -1,10 +1,8 @@
-# system imports
 import logging
 import os
 import shutil
 import stat
 import string
-import struct
 import sys
 import tempfile
 import zipfile
@@ -15,6 +13,10 @@ from PyQt6 import QtGui
 
 from src import util
 from src.config import Settings
+from src.fa.maps_.map_utils import get_scmap_file
+from src.fa.maps_.preview import create_large_preview
+from src.fa.maps_.preview import extract_dds
+from src.fa.maps_.preview import image_from_dds
 from src.mapGenerator.mapgenUtils import isGeneratedMap
 from src.model.game import OFFICIAL_MAPS as maps
 from src.vaults.dialogs import downloadVaultAssetNoMsg
@@ -79,16 +81,6 @@ def getScenarioFile(folder):
     """
     for infile in os.listdir(folder):
         if infile.lower().endswith("_scenario.lua"):
-            return infile
-    return None
-
-
-def getSaveFile(folder):
-    """
-    Return the save.lua file
-    """
-    for infile in os.listdir(folder):
-        if infile.lower().endswith("_save.lua"):
             return infile
     return None
 
@@ -178,39 +170,20 @@ def getUserMapsFolder():
     )
 
 
-def genPrevFromDDS(sourcename: str, destname: str, small: bool = False) -> None:
+def gen_prev_from_dds(sourcename: str, destname: str, small: bool = False) -> None:
     """
     this opens supcom's dds file (format: bgra8888) and saves to png
     """
     try:
-        img = bytearray()
-        buf = bytearray(16)
-        file = open(sourcename, "rb")
-        file.seek(128)  # skip header
-        while file.readinto(buf):
-            img += buf[:3] + buf[4:7] + buf[8:11] + buf[12:15]
-        file.close()
-
-        size = int((len(img) / 3) ** (1.0 / 2))
+        image = image_from_dds(sourcename)
         if small:
-            imageFile = QtGui.QImage(
-                img,
-                size,
-                size,
-                QtGui.QImage.Format.Format_RGB888,
-            ).rgbSwapped().scaled(
+            image = image.scaled(
                 100,
                 100,
+                aspectRatioMode=QtCore.Qt.AspectRatioMode.KeepAspectRatio,
                 transformMode=QtCore.Qt.TransformationMode.SmoothTransformation,
             )
-        else:
-            imageFile = QtGui.QImage(
-                img,
-                size,
-                size,
-                QtGui.QImage.Format.Format_RGB888,
-            ).rgbSwapped()
-        imageFile.save(destname)
+        image.save(destname)
     except IOError:
         logger.debug('IOError exception in genPrevFromDDS', exc_info=True)
         raise
@@ -218,7 +191,6 @@ def genPrevFromDDS(sourcename: str, destname: str, small: bool = False) -> None:
 
 def export_preview_from_map(
         mapname: str | None,
-        positions: dict | None = None,
 ) -> None | dict[str, None | str | list[str]]:
     """
     This method auto-upgrades the maps to have small and large preview images
@@ -242,10 +214,7 @@ def export_preview_from_map(
 
     mapname = os.path.basename(mapdir).lower()
     mapname_no_version, *_ = mapname.partition(".")
-    if isGeneratedMap(mapname):
-        mapfilename = os.path.join(mapdir, mapname + ".scmap")
-    else:
-        mapfilename = os.path.join(mapdir, f"{mapname_no_version}.scmap")
+    mapfilename = get_scmap_file(mapdir) or ""
 
     mode = os.stat(mapdir)[0]
     if not (mode and stat.S_IWRITE):
@@ -264,7 +233,7 @@ def export_preview_from_map(
             plausible_preview = os.path.join(mapdir, entry)
             if os.path.isfile(plausible_preview) and entry.casefold() in casefold_names:
                 return plausible_preview
-        return suffix
+        return os.path.join(mapdir, f"{mapname}{suffix}")
 
     previewsmallname = plausible_mapname_preview_name(".small.png")
     previewlargename = plausible_mapname_preview_name(".large.png")
@@ -309,45 +278,20 @@ def export_preview_from_map(
         ddsExists = True
 
     if not ddsExists:
-        logger.debug("Extracting preview DDS from .scmap for: " + mapname)
-        mapfile = open(mapfilename, "rb")
-        """
-        magic = struct.unpack('i', mapfile.read(4))[0]
-        version_major = struct.unpack('i', mapfile.read(4))[0]
-        unk_edfe = struct.unpack('i', mapfile.read(4))[0]
-        unk_efbe = struct.unpack('i', mapfile.read(4))[0]
-        width = struct.unpack('f', mapfile.read(4))[0]
-        height = struct.unpack('f', mapfile.read(4))[0]
-        unk_32 = struct.unpack('i', mapfile.read(4))[0]
-        unk_16 = struct.unpack('h', mapfile.read(2))[0]
-        """
-        # Shortcut. Maybe want to clean out some of the magic numbers some day
-        mapfile.seek(30)
-
-        size = struct.unpack('i', mapfile.read(4))[0]
-        data = mapfile.read(size)
-        # version_minor = struct.unpack('i', mapfile.read(4))[0]
-        mapfile.close()
-        # logger.debug("SCMAP version {}.{}".format(version_major,
-        #                                           version_minor))
-
+        logger.debug(f"Extracting preview DDS from .scmap for: {mapname!r}")
         try:
-            with open(previewddsname, "wb") as previewfile:
-                previewfile.write(data)
-
-                # checking if file was created correctly, just in case
-                if os.path.isfile(previewddsname):
-                    previews["tozip"].append(previewddsname)
-                else:
-                    logger.debug("Failed to make DDS for: {}".format(mapname))
-                    return previews
+            if extract_dds(mapfilename, previewddsname):
+                previews["tozip"].append(previewddsname)
+            else:
+                logger.debug(f"Failed to make DDS for: {mapname!r}")
+                return previews
         except IOError:
             pass
 
     if not smallExists:
         logger.debug("Making small preview from DDS for: {}".format(mapname))
         try:
-            genPrevFromDDS(previewddsname, previewsmallname, small=True)
+            gen_prev_from_dds(previewddsname, previewsmallname, small=True)
             previews["tozip"].append(previewsmallname)
             shutil.copyfile(previewsmallname, cachepngname)
             previews["cache"] = cachepngname
@@ -358,59 +302,13 @@ def export_preview_from_map(
             return previews
 
     if not largeExists:
-        logger.debug("Making large preview from DDS for: {}".format(mapname))
-        if not isinstance(positions, dict):
-            logger.debug(
-                "Icon positions were not passed or they were wrong "
-                "for: {}".format(mapname),
-            )
-            return previews
+        logger.debug(f"Making large preview from DDS for: {mapname!r}")
         try:
-            genPrevFromDDS(previewddsname, previewlargename, small=False)
-            mapimage = util.THEME.pixmap(previewlargename)
-            armypixmap = util.THEME.pixmap("vaults/map_icons/army.png")
-            masspixmap = util.THEME.pixmap("vaults/map_icons/mass.png")
-            hydropixmap = util.THEME.pixmap("vaults/map_icons/hydro.png")
-            massicon = masspixmap.scaled(8, 8, 1, 1)
-            armyicon = armypixmap.scaled(8, 9, 1, 1)
-            hydroicon = hydropixmap.scaled(10, 10, 1, 1)
-
-            painter = QtGui.QPainter()
-
-            painter.begin(mapimage)
-            # icons should be drawn in certain order: first layer is hydros,
-            # second - mass, and army on top. made so that previews not
-            # look messed up.
-            if "hydro" in positions:
-                for pos in positions["hydro"]:
-                    target = QtCore.QRectF(
-                        positions["hydro"][pos][0] - 5,
-                        positions["hydro"][pos][1] - 5, 10, 10,
-                    )
-                    source = QtCore.QRectF(0.0, 0.0, 10.0, 10.0)
-                    painter.drawPixmap(target, hydroicon, source)
-            if "mass" in positions:
-                for pos in positions["mass"]:
-                    target = QtCore.QRectF(
-                        positions["mass"][pos][0] - 4,
-                        positions["mass"][pos][1] - 4, 8, 8,
-                    )
-                    source = QtCore.QRectF(0.0, 0.0, 8.0, 8.0)
-                    painter.drawPixmap(target, massicon, source)
-            if "army" in positions:
-                for pos in positions["army"]:
-                    target = QtCore.QRectF(
-                        positions["army"][pos][0] - 4,
-                        positions["army"][pos][1] - 4, 8, 9,
-                    )
-                    source = QtCore.QRectF(0.0, 0.0, 8.0, 9.0)
-                    painter.drawPixmap(target, armyicon, source)
-            painter.end()
-
-            mapimage.save(previewlargename)
+            mappixmap = create_large_preview(mapdir)
+            mappixmap.save(previewlargename)
             previews["tozip"].append(previewlargename)
         except IOError:
-            logger.debug("Failed to make large preview for: " + mapname)
+            logger.debug(f"Failed to make large preview for: {mapname!r}")
 
     return previews
 
@@ -487,14 +385,19 @@ def _doDownloadMap(name: str, link: str, silent: bool) -> tuple[bool, Callable[[
     )
 
 
-def processMapFolderForUpload(mapDir, positions):
+def processMapFolderForUpload(mapDir: str) -> None:
     """
     Zipping the file and creating thumbnails
     """
     # creating thumbnail
-    files = export_preview_from_map(mapDir, positions)["tozip"]
+    exported = export_preview_from_map(mapDir)
+
+    if exported is None:
+        return
+
+    files = exported["tozip"]
     # abort zipping if there is insufficient previews
-    if len(files) != 3:
+    if files is None or len(files) != 3:
         logger.debug("Insufficient previews for making an archive.")
         return None
 
@@ -507,7 +410,7 @@ def processMapFolderForUpload(mapDir, positions):
         if sum([filename.endswith(x) for x in endings]) > 0:
             files.append(os.path.join(mapDir, filename))
 
-    temp = tempfile.NamedTemporaryFile(mode='w+b', suffix=".zip", delete=False)
+    temp = tempfile.NamedTemporaryFile(mode='w+b', suffi=".zip", delete=False)
 
     # creating the zip
     zipped = zipfile.ZipFile(temp, "w", zipfile.ZIP_DEFLATED)

@@ -169,7 +169,7 @@ class ReplayParser(QObject):
         return "".join((f"{i:x}" for i in self.binary.readRawData(16)))
 
     def map_folder_name(self) -> str:
-        return self.map.split("/")[2]
+        return self.map.split("/")[2].lower()
 
     def parse_header(self) -> None:
         self.replayPatchFieldId = self.return_next_string()

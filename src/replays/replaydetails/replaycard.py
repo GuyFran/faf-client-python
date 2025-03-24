@@ -32,9 +32,9 @@ from PyQt6 import QtWidgets
 
 from src import util
 from src.fa.maps import downloadMap
-from src.fa.maps import getBaseMapsFolder
-from src.fa.maps import getUserMapsFolder
+from src.fa.maps import folderForMap
 from src.fa.maps import isMapAvailable
+from src.fa.maps_.preview import create_large_preview
 from src.mapGenerator.mapgenManager import MapGeneratorManager
 from src.mapGenerator.mapgenUtils import isGeneratedMap
 from src.replays.replaydetails.chart import ChartWidget
@@ -47,6 +47,8 @@ from src.replays.replaydetails.replayreader import ReplayException
 from src.replays.replaydetails.replayreader import ReplayParser
 from src.replays.replaydetails.utils import ACTION_ICONS
 from src.replays.replaydetails.utils import PLAYER_COLORS
+
+STYLESHEET = util.THEME.readstylesheet("client/client.css")
 
 
 @lru_cache(1)
@@ -69,6 +71,16 @@ def action_pixmaps(file: str) -> dict[str, QtGui.QPixmap]:
         name: pixmap.copy(0, i * 48, 48, 48)
         for i, name in enumerate(ACTION_ICONS)
     }
+
+
+class ClickableLabel(QtWidgets.QLabel):
+    clicked = QtCore.pyqtSignal(QtGui.QMouseEvent)
+
+    def mousePressEvent(self, ev: QtGui.QMouseEvent | None) -> None:
+        if ev is None or ev.button() != QtCore.Qt.MouseButton.LeftButton:
+            return
+        self.clicked.emit(ev)
+        QtWidgets.QLabel.mousePressEvent(self, ev)
 
 
 class ReplayLoader(QtCore.QThread):
@@ -108,7 +120,7 @@ class ReplayLoader(QtCore.QThread):
 class ReplayDetailsCard(QtWidgets.QDialog):
     def __init__(self, *args, **kwargs) -> None:
         QtWidgets.QDialog.__init__(self, *args, **kwargs)
-        self.setStyleSheet(util.THEME.readstylesheet("client/client.css"))
+        self.setStyleSheet(STYLESHEET)
         self.setWindowFlags(QtCore.Qt.WindowType.Widget)
         self.setModal(True)
 
@@ -149,10 +161,11 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         )
         self.replayInfo.setReadOnly(True)
 
-        self.replayInfoMap = QtWidgets.QLabel()
+        self.replayInfoMap = ClickableLabel()
         self.replayInfoMap.setMinimumHeight(256)
         self.replayInfoMap.setMinimumWidth(256)
         self.replayInfoMap.setMaximumWidth(256)
+        self.replayInfoMap.clicked.connect(self.on_map_clicked)
 
         self.map_description = QtWidgets.QLabel()
         self.map_description.setWordWrap(True)
@@ -233,8 +246,22 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.resize(1024, 768)
         self.generator = MapGeneratorManager()
 
+    def on_map_clicked(self, event: QtGui.QMouseEvent) -> None:
+        size = self.screen().availableSize()
+        scale = min(size.height() // 256, 4)
+        preview_dialog = QtWidgets.QDialog()
+        preview_dialog.setWindowTitle("Map Preview")
+        preview_dialog.setLayout(QtWidgets.QVBoxLayout())
+        preview_dialog.layout().setContentsMargins(2, 2, 2, 2)
+        preview_dialog.setStyleSheet(STYLESHEET)
+        preview_label = QtWidgets.QLabel()
+        preview_label.setPixmap(self.map_preview_pixmap(scale=scale))
+        preview_dialog.layout().addWidget(preview_label)
+        preview_dialog.exec()
+        preview_dialog.deleteLater()
+
     def update_map_pixmap(self) -> None:
-        pixmap = self.map_preview_pixmap(self.loader.replay.luaScenarioInfo["map"])
+        pixmap = self.map_preview_pixmap()
         self.replayInfoMap.setPixmap(pixmap)
 
     def obtain_map(self) -> None:
@@ -306,103 +333,19 @@ class ReplayDetailsCard(QtWidgets.QDialog):
             QtWidgets.QMessageBox.warning(self, 'Error', 'Can\'t download that replay')
         reply.deleteLater()
 
-    def map_preview_pixmap(self, map_path: str) -> QtGui.QPixmap:
-        try:
-            # FIXME: both functions from fa.maps and map_path include "/maps/" suffix/prefix
-            mapdirs = [
-                os.path.dirname(getBaseMapsFolder()),
-                os.path.dirname(getUserMapsFolder()),
-            ]
+    def map_preview_pixmap(self, *, scale: int = 1) -> QtGui.QPixmap:
+        nomap = QtGui.QPixmap(os.path.join(util.COMMON_DIR, "replays", "nomap.png"))
+        folder_path = folderForMap(self.loader.replay.map_folder_name())
+        if folder_path is None or not os.path.exists(folder_path):
+            return nomap
 
-            faf_path = os.path.join(util.APPDATA_DIR, "fa_path.lua")
-            if os.path.exists(faf_path):
-                try:
-                    with open(faf_path, "rt") as f:
-                        mapdir = f.readline().split("'")[1].replace("\\\\", "\\")
-                    if os.path.exists(mapdir):
-                        mapdirs.append(mapdir)
-                except Exception:
-                    pass
-
-            file = None
-            saveFile = None
-            for dirName in mapdirs:
-                if os.path.exists(dirName + map_path):
-                    file = os.path.join(dirName + map_path)
-                    saveFile = file.replace(".scmap", "_save.lua")
-                    break
-
-            if file and saveFile:
-                with open(file, "rb") as f:
-                    f.seek(30)  # scmap header
-                    sizebuf = bytearray(f.read(4))
-                    ddsSize = sizebuf[0] | sizebuf[1] << 8 | sizebuf[2] << 16 | sizebuf[3] << 24
-                    f.seek(127, 1)  # dds header
-                    img = bytearray(ddsSize-127)
-                    f.readinto(img)
-                    del img[::4]
-
-                    size = int((len(img)/3) ** (1.0/2))
-
-                mapImg = QtGui.QImage(
-                    bytes(img),
-                    size,
-                    size,
-                    QtGui.QImage.Format.Format_RGB888,
-                ).rgbSwapped()
-
-                if os.path.exists(saveFile):
-                    with open(saveFile, 'rt') as f:
-                        # find positions in mapname_save.lua file
-                        armyPos = dict()
-                        army = None
-                        for line in f:
-                            if line.find("ARMY_") > -1:
-                                army = line.strip().split("'")
-                            if line.find("position") > -1 and army:
-                                if army:
-                                    # ['position'] = VECTOR3
-                                    x, _, y = line.strip()[24:-3].split(", ", 3)
-                                    armyPos[army[1]] = float(x), float(y)
-                                    army = None
-
-                        # draw positions to the map preview image
-                        acuIcon = QtGui.QPixmap(os.path.join(util.COMMON_DIR, "replays", "acu.png"))
-                        color = QtGui.QColor(192, 165, 32)
-                        mask = acuIcon.createMaskFromColor(color, QtCore.Qt.MaskMode.MaskOutColor)
-
-                        p = QtGui.QPainter()
-                        p.begin(mapImg)
-
-                        text_option = QtGui.QTextOption(QtCore.Qt.AlignmentFlag.AlignCenter)
-                        pen_style = QtCore.Qt.PenStyle.SolidLine
-
-                        for id, player in self.loader.replay.army.items():
-                            if id != 255 and player["ArmyName"] in armyPos:
-                                x, y = armyPos[player["ArmyName"]]
-                                x *= size / float(self.loader.replay.luaScenarioInfo["size"][1.0])
-                                y *= size / float(self.loader.replay.luaScenarioInfo["size"][2.0])
-                                x, y = round(x), round(y)
-
-                                color = QtGui.QColor(PLAYER_COLORS[int(player["PlayerColor"]) - 1])
-                                p.setPen(QtGui.QPen(color, 1, pen_style))
-
-                                p.drawPixmap(x-5, y-5, 12, 12, acuIcon)
-                                p.drawPixmap(x-5, y-5, 12, 12, QtGui.QPixmap(mask))
-
-                                p.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.black, 1, pen_style))
-                                contour = QtCore.QRectF(x-51, y+11, 100, 12)
-                                p.drawText(contour, player["PlayerName"], text_option)
-
-                                p.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.white, 1, pen_style))
-                                content = QtCore.QRectF(x-50, y+10, 100, 12)
-                                p.drawText(content, player["PlayerName"], text_option)
-                        p.end()
-                return QtGui.QPixmap(mapImg)
-            else:
-                raise IOError
-        except IOError:
-            return QtGui.QPixmap(os.path.join(util.COMMON_DIR, "replays", "nomap.png"))
+        armies = {
+            army["ArmyName"]: army
+            for army in self.loader.replay.army.values()
+        }
+        for army in armies.values():
+            army["hexcolor"] = PLAYER_COLORS[int(army["PlayerColor"]) - 1]
+        return create_large_preview(folder_path, armies, scale=scale)
 
     def show_about(self) -> None:
         # flags = QtCore.Qt.WindowType.WindowTitleHint | QtCore.Qt.WindowType.WindowSystemMenuHint
