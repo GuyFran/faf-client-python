@@ -1,5 +1,5 @@
-import re
-from itertools import chain
+from enum import Enum
+from enum import auto
 from typing import Iterable
 
 from PyQt6.QtCore import QPointF
@@ -15,7 +15,56 @@ from PyQt6.QtGui import QTextOption
 from src import util
 from src.fa.maps_.map_utils import get_save_file
 from src.fa.maps_.mapdata import MapData
-from src.vaults import luaparser
+
+
+def parse_positions(savefile: str) -> dict[str, dict[str, QPointF]]:
+    """When luaparser is fast enough, we can use it to parse positions:
+
+    parser = luaparser.luaParser(savefile)
+    positions = parser.parse({
+     "markers>hydro*>position": "hydro:__parent__",
+     "markers>mass*>position": "mass:__parent__",
+     "markers>mex*>position": "mex:__parent__",
+     "markers>army*>position": "army:__parent__",
+    })
+    """
+    class State(Enum):
+        NONE = auto()
+        ARMY = auto()
+        HYDRO = auto()
+        MASS = auto()
+
+    res = {"army": {}, "hydro": {}, "mass": {}}
+    state = State.NONE
+    army = ""
+    mass_cnt = 0
+    hydro_cnt = 0
+    with open(savefile, "rt") as file:
+        for line in file:
+            if line.find("ARMY_") > -1:
+                state = State.ARMY
+                army = line.strip().split("'")
+            elif line.find("STRING( 'Mass' )") > -1:
+                state = State.MASS
+            elif line.find("STRING( 'Hydrocarbon' )") > -1:
+                state = State.HYDRO
+
+            if line.find("position") > -1:
+                # ['position'] = VECTOR3( x, z, y )
+                x, _, y = map(float, line.strip()[24:-2].split(", ", 3))
+                match state:
+                    case State.ARMY:
+                        res["army"][army[1]] = QPointF(x, y)
+                        state = State.NONE
+                    case State.HYDRO:
+                        hydro_cnt += 1
+                        res["hydro"][hydro_cnt] = QPointF(x, y)
+                        state = State.NONE
+                    case State.MASS:
+                        mass_cnt += 1
+                        res["mass"][mass_cnt] = QPointF(x, y)
+                        state = State.NONE
+    return res
 
 
 def add_markers(
@@ -32,21 +81,14 @@ def add_markers(
     # icons should be drawn in certain order: first layer is hydros,
     # second - mass, and army on top. made so that previews not
     # look messed up.
-    parser = luaparser.luaParser(savefile)
-    positions = parser.parse({
-        "markers>hydro*>position": "hydro:__parent__",
-        "markers>mass*>position": "mass:__parent__",
-        "markers>mex*>position": "mex:__parent__",
-        "markers>army*>position": "army:__parent__",
-    })
-
+    positions = parse_positions(savefile)
     painter = QPainter()
     painter.begin(mapdata.image)
     draw_resource_markers(
         painter,
         util.THEME.pixmap("vaults/map_icons/hydro.png"),
         QSize(10, 10),
-        positions.get("hydro", {}).values(),
+        positions["hydro"].values(),
         mapdata,
         scale_factor=scale_factor,
     )
@@ -54,39 +96,31 @@ def add_markers(
         painter,
         util.THEME.pixmap("vaults/map_icons/mass.png"),
         QSize(8, 8),
-        chain(positions.get("mass", {}).values(), positions.get("mex", {}).values()),
+        positions["mass"].values(),
         mapdata,
         scale_factor=scale_factor,
     )
-    if "army" in positions:
-        armyicon = util.THEME.pixmap("vaults/map_icons/army.png")
-        if armies is not None:
-            color_ = QColor(115, 115, 115)
-            mask = armyicon.createMaskFromColor(color_, Qt.MaskMode.MaskOutColor)
-            army_positions = positions["army"]
-            for army_name, pos in army_positions.items():
-                if (army := armies.get(army_name.upper())) is None:
-                    continue
-                army_pos = normalize_pos(read_pos(pos), mapdata)
-                color = QColor(army["hexcolor"])
-                painter.setPen(color)
-                target = draw_army_icon(painter, armyicon, scale, army_pos, QPixmap(mask))
-                if target is None:
-                    continue
-                player_name = army["PlayerName"]
-                draw_army_name(painter, player_name, army_pos, target.bottom())
-        else:
-            for pos in positions["army"].values():
-                army_pos = normalize_pos(read_pos(pos), mapdata)
-                draw_army_icon(painter, armyicon, scale, army_pos)
+    armyicon = util.THEME.pixmap("vaults/map_icons/army.png")
+    if armies is not None:
+        color_ = QColor(115, 115, 115)
+        mask = armyicon.createMaskFromColor(color_, Qt.MaskMode.MaskOutColor)
+        army_positions = positions["army"]
+        for army_name, pos in army_positions.items():
+            if (army := armies.get(army_name.upper())) is None:
+                continue
+            army_pos = normalize_pos(pos, mapdata)
+            color = QColor(army["hexcolor"])
+            painter.setPen(color)
+            target = draw_army_icon(painter, armyicon, scale, army_pos, QPixmap(mask))
+            if target is None:
+                continue
+            player_name = army["PlayerName"]
+            draw_army_name(painter, player_name, army_pos, target.bottom())
+    else:
+        for pos in positions["army"].values():
+            army_pos = normalize_pos(pos, mapdata)
+            draw_army_icon(painter, armyicon, scale, army_pos)
     painter.end()
-
-
-def read_pos(pos: str) -> QPointF:
-    if (match_ := re.search(r"VECTOR3\( (.*) \)", pos)) is None:
-        return QPointF()
-    x, _, y = map(float, match_.group(1).split(","))
-    return QPointF(x, y)
 
 
 def normalize_pos(
@@ -150,7 +184,7 @@ def draw_resource_markers(
         painter: QPainter,
         pix: QPixmap,
         default_size: QSize,
-        positions: Iterable[str],
+        positions: Iterable[QPointF],
         mapdata: MapData,
         *,
         scale_factor: float = 1.0,
@@ -158,7 +192,7 @@ def draw_resource_markers(
     trans_mode = Qt.TransformationMode.SmoothTransformation
     icon = pix.scaledToWidth(int(default_size.width() * scale_factor), trans_mode)
     for pos in positions:
-        pos_on_img = normalize_pos(read_pos(pos), mapdata)
+        pos_on_img = normalize_pos(pos, mapdata)
         if pos_on_img.isNull():
             continue
         source = QRectF(0.0, 0.0, icon.width(), icon.height())
