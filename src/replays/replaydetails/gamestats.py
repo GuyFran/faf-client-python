@@ -29,6 +29,8 @@ UNIT_TYPES = {
     "sacu": "SACUs",
 }
 
+BAR_GROUP_WIDTH = 0.8
+
 
 class BarGraphOptions(TypedDict):
     x: Iterable[float]
@@ -162,7 +164,7 @@ class StatsVisualizer(QWidget):
         self.add_units_breakdown_plot(units_breakdown_layout)
 
     def add_units_breakdown_plot(self, layout: QGridLayout) -> None:
-        bar_width = 0.8 / 3
+        bar_width = BAR_GROUP_WIDTH / 3
         player_names = [player["name"] for player in self.stats]
         x_pos = np.arange(len(self.stats))
 
@@ -294,7 +296,7 @@ class StatsVisualizer(QWidget):
         player_names = [player["name"] for player in self.stats]
         plot_types = ["built", "lost", "kills"]
         x_pos = np.arange(len(player_names))
-        bar_width = 0.8 / len(unit_types)
+        bar_width = BAR_GROUP_WIDTH / len(unit_types)
 
         for index, plot_type in enumerate(plot_types):
             plot = pg.PlotWidget(title=f"Units {plot_type.capitalize()}")
@@ -332,7 +334,7 @@ class StatsVisualizer(QWidget):
             categories=player_names,
             x=x_pos,
             height=kd_values,
-            width=0.8,
+            width=BAR_GROUP_WIDTH,
             brush="b",
             name="KD ratio",
         )
@@ -352,7 +354,7 @@ class StatsVisualizer(QWidget):
         x_pos = np.arange(len(player_names))
 
         categories = ["mass", "energy", "count"]
-        width = 0.8 / len(categories)
+        width = BAR_GROUP_WIDTH / len(categories)
         for index, category in enumerate(categories):
             plot = pg.PlotWidget(title=f"Build vs Loss ({category})")
             plot.addLegend()
@@ -388,7 +390,7 @@ class StatsVisualizer(QWidget):
             categories=player_names,
             x=x_pos,
             height=player_scores,
-            width=0.8,
+            width=BAR_GROUP_WIDTH,
             brush=(0, 150, 255),
             name="Score",
         )
