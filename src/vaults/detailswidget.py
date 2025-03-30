@@ -1,10 +1,8 @@
+from PyQt6.QtCore import QSize
 from PyQt6.QtCore import Qt
 from PyQt6.QtCore import QUrl
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QPixmap
-from PyQt6.QtNetwork import QNetworkAccessManager
-from PyQt6.QtNetwork import QNetworkReply
-from PyQt6.QtNetwork import QNetworkRequest
 from PyQt6.QtWidgets import QLabel
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtWidgets import QTableWidgetItem
@@ -13,6 +11,8 @@ from PyQt6.QtWidgets import QWidget
 from src import util
 from src.api.models.Map import Map
 from src.api.models.Mod import Mod
+from src.downloadManager import DownloadRequest
+from src.downloadManager import ImageDownloader
 from src.vaults.detailswidgetui import DetailsWidgetUI
 
 STYLESHEET = util.THEME.readstylesheet("client/client.css")
@@ -24,6 +24,7 @@ class DetailsWidget(QWidget):
     def __init__(
             self,
             item_data: Map | Mod,
+            image_cache_dir: str,
             parent: QWidget | None = None,
     ) -> None:
         QWidget.__init__(self, parent)
@@ -31,8 +32,10 @@ class DetailsWidget(QWidget):
         assert item_data.version is not None
         self.item_version = item_data.version
 
-        self.network_manager = QNetworkAccessManager()
-        self.thumbnail = QPixmap()
+        self.image_downloader = ImageDownloader(image_cache_dir, QSize(256, 256))
+        self.image_dl_request = DownloadRequest()
+        self.image_dl_request.done.connect(self.on_image_downloaded)
+
         self.ui = DetailsWidgetUI()
         self.ui.setupUi(self)
         self.init_ui()
@@ -99,25 +102,38 @@ class DetailsWidget(QWidget):
             self.ui.techTable.setItem(i, 0, QTableWidgetItem(prop))
             self.ui.techTable.setItem(i, 1, QTableWidgetItem(value))
         self.ui.techTable.resizeColumnsToContents()
-        self.load_thumbnail(self.item_version.thumbnail_url_large)
+        self.update_thumbnail()
 
-    def load_thumbnail(self, url: str) -> None:
-        request = QNetworkRequest(QUrl(url))
-        if (reply := self.network_manager.get(request)) is None:
-            return
-        reply.finished.connect(lambda: self.handle_thumbnail_response(reply))
+    def get_thumbnail(self) -> QPixmap:
+        url = QUrl(self.item_version.thumbnail_url_large)
+        if self.image_downloader.image_exists(url):
+            return QPixmap(self.image_downloader.image_path(url))
+        return QPixmap()
 
-    def handle_thumbnail_response(self, reply: QNetworkReply) -> None:
-        if reply.error() == QNetworkReply.NetworkError.NoError:
-            self.thumbnail.loadFromData(reply.readAll())
-            ratio = Qt.AspectRatioMode.KeepAspectRatio
-            trans_mode = Qt.TransformationMode.SmoothTransformation
-            scaled_thumbnail = self.thumbnail.scaled(256, 256, ratio, trans_mode)
-            self.ui.thumbnailLabel.setPixmap(scaled_thumbnail)
+    def update_thumbnail(self) -> None:
+        if (thumbnail := self.get_thumbnail()).isNull():
+            self.load_thumbnail()
         else:
-            self.ui.thumbnailLabel.setText("Failed to load thumbnail")
+            self.set_thumbnail(thumbnail)
 
-        reply.deleteLater()
+    def load_thumbnail(self) -> None:
+        self.ui.thumbnailLabel.setText("Loading thumbnail...")
+        self.image_downloader.download_image(
+            self.item_version.thumbnail_url_large,
+            self.image_dl_request,
+        )
+
+    def set_thumbnail(self, pixmap: QPixmap) -> None:
+        if pixmap.isNull():
+            self.ui.thumbnailLabel.setText("Failed to load thumbnail")
+            return
+        ratio = Qt.AspectRatioMode.KeepAspectRatio
+        trans_mode = Qt.TransformationMode.SmoothTransformation
+        scaled_thumbnail = pixmap.scaled(256, 256, ratio, trans_mode)
+        self.ui.thumbnailLabel.setPixmap(scaled_thumbnail)
+
+    def on_image_downloaded(self, _: str, pixmap: QPixmap) -> None:
+        self.set_thumbnail(pixmap)
 
     def view_folder(self) -> None:
         raise NotImplementedError

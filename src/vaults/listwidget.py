@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from PyQt6.QtCore import QSize
 from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QHBoxLayout
 from PyQt6.QtWidgets import QLabel
@@ -20,13 +21,18 @@ STYLESHEET = util.THEME.readstylesheet("client/client.css")
 
 
 class VaultListWidget(QWidget):
-    def __init__(self, item_data: Map | Mod, parent: QWidget | None = None) -> None:
+    def __init__(
+            self,
+            item_data: Map | Mod,
+            image_cache_dir: str,
+            parent: QWidget | None = None,
+    ) -> None:
         QWidget.__init__(self, parent)
         self.item_data = item_data
         assert item_data.version is not None
         self.item_version = item_data.version
 
-        self.thumbnail_loader = ImageDownloader(util.CACHE_DIR, QSize(100, 100))
+        self.thumbnail_loader = ImageDownloader(image_cache_dir, QSize(100, 100))
         self.thumbnail_dl_request = DownloadRequest()
         self.thumbnail_dl_request.done.connect(self.on_thumbnail_downloaded)
 
@@ -50,6 +56,9 @@ class VaultListWidget(QWidget):
         raise NotImplementedError
 
     def get_thumbnail(self) -> QPixmap:
+        url = QUrl(self.item_version.thumbnail_url)
+        if self.thumbnail_loader.image_exists(url):
+            return QPixmap(self.thumbnail_loader.image_path(url))
         return QPixmap()
 
     def update_pixmap(self) -> None:

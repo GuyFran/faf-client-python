@@ -426,6 +426,12 @@ class ImageDownloader:
         self._nam.finished.connect(self._image_download_finished)
         self.save_dir = save_dir
 
+    def image_path(self, url: QUrl) -> str:
+        return os.path.join(self.save_dir, self.image_name(url))
+
+    def image_exists(self, url: QUrl) -> bool:
+        return os.path.isfile(self.image_path(url))
+
     def set_save_dir(self, save_dir: str) -> None:
         self.save_dir = save_dir
 

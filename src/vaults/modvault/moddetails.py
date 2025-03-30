@@ -1,21 +1,29 @@
 import os
 
 from PyQt6.QtWidgets import QLabel
+from PyQt6.QtWidgets import QWidget
 
 from src import util
 from src.api.models.Mod import Mod
-from src.api.models.ModVersion import ModVersion
 from src.vaults.detailswidget import DetailsWidget
 from src.vaults.modvault import utils
 
 
 class ModDetailsWidget(DetailsWidget):
+    def __init__(
+            self,
+            item_data: Mod,
+            parent: QWidget | None = None,
+    ) -> None:
+        DetailsWidget.__init__(self, item_data, util.MOD_PREVIEW_DIR, parent)
+        self.item_data = item_data
+        assert item_data.version is not None
+        self.item_version = item_data.version
+
     def is_installed(self) -> bool:
-        assert isinstance(self.item_version, ModVersion)
         return self.item_version.uid in [mod.uid for mod in utils.installedMods]
 
     def set_author(self) -> None:
-        assert isinstance(self.item_data, Mod)
         if self.item_data.author:
             author_label = QLabel(f"{self.item_data.author}")
             self.ui.authorLayout.addWidget(author_label)
@@ -26,15 +34,12 @@ class ModDetailsWidget(DetailsWidget):
             self.ui.authorLayout.addWidget(uploader_label)
 
     def set_type(self) -> None:
-        assert isinstance(self.item_version, ModVersion)
         self.ui.typeLabel.setText(f"Type: {self.item_version.typ}")
 
     def set_additional_info(self) -> None:
-        assert isinstance(self.item_version, ModVersion)
         self.ui.additionalInfoLabel.setText(f"UID: {self.item_version.uid}")
 
     def version_info(self) -> list[tuple[str, str]]:
-        assert isinstance(self.item_version, ModVersion)
         return [
             ("Version:", str(self.item_version.version)),
             ("Filename:", self.item_version.filename),
@@ -44,7 +49,6 @@ class ModDetailsWidget(DetailsWidget):
         ]
 
     def technical_info(self) -> list[tuple[str, str]]:
-        assert isinstance(self.item_version, ModVersion)
         return [
             ("UID", self.item_version.uid),
             ("Filename", self.item_version.filename),
