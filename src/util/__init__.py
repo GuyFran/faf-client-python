@@ -341,7 +341,7 @@ def __downloadPreviewFromWeb(unitname):
 def wrongPathNotice():
     msgBox = QtWidgets.QMessageBox()
     msgBox.setWindowTitle("Location not found")
-    msgBox.setIcon(QtWidgets.QMessageBox.Information)
+    msgBox.setIcon(QtWidgets.QMessageBox.Icon.Information)
     msgBox.setText("Folder or file does not exist")
     msgBox.exec()
 

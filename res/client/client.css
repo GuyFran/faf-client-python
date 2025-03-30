@@ -1,5 +1,5 @@
 
- *[warning="true"]
+*[warning="true"]
 {
     color:lightgrey;
     font-size:8pt;
@@ -1092,4 +1092,48 @@ QProgressBar#achievementBar::chunk
 QStatusBar
 {
     color: yellow;
+}
+
+QWidget#tech_widget,#overview_content,#overview_widget
+{
+    background-color: #202025;
+    background: #202025;
+    padding: 0px;
+}
+
+QFrame[frameShape="4"]
+{
+    background-color: #303035;
+}
+
+QLabel#vaultListItemTitle
+{
+    color: silver;
+    font: bold;
+}
+
+QLabel#vaultListItemTitle[installed="true"]
+{
+    color: green;
+}
+
+QLabel[recommended="true"]
+{
+    color: green;
+}
+
+QLabel[unranked_map="true"]
+{
+    color: red;
+}
+
+QLabel#vaultThumbnail
+{
+    background-color: black;
+    border: 1px solid black;
+}
+
+QLabel[ranked_mod="true"]
+{
+    color: orange;
 }

@@ -1,117 +1,62 @@
-"""
-modInfo function is called when the client recieves a modvault_info command.
-It should have a message dict with the following keys:
-uid         - Unique identifier for a mod. Also needed ingame.
-name        - Name of the mod. Also the name of the folder the mod will be
-              located in.
-description - A general description of the mod. As seen ingame
-author      - The FAF username of the person that uploaded the mod.
-downloads   - An integer containing the amount of downloads of this mod
-likes       - An integer containing the amount of likes the mod has recieved.
-              (TODO: Actually implement an inteface for this.)
-comments    - A python list containing dictionaries containing the keys as
-              described above.
-bugreports  - A python list containing dictionaries containing the keys as
-              described above.
-date        - A string describing the date the mod was uploaded.
-              Format: "%Y-%m-%d %H:%M:%S" eg: 2012-10-28 16:50:28
-ui          - A boolean describing if it is a ui mod yay or nay.
-link        - Direct link to the zip file containing the mod.
-thumbnail   - A direct link to the thumbnail file. Should be something suitable
-              for util.THEME.icon(). Not yet tested if this works correctly
-
-Additional stuff:
-fa.exe now has a CheckMods method, which is used in fa.exe.check
-check has a new argument 'additional_mods' for this.
-In client._clientwindow joinGameFromURL is changed. The url should have a
-queryItemValue called 'mods' which with json can be translated in a list of
-modnames so that it can be checked with checkMods.
-handle_game_launch should have a new key in the form of mods, which is a list
-of modnames to be checked with checkMods.
-
-Stuff to be removed:
-In _gameswidget.py in hostGameCLicked setActiveMods is called.
-This should be done in the faf.exe.check function or in the lobby code.
-It is here because the server doesn't yet send the mods info.
-
-The tempAddMods function should be removed after the server can return mods in
-the modvault.
-"""
+from __future__ import annotations
 
 import logging
 import os
+from typing import TYPE_CHECKING
 
 from PyQt6 import QtCore
 from PyQt6 import QtWidgets
 
+from src.api.models.Map import Map
+from src.api.models.Mod import Mod
 from src.api.vaults_api import ModApiConnector
 from src.vaults.modvault import utils
-from src.vaults.modvault.moditem import ModListItem
-from src.vaults.modvault.utils import ModInfo
+from src.vaults.modvault.moddetails import ModDetailsWidget
+from src.vaults.modvault.modlistitem import ModDisplayType
+from src.vaults.modvault.modlistitem import ModListItem
+from src.vaults.modvault.modlistitem import ModSortType
+from src.vaults.modvault.modlistwidget import ModListWidget
 from src.vaults.vault import Vault
 
-from .modwidget import ModWidget
 from .uimodwidget import UIModWidget
 from .uploadwidget import UploadModWidget
+
+if TYPE_CHECKING:
+    from src.client._clientwindow import ClientWindow
 
 logger = logging.getLogger(__name__)
 
 
 class ModVault(Vault):
-    def __init__(self, client, *args, **kwargs):
-        QtCore.QObject.__init__(self, *args, **kwargs)
-        Vault.__init__(self, client, *args, **kwargs)
-
+    def __init__(self, client: ClientWindow) -> None:
+        Vault.__init__(self, client)
         logger.debug("Mod Vault tab instantiating")
-
-        self.itemList.itemDoubleClicked.connect(self.modClicked)
         self.UIButton.clicked.connect(self.openUIModForm)
-
         self.uids = [mod.uid for mod in utils.getInstalledMods()]
 
-        for type_ in ["UI Only", "Sim Only", "Uploaded by You", "Installed"]:
-            self.ShowTypeList.addItem(type_)
+        for sort_type in ModSortType:
+            self.SortTypeList.addItem(sort_type.value)
+        for display_type in ModDisplayType:
+            self.ShowTypeList.addItem(display_type.value)
 
         self.apiConnector = ModApiConnector()
-        self.apiConnector.data_ready.connect(self.modInfo)
+        self.apiConnector.data_ready.connect(self.items_info)
 
-        self.uploadButton.hide()
+        self.UIButton.show()
 
-    def create_item(self, item_key: str) -> ModListItem:
-        return ModListItem(self, item_key)
+    def create_item(self, data: Map | Mod) -> ModListWidget:
+        return ModListWidget(data)
 
-    @QtCore.pyqtSlot(dict)
-    def modInfo(self, message: dict) -> None:
-        super().items_info(message)
+    def create_list_item(self, data: Mod | Map) -> ModListItem:
+        assert isinstance(data, Mod)
+        return ModListItem(self.itemList, data)
 
-    @QtCore.pyqtSlot(int)
-    def sortChanged(self, index):
-        if index == -1 or index == 0:
-            self.sortType = "alphabetical"
-        elif index == 1:
-            self.sortType = "date"
-        elif index == 2:
-            self.sortType = "rating"
-        self.update_visibilities()
+    def create_details_widget(self, data: Map | Mod) -> ModDetailsWidget:
+        return ModDetailsWidget(data)
 
-    @QtCore.pyqtSlot(int)
-    def showChanged(self, index):
-        if index == -1 or index == 0:
-            self.showType = "all"
-        elif index == 1:
-            self.showType = "ui"
-        elif index == 2:
-            self.showType = "sim"
-        elif index == 3:
-            self.showType = "yours"
-        elif index == 4:
-            self.showType = "installed"
-        self.update_visibilities()
-
-    @QtCore.pyqtSlot(QtWidgets.QListWidgetItem)
-    def modClicked(self, item):
-        widget = ModWidget(self, item)
-        widget.exec()
+    def on_item_availability_changed(self) -> None:
+        current_item = self.itemList.currentItem()
+        self.itemList.itemWidget(current_item).update_visibility()
 
     @QtCore.pyqtSlot()
     def openUIModForm(self):
@@ -170,17 +115,3 @@ class ModVault(Vault):
                     "Mod selection",
                     "This folder doesn't contain a mod_info.lua file",
                 )
-
-    def downloadMod(self, link: str, name: str) -> bool:
-        if utils.downloadMod(link, name):
-            self.uids = [mod.uid for mod in utils.getInstalledMods()]
-            self.update_visibilities()
-            return True
-        else:
-            return False
-
-    def removeMod(self, name: str, uid: str) -> None:
-        mod = ModInfo(name=name, uid=uid)
-        if utils.removeMod(mod):
-            self.uids = [m.uid for m in utils.installedMods]
-            self.update_visibilities()

@@ -1,0 +1,127 @@
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QFormLayout
+from PyQt6.QtWidgets import QFrame
+from PyQt6.QtWidgets import QGridLayout
+from PyQt6.QtWidgets import QGroupBox
+from PyQt6.QtWidgets import QHBoxLayout
+from PyQt6.QtWidgets import QLabel
+from PyQt6.QtWidgets import QPushButton
+from PyQt6.QtWidgets import QScrollArea
+from PyQt6.QtWidgets import QSizePolicy
+from PyQt6.QtWidgets import QSpacerItem
+from PyQt6.QtWidgets import QTableWidget
+from PyQt6.QtWidgets import QTabWidget
+from PyQt6.QtWidgets import QVBoxLayout
+from PyQt6.QtWidgets import QWidget
+
+
+class DetailsWidgetUI:
+    def setupUi(self, widget: QWidget) -> None:
+        self.mainLayout = QVBoxLayout(widget)
+        self.tabs = QTabWidget()
+
+        overview_widget = QScrollArea()
+        overview_widget.setWidgetResizable(True)
+        overview_widget.setObjectName("overview_widget")
+        overview_content = QWidget()
+        overview_content.setObjectName("overview_content")
+        self.overviewLayout = QVBoxLayout(overview_content)
+
+        self.headerLayout = QHBoxLayout()
+
+        self.titleLayout = QVBoxLayout()
+        self.titleLabel = QLabel()
+        title_font = QFont()
+        title_font.setPointSize(16)
+        title_font.setBold(True)
+        self.titleLabel.setFont(title_font)
+
+        self.typeLabel = QLabel()
+        type_font = QFont()
+        type_font.setPointSize(10)
+        type_font.setItalic(True)
+        self.typeLabel.setFont(type_font)
+
+        self.titleLayout.addWidget(self.titleLabel)
+        self.titleLayout.addWidget(self.typeLabel)
+
+        self.statsLayout = QVBoxLayout()
+        self.additionalInfoLabel = QLabel()
+
+        self.statsLayout.addWidget(self.additionalInfoLabel)
+        self.statsLayout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+        self.headerLayout.addLayout(self.titleLayout, 7)
+        self.headerLayout.addLayout(self.statsLayout, 3)
+        self.overviewLayout.addLayout(self.headerLayout)
+
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
+        self.overviewLayout.addWidget(line)
+
+        content_layout = QGridLayout()
+
+        self.thumbnailLabel = QLabel("Loading thumbnail...")
+        self.thumbnailLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.thumbnailLabel.setMinimumSize(200, 150)
+        content_layout.addWidget(self.thumbnailLabel, 0, 0, 3, 1)
+
+        author_box = QGroupBox("Author")
+        self.authorLayout = QVBoxLayout()
+
+        author_box.setLayout(self.authorLayout)
+        content_layout.addWidget(author_box, 0, 1)
+
+        reviews_box = QGroupBox("Reviews")
+        self.reviewsLayout = QFormLayout()
+        reviews_box.setLayout(self.reviewsLayout)
+        content_layout.addWidget(reviews_box, 1, 1)
+
+        version_box = QGroupBox("Version Details")
+        self.versionLayout = QFormLayout()
+
+        version_box.setLayout(self.versionLayout)
+        content_layout.addWidget(version_box, 2, 1)
+
+        self.overviewLayout.addLayout(content_layout)
+
+        description_box = QGroupBox("Description")
+        descriptionLayout = QVBoxLayout()
+        self.descriptionLabel = QLabel()
+        self.descriptionLabel.setWordWrap(True)
+        descriptionLayout.addWidget(self.descriptionLabel)
+        description_box.setLayout(descriptionLayout)
+        self.overviewLayout.addWidget(description_box)
+
+        buttonLayout = QHBoxLayout()
+
+        spacer = QSpacerItem(5, 5, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        buttonLayout.addItem(spacer)
+        self.downloadButton = QPushButton()
+        buttonLayout.addWidget(self.downloadButton)
+
+        self.viewFolderButton = QPushButton("View Files")
+        buttonLayout.addWidget(self.viewFolderButton)
+
+        self.overviewLayout.addLayout(buttonLayout)
+
+        self.overviewLayout.addStretch()
+        overview_widget.setWidget(overview_content)
+        self.tabs.addTab(overview_widget, "Overview")
+
+        tech_widget = QWidget()
+        tech_widget.setObjectName("tech_widget")
+        tech_layout = QVBoxLayout()
+
+        self.techTable = QTableWidget()
+        self.techTable.setColumnCount(2)
+        self.techTable.setHorizontalHeaderLabels(["Property", "Value"])
+        self.techTable.resizeColumnsToContents()
+        tech_layout.addWidget(self.techTable)
+
+        tech_widget.setLayout(tech_layout)
+        self.tabs.addTab(tech_widget, "Technical Details")
+
+        self.mainLayout.addWidget(self.tabs)

@@ -1,0 +1,69 @@
+from __future__ import annotations
+
+from enum import Enum
+
+from PyQt6.QtWidgets import QListWidget
+
+from src.api.models.Map import Map
+from src.fa import maps
+from src.vaults.listitem import VaultListItem
+
+
+class MapSortType(Enum):
+    ALPHABETICAL = "Alphabetic"
+    DATE = "Date"
+    RATING = "Rating"
+    SIZE = "Size"
+
+
+class MapDisplayType(Enum):
+    ALL = "All"
+    UNRANKED = "Unranked"
+    RANKED = "Ranked"
+    INSTALLED = "Installed"
+
+
+class MapListItem(VaultListItem):
+    def __init__(self, parent: QListWidget, item_data: Map) -> None:
+        VaultListItem.__init__(self, parent, item_data)
+        self.item_data = item_data
+        self.display_type = MapDisplayType.ALL
+        self.sort_type = MapSortType.ALPHABETICAL
+        assert item_data.version is not None
+        self.item_version = item_data.version
+
+    def on_sort_type_changed(self, index: int) -> None:
+        self.sort_type = tuple(MapSortType)[index]
+
+    def on_display_type_changed(self, index: int) -> None:
+        self.display_type = tuple(MapDisplayType)[index]
+
+    def should_be_visible(self) -> bool:
+        if self.display_type == MapDisplayType.ALL:
+            return True
+        elif self.display_type == MapDisplayType.UNRANKED:
+            return not self.item_version.ranked
+        elif self.display_type == MapDisplayType.RANKED:
+            return self.item_version.ranked
+        elif self.display_type == MapDisplayType.INSTALLED:
+            return maps.isMapAvailable(self.item_version.folder_name)
+        else:
+            return True
+
+    def _lt_size(self, other: MapListItem) -> bool:
+        if self.item_version.size == other.item_version.size:
+            return self._lt_alphabetical(other)
+        return self.item_version.size < other.item_version.size
+
+    def _less_than(self, other: VaultListItem) -> bool:
+        if not isinstance(other, MapListItem):
+            return VaultListItem._less_than(self, other)
+        if self.sort_type == MapSortType.ALPHABETICAL:
+            return self._lt_alphabetical(other)
+        elif self.sort_type == MapSortType.RATING:
+            return self._lt_rating(other)
+        elif self.sort_type == MapSortType.DATE:
+            return self._lt_date(other)
+        elif self.sort_type == MapSortType.SIZE:
+            return self._lt_size(other)
+        return True
