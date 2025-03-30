@@ -237,7 +237,7 @@ class ClientWindow(FormClass, BaseClass):
             relation_model, relation_controller, relation_trackers,
         )
 
-        self.map_preview_downloader = MapSmallPreviewDownloader(util.MAP_PREVIEW_SMALL_DIR)
+        self.map_preview_downloader = MapSmallPreviewDownloader()
         self.avatar_downloader = CachedImageDownloader()
 
         # Map generator

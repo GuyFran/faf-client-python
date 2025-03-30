@@ -1,5 +1,4 @@
 import logging
-import os
 
 from PyQt6 import QtCore
 from PyQt6 import QtGui
@@ -8,7 +7,7 @@ from PyQt6 import QtWidgets
 from src.config import Settings
 from src.downloadManager import DownloadRequest
 from src.downloadManager import MapLargePreviewDownloader
-from src.util import MAP_PREVIEW_LARGE_DIR
+from src.util import pretty_decoded_basename
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +112,7 @@ class ReplayToolboxHandler(object):
         self._playerset = playerset
         self.widgetHandler = wigetHandler
 
-        self._map_preview_dler = MapLargePreviewDownloader(MAP_PREVIEW_LARGE_DIR)
+        self._map_preview_dler = MapLargePreviewDownloader()
         self._map_dl_request = DownloadRequest()
         self._map_dl_request.done.connect(self._on_map_preview_downloaded)
 
@@ -166,6 +165,7 @@ class ReplayToolboxHandler(object):
             self.adjustTboxSize(hide=True)
         elif self.activePage == "Map Preview":
             self.mapPreview = True
+            self.updateMapPreview()
 
     def adjustTboxSize(self, hide=None):
         ''' a part of "collapse all" hack'''
@@ -189,6 +189,7 @@ class ReplayToolboxHandler(object):
         page = self._w.replayToolBox.itemText(index)
         if page == "Map Preview":
             self.mapPreview = True
+            self.updateMapPreview()
         else:
             self.mapPreview = False
 
@@ -349,12 +350,10 @@ class ReplayToolboxHandler(object):
                 selectedReplay.mapname.lower() != "unknown"
                 and selectedReplay.mapname != preview.currentMap
             ):
-                imgPath = os.path.join(
-                    MAP_PREVIEW_LARGE_DIR, selectedReplay.mapname + ".png",
-                )
 
-                if os.path.isfile(imgPath):
-                    pix = QtGui.QPixmap(imgPath)
+                if self._map_preview_dler.image_exists(f"{selectedReplay.mapname}.png"):
+                    img_path = self._map_preview_dler.image_path(f"{selectedReplay.mapname}.png")
+                    pix = QtGui.QPixmap(img_path)
                     preview.setPixmap(pix)
                     preview.currentMap = selectedReplay.mapname
                 else:
@@ -364,5 +363,5 @@ class ReplayToolboxHandler(object):
                     )
 
     def _on_map_preview_downloaded(self, mapname, result):
-        if mapname == self.widgetHandler.selectedReplay.mapname:
+        if pretty_decoded_basename(mapname) == self.widgetHandler.selectedReplay.mapname:
             self.updateMapPreview()

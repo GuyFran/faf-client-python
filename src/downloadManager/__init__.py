@@ -21,6 +21,8 @@ from PyQt6.QtNetwork import QNetworkRequest
 
 from src.config import Settings
 from src.util import AVATARS_CACHE_DIR
+from src.util import MAP_PREVIEW_LARGE_DIR
+from src.util import MAP_PREVIEW_SMALL_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -365,29 +367,6 @@ class Downloader(QObject):
             req.finished(download.name, (download_path, download.failed()))
 
 
-class MapPreviewDownloader(Downloader):
-    def __init__(self, target_dir: str, size: str) -> None:
-        super().__init__(target_dir)
-        self.size = size
-
-    def download_preview(self, name: str, req: DownloadRequest) -> None:
-        encoded_name = QUrl(name).fileName(QUrl.ComponentFormattingOption.EncodeSpaces)
-        self._add_request(f"{encoded_name}.png", req, self._target_url(name))
-
-    def _target_url(self, name: str) -> str:
-        return Settings.get("vault/map_preview_url").format(size=self.size, name=name)
-
-
-class MapSmallPreviewDownloader(MapPreviewDownloader):
-    def __init__(self, target_dir: str) -> None:
-        super().__init__(target_dir, "small")
-
-
-class MapLargePreviewDownloader(MapPreviewDownloader):
-    def __init__(self, target_dir: str) -> None:
-        super().__init__(target_dir, "large")
-
-
 class DownloadTimeouts:
     def __init__(self, timeout_interval, fail_count_to_timeout):
         self._fail_count_to_timeout = fail_count_to_timeout
@@ -426,10 +405,10 @@ class ImageDownloader:
         self._nam.finished.connect(self._image_download_finished)
         self.save_dir = save_dir
 
-    def image_path(self, url: QUrl) -> str:
+    def image_path(self, url: QUrl | str) -> str:
         return os.path.join(self.save_dir, self.image_name(url))
 
-    def image_exists(self, url: QUrl) -> bool:
+    def image_exists(self, url: QUrl | str) -> bool:
         return os.path.isfile(self.image_path(url))
 
     def set_save_dir(self, save_dir: str) -> None:
@@ -495,3 +474,25 @@ class CachedImageDownloader(ImageDownloader):
         if name not in self.images:
             self.images[name] = QPixmap(filepath)
         return filepath
+
+
+class MapPreviewDownloader(ImageDownloader):
+    def __init__(self, target_dir: str, size_str: str, size: QSize | None = None) -> None:
+        super().__init__(target_dir, size)
+        self.size_str = size_str
+
+    def download_preview(self, name: str, req: DownloadRequest) -> None:
+        self._add_request(self._target_url(name), req)
+
+    def _target_url(self, name: str) -> str:
+        return Settings.get("vault/map_preview_url").format(size=self.size_str, name=name)
+
+
+class MapSmallPreviewDownloader(MapPreviewDownloader):
+    def __init__(self) -> None:
+        super().__init__(MAP_PREVIEW_SMALL_DIR, "small")
+
+
+class MapLargePreviewDownloader(MapPreviewDownloader):
+    def __init__(self) -> None:
+        super().__init__(MAP_PREVIEW_LARGE_DIR, "large")

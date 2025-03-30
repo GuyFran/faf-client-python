@@ -66,12 +66,10 @@ class LiveReplayItem(QtWidgets.QTreeWidgetItem):
     def _show_item(self):
         self.setHidden(False)
 
-    def _map_preview_downloaded(self, preview_file: str, result: tuple[str, bool]) -> None:
+    def _map_preview_downloaded(self, preview_file: str, pixmap: QtGui.QPixmap) -> None:
         if util.pretty_decoded_basename(preview_file) != self._game.mapname:
             return
-        path, is_local = result
-        icon = util.THEME.icon(path, is_local)
-        self.setIcon(0, icon)
+        self.setIcon(0, QtGui.QIcon(pixmap))
 
     def _update_game(self, game):
         if game.state == GameState.CLOSED:
@@ -1092,7 +1090,7 @@ class ReplayVaultWidgetHandler(object):
             for replay_item in buckets[bucket]:
                 bucket_item.addChild(replay_item)
                 replay_item.setFirstColumnSpanned(True)
-                replay_item.setIcon(0, replay_item.icon)
+                replay_item.setIcon(0, replay_item.thumbnail)
 
             bucket_item.setExpanded(True)
 

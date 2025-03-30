@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from PyQt6.QtCore import QSize
 from PyQt6.QtCore import Qt
 from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QPixmap
@@ -32,7 +31,7 @@ class VaultListWidget(QWidget):
         assert item_data.version is not None
         self.item_version = item_data.version
 
-        self.thumbnail_loader = ImageDownloader(image_cache_dir, QSize(100, 100))
+        self.thumbnail_loader = ImageDownloader(image_cache_dir)
         self.thumbnail_dl_request = DownloadRequest()
         self.thumbnail_dl_request.done.connect(self.on_thumbnail_downloaded)
 

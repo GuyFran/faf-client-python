@@ -183,9 +183,9 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
         # Map preview code
         self.mapdisplayname = maps.getDisplayName(self.mapname)
 
-        self.icon = maps.preview(self.mapname)
-        if not self.icon:
-            self.icon = util.THEME.icon("games/unknown_map.png")
+        self.thumbnail = maps.preview(self.mapname)
+        if not self.thumbnail:
+            self.thumbnail = util.THEME.icon("games/unknown_map.png")
             if self.mapname != "unknown":
                 self.client.map_preview_downloader.download_preview(
                     self.mapname, self._map_dl_request,
@@ -201,10 +201,9 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
             duration=self.duration, mod=self.moddisplayname,
         )
 
-    def _on_map_preview_downloaded(self, mapname, result):
-        path, is_local = result
-        self.icon = util.THEME.icon(path, is_local)
-        self.setIcon(0, self.icon)
+    def _on_map_preview_downloaded(self, mapname: str, pixmap: QtGui.QPixmap) -> None:
+        self.thumbnail = QtGui.QIcon(pixmap)
+        self.setIcon(0, self.thumbnail)
 
     def load_extra_info(self) -> None:
         """

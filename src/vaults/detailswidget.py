@@ -1,4 +1,3 @@
-from PyQt6.QtCore import QSize
 from PyQt6.QtCore import Qt
 from PyQt6.QtCore import QUrl
 from PyQt6.QtCore import pyqtSignal
@@ -32,7 +31,7 @@ class DetailsWidget(QWidget):
         assert item_data.version is not None
         self.item_version = item_data.version
 
-        self.image_downloader = ImageDownloader(image_cache_dir, QSize(256, 256))
+        self.image_downloader = ImageDownloader(image_cache_dir)
         self.image_dl_request = DownloadRequest()
         self.image_dl_request.done.connect(self.on_image_downloaded)
 
