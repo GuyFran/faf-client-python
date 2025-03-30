@@ -47,6 +47,7 @@ class MapVault(Vault):
         self.apiConnector = self.mapApiConnector
 
     def create_item(self, data: Map | Mod) -> MapListWidget:
+        assert isinstance(data, Map)
         return MapListWidget(data)
 
     def create_list_item(self, data: Map | Mod) -> MapListItem:

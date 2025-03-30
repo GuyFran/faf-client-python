@@ -45,6 +45,7 @@ class ModVault(Vault):
         self.UIButton.show()
 
     def create_item(self, data: Map | Mod) -> ModListWidget:
+        assert isinstance(data, Mod)
         return ModListWidget(data)
 
     def create_list_item(self, data: Mod | Map) -> ModListItem:
