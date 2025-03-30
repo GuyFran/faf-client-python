@@ -8,12 +8,12 @@ from PyQt6.QtWidgets import QListWidgetItem
 from src import util
 from src.api.models.Avatar import Avatar
 from src.api.models.AvatarAssignment import AvatarAssignment
+from src.downloadManager import CachedImageDownloader
 from src.downloadManager import DownloadRequest
-from src.downloadManager import ImageDownloader
 
 
 class AvatarHandler:
-    def __init__(self, avatar_list: QListWidget, avatar_downloader: ImageDownloader) -> None:
+    def __init__(self, avatar_list: QListWidget, avatar_downloader: CachedImageDownloader) -> None:
         self.avatar_list = avatar_list
         self.avatar_dler = avatar_downloader
         self.requests = {}

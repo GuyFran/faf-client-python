@@ -21,8 +21,8 @@ from src.api.models.Achievement import State
 from src.api.models.PlayerAchievement import PlayerAchievement
 from src.api.stats_api import AchievementsApiAccessor
 from src.api.stats_api import PlayerAchievementApiAccessor
+from src.downloadManager import CachedImageDownloader
 from src.downloadManager import DownloadRequest
-from src.downloadManager import ImageDownloader
 from src.util import ACHIEVEMENTS_CACHE_DIR
 from src.util import THEME
 
@@ -30,7 +30,11 @@ FormClass, BaseClass = THEME.loadUiType("player_card/achievement.ui")
 
 
 class AchievementWidget(FormClass, BaseClass):
-    def __init__(self, player_achievement: PlayerAchievement, img_dler: ImageDownloader) -> None:
+    def __init__(
+            self,
+            player_achievement: PlayerAchievement,
+            img_dler: CachedImageDownloader,
+    ) -> None:
         BaseClass.__init__(self)
         self.setupUi(self)
 
@@ -98,7 +102,7 @@ class AchievementsHandler:
 
         self.achievements_api = AchievementsApiAccessor()
         self.achievements_api.data_ready.connect(self.on_achievements_ready)
-        self.img_dler = ImageDownloader(ACHIEVEMENTS_CACHE_DIR, QSize(128, 128))
+        self.img_dler = CachedImageDownloader(ACHIEVEMENTS_CACHE_DIR, QSize(128, 128))
         self.all_achievements = []
         self._loaded = False
 

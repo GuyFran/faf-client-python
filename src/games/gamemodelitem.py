@@ -11,6 +11,7 @@ from src.downloadManager import DownloadRequest
 from src.downloadManager import MapPreviewDownloader
 from src.fa import maps
 from src.model.game import Game
+from src.util import pretty_decoded_basename
 
 
 class GameModelItem(QObject):
@@ -68,6 +69,6 @@ class GameModelItem(QObject):
             return
         self._preview_dler.download_preview(name, self._preview_dl_request)
 
-    def _at_preview_downloaded(self, mapname):
-        if mapname == self.game.mapname:
+    def _at_preview_downloaded(self, preview_file: str) -> None:
+        if pretty_decoded_basename(preview_file) == self.game.mapname:
             self.updated.emit(self)

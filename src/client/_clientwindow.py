@@ -44,7 +44,7 @@ from src.client.user import UserRelationTrackers
 from src.connectivity.ConnectivityDialog import ConnectivityDialog
 from src.contextmenu.playercontextmenu import PlayerContextMenu
 from src.coop import CoopWidget
-from src.downloadManager import ImageDownloader
+from src.downloadManager import CachedImageDownloader
 from src.downloadManager import MapSmallPreviewDownloader
 from src.fa.factions import Factions
 from src.fa.game_runner import GameRunner
@@ -238,7 +238,7 @@ class ClientWindow(FormClass, BaseClass):
         )
 
         self.map_preview_downloader = MapSmallPreviewDownloader(util.MAP_PREVIEW_SMALL_DIR)
-        self.avatar_downloader = ImageDownloader()
+        self.avatar_downloader = CachedImageDownloader()
 
         # Map generator
         self.map_generator = MapGeneratorManager()

@@ -66,8 +66,8 @@ class LiveReplayItem(QtWidgets.QTreeWidgetItem):
     def _show_item(self):
         self.setHidden(False)
 
-    def _map_preview_downloaded(self, mapname, result):
-        if mapname != self._game.mapname:
+    def _map_preview_downloaded(self, preview_file: str, result: tuple[str, bool]) -> None:
+        if util.pretty_decoded_basename(preview_file) != self._game.mapname:
             return
         path, is_local = result
         icon = util.THEME.icon(path, is_local)

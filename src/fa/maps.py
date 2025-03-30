@@ -313,10 +313,6 @@ def export_preview_from_map(
     return previews
 
 
-# "jpg" removed to have fewer of those costly 404 misses.
-iconExtensions = ["png"]
-
-
 def get_preview_for_generated_map(mapname: str) -> QtGui.QIcon:
     mapdir = os.path.join(getUserMapsFolder(), mapname)
     preview_name = f"{mapname}_preview.png"
@@ -333,14 +329,12 @@ def preview(mapname: str, *, pixmap: bool = False) -> QtGui.QIcon | QtGui.QPixma
         return get_preview_for_generated_map(mapname)
     try:
         # Try to load directly from cache
-        for extension in iconExtensions:
-            img = os.path.join(
-                util.MAP_PREVIEW_SMALL_DIR,
-                mapname + "." + extension,
-            )
-            if os.path.isfile(img):
-                logger.log(5, "Using cached preview image for: " + mapname)
-                return util.THEME.icon(img, False, pixmap)
+        encode_option = QtCore.QUrl.ComponentFormattingOption.EncodeSpaces
+        encoded = QtCore.QUrl(mapname).fileName(encode_option)
+        img = os.path.join(util.MAP_PREVIEW_SMALL_DIR, f"{encoded}.png")
+        if os.path.isfile(img):
+            logger.log(5, f"Using cached preview image for: {mapname}")
+            return util.THEME.icon(img, False, pixmap)
 
         # Try to find in local map folder
         img = export_preview_from_map(mapname)

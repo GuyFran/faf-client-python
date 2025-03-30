@@ -13,7 +13,7 @@ from src.api.player_api import PlayerApiConnector
 from src.api.stats_api import LeaderboardRatingApiConnector
 from src.api.stats_api import LeagueSeasonScoreApiConnector
 from src.api.stats_api import PlayerEventApiAccessor
-from src.downloadManager import ImageDownloader
+from src.downloadManager import CachedImageDownloader
 from src.playercard.achievements import AchievementsHandler
 from src.playercard.avatarhandler import AvatarHandler
 from src.playercard.leagueformatter import league_formatter_factory
@@ -24,7 +24,7 @@ FormClass, BaseClass = util.THEME.loadUiType("player_card/playercard.ui")
 
 
 class PlayerInfoDialog(FormClass, BaseClass):
-    def __init__(self, avatar_dler: ImageDownloader, player_id: str) -> None:
+    def __init__(self, avatar_dler: CachedImageDownloader, player_id: str) -> None:
         BaseClass.__init__(self)
         self.setupUi(self)
         self.load_stylesheet()

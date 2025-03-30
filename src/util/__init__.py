@@ -10,6 +10,7 @@ import sys
 
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QDateTime
+from PyQt6.QtCore import QFileInfo
 from PyQt6.QtCore import QStandardPaths
 from PyQt6.QtCore import Qt
 from PyQt6.QtCore import QUrl
@@ -55,7 +56,7 @@ CACHE_DIR = os.path.join(APPDATA_DIR, "cache")
 MAP_PREVIEW_SMALL_DIR = os.path.join(CACHE_DIR, "maps", "small")
 MAP_PREVIEW_LARGE_DIR = os.path.join(CACHE_DIR, "maps", "large")
 
-MOD_PREVIEW_DIR = os.path.join(CACHE_DIR, "mod_previews")
+MOD_PREVIEW_DIR = os.path.join(CACHE_DIR, "mods")
 
 # Cache for news images
 NEWS_CACHE_DIR = os.path.join(CACHE_DIR, "news")
@@ -527,3 +528,9 @@ def capitalize(string: str) -> str:
     Capitalize the first letter only, leave the rest as it is
     """
     return f"{string[0].upper()}{string[1:]}"
+
+
+def pretty_decoded_basename(path: str) -> str:
+    """Decode percent-encoded characters in the path and return the base name"""
+    filename = QUrl(path).fileName(QUrl.ComponentFormattingOption.PrettyDecoded)
+    return QFileInfo(filename).completeBaseName()

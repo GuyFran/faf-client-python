@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PyQt6.QtCore import QSize
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QHBoxLayout
@@ -10,9 +11,10 @@ from PyQt6.QtWidgets import QWidget
 from src import util
 from src.api.models.Map import Map
 from src.api.models.Mod import Mod
+from src.downloadManager import DownloadRequest
+from src.downloadManager import ImageDownloader
 from src.vaults.listwidgetui import ListWidgetUI
 from src.vaults.starrating import StarRatingWidget
-from src.vaults.thumbnailloader import ThumbnailLoader
 
 STYLESHEET = util.THEME.readstylesheet("client/client.css")
 
@@ -23,7 +25,11 @@ class VaultListWidget(QWidget):
         self.item_data = item_data
         assert item_data.version is not None
         self.item_version = item_data.version
-        self.thumbnail_loader = ThumbnailLoader()
+
+        self.thumbnail_loader = ImageDownloader(util.CACHE_DIR, QSize(100, 100))
+        self.thumbnail_dl_request = DownloadRequest()
+        self.thumbnail_dl_request.done.connect(self.on_thumbnail_downloaded)
+
         self.ui = ListWidgetUI()
         self.ui.setupUi(self)
         self.init_ui()
@@ -43,19 +49,21 @@ class VaultListWidget(QWidget):
     def check_installed(self) -> None:
         raise NotImplementedError
 
+    def get_thumbnail(self) -> QPixmap:
+        return QPixmap()
+
+    def update_pixmap(self) -> None:
+        if (pixmap := self.get_thumbnail()).isNull():
+            self.load_thumbnail()
+        else:
+            self.set_thumbnail(pixmap)
+
     def init_ui(self) -> None:
         self.ui.titleLabel.setText(self.item_data.display_name)
         if self.is_installed():
             self.ui.titleLabel.setProperty("installed", "true")
-        if self.item_version and self.item_version.thumbnail_url:
-            self.ui.thumbnailLabel.setText("Loading...")
-            self.thumbnail_loader.load(
-                self.item_version.thumbnail_url,
-                self.set_thumbnail,
-            )
-        else:
-            self.ui.thumbnailLabel.setText("No image")
         self.ui.versionLabel.setText(f"version {self.item_version.version}")
+        self.update_pixmap()
         self.set_author()
         self.populate_details()
 
@@ -91,6 +99,19 @@ class VaultListWidget(QWidget):
         label = QLabel("✓ Recommended" if self.item_data.recommended else "")
         label.setProperty("recommended", "true")
         return label
+
+    def load_thumbnail(self) -> None:
+        if self.item_version.thumbnail_url:
+            self.ui.thumbnailLabel.setText("Loading...")
+            self.thumbnail_loader.download_image(
+                self.item_version.thumbnail_url,
+                self.thumbnail_dl_request,
+            )
+        else:
+            self.ui.thumbnailLabel.setText("No image")
+
+    def on_thumbnail_downloaded(self, _: str, pixmap: QPixmap) -> None:
+        self.set_thumbnail(pixmap)
 
     def set_thumbnail(self, pixmap: QPixmap | None) -> None:
         if pixmap:

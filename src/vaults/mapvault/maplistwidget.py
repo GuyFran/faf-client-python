@@ -1,20 +1,34 @@
+from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QLabel
 from PyQt6.QtWidgets import QLayout
 from PyQt6.QtWidgets import QWidget
 
+from src import util
 from src.api.models.Map import Map
-from src.api.models.MapVersion import MapVersion
 from src.fa import maps
 from src.vaults.listwidget import VaultListWidget
 
 
 class MapListWidget(VaultListWidget):
+    def __init__(self, item_data: Map, parent: QWidget | None = None) -> None:
+        VaultListWidget.__init__(self, item_data, parent)
+        self.item_data = item_data
+        assert item_data.version is not None
+        self.item_version = item_data.version
+        self.thumbnail_loader.set_save_dir(util.MAP_PREVIEW_SMALL_DIR)
+
+    def get_thumbnail(self) -> QPixmap:
+        if (preview := maps.preview(self.item_version.folder_name)) is not None:
+            if isinstance(preview, QIcon):
+                return preview.pixmap(100, 100)
+            return preview
+        return QPixmap()
+
     def is_installed(self) -> bool:
-        assert isinstance(self.item_version, MapVersion)
         return maps.isMapAvailable(self.item_version.folder_name)
 
     def set_author(self) -> None:
-        assert isinstance(self.item_data, Map)
         if self.item_data.author:
             self.ui.authorLabel.setText(f"<b>By:</b> {self.item_data.author.login}")
 
@@ -24,7 +38,6 @@ class MapListWidget(VaultListWidget):
         if not self.item_version.ranked:
             notice_label.setText("ⓘ Unranked")
 
-        assert isinstance(self.item_version, MapVersion)
         width = self.item_version.size.width_km
         height = self.item_version.size.height_km
         size_label = QLabel(f"<b>Size (km):</b> {width} x {height}")
