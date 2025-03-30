@@ -1,7 +1,4 @@
 from typing import Any
-from typing import Iterable
-from typing import TypedDict
-from typing import Unpack
 
 import numpy as np
 import pyqtgraph as pg
@@ -12,7 +9,8 @@ from PyQt6.QtWidgets import QScrollArea
 from PyQt6.QtWidgets import QTabWidget
 from PyQt6.QtWidgets import QVBoxLayout
 from PyQt6.QtWidgets import QWidget
-from pyqtgraph.GraphicsScene.mouseEvents import HoverEvent
+
+from src.qt.graphics.labeledbargraphitem import LabeledBarGraphItem
 
 UNIT_TYPES = {
     "land": "Land",
@@ -30,58 +28,6 @@ UNIT_TYPES = {
 }
 
 BAR_GROUP_WIDTH = 0.8
-
-
-class BarGraphOptions(TypedDict):
-    x: Iterable[float]
-    height: Iterable[float]
-    width: float
-    brush: str | tuple[int, int, int]
-    name: str
-
-
-class LabeledBarGraphItem(pg.BarGraphItem):
-    def __init__(self, categories: list[str], **opts: Unpack[BarGraphOptions]) -> None:
-        pg.BarGraphItem.__init__(self, **opts)
-        self.categories = categories
-        self.tooltip: pg.TextItem | None = None
-
-    def hoverEvent(self, ev: HoverEvent) -> None:
-        if ev.isExit():
-            self.hide_tooltip()
-        else:
-            pos = ev.pos()
-            for i, height in enumerate(self.opts["height"]):
-                x = self.opts["x"][i]
-                w = self.opts["width"]
-
-                if x - w/2 <= pos.x() <= x + w/2:
-                    self.show_tooltip(f"{self.categories[i]}: {height:,.2f}", pos)
-                    break
-
-    def show_tooltip(self, text: str, pos: pg.Point) -> None:
-        if (view := self.getViewBox()) is None:
-            return
-
-        if self.tooltip is None:
-            self.tooltip = pg.TextItem(
-                anchor=(0.5, 1.0),
-                border=pg.mkPen((255, 255, 255, 100)),
-                fill=pg.mkBrush((0, 0, 0, 200)),
-            )
-            self.tooltip.setZValue(1000)
-            parent = view.parentItem()
-            assert parent is not None
-            parent.addItem(self.tooltip)
-            self.tooltip.hide()
-
-        self.tooltip.setPos(pos)
-        self.tooltip.setText(text)
-        self.tooltip.show()
-
-    def hide_tooltip(self) -> None:
-        if self.tooltip is not None:
-            self.tooltip.hide()
 
 
 class StatsVisualizer(QWidget):
@@ -198,7 +144,7 @@ class StatsVisualizer(QWidget):
 
         player_names = [player["name"] for player in self.stats]
         x_pos = np.arange(len(player_names))
-        bar_width = 0.4
+        bar_width = BAR_GROUP_WIDTH / 3
         colors = {
             "mass": ("b", "r", "g"),
             "energy": ("y", "m", "c"),
@@ -217,7 +163,7 @@ class StatsVisualizer(QWidget):
                 values = [player["resources"][category][metric] for player in self.stats]
                 bar = LabeledBarGraphItem(
                     categories=player_names,
-                    x=x_pos + (i - len(metrics)/2 + 0.5) * bar_width/2,
+                    x=x_pos + (i - len(metrics)/2 + 0.5) * bar_width,
                     height=values,
                     width=bar_width,
                     brush=colors[resource][i],
