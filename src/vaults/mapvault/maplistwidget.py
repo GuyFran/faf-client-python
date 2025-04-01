@@ -32,9 +32,9 @@ class MapListWidget(VaultListWidget):
         height = self.item_version.size.height_km
         size_label = QLabel(f"<b>Size (km):</b> {width} x {height}")
 
-        games_label = QLabel(f"<b>Games:</b> {self.item_version.games_played}")
+        games_label = QLabel(f"<b>Games:</b> {self.item_data.games_played}")
         return [
             notice_label,          self.recommended_label(),
             size_label,            games_label,
-            self.uploaded_label(), self.rating_layout(),
+            self.created_label(), self.rating_layout(),
         ]

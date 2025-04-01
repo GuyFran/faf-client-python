@@ -36,5 +36,5 @@ class ModListWidget(VaultListWidget):
         return [
             notice_label,          self.recommended_label(),
             uploader_label,        type_label,
-            self.uploaded_label(), self.rating_layout(),
+            self.created_label(), self.rating_layout(),
         ]

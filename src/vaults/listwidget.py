@@ -99,9 +99,9 @@ class VaultListWidget(QWidget):
             rating_layout.addWidget(QLabel("<i>No reviews</i>"))
         return rating_layout
 
-    def uploaded_label(self) -> QLabel:
+    def created_label(self) -> QLabel:
         local_time = util.utctolocal(self.item_version.create_time)
-        return QLabel(f"<b>Uploaded:</b> {local_time}")
+        return QLabel(f"<b>Created:</b> {local_time}")
 
     def recommended_label(self) -> QLabel:
         label = QLabel("✓ Recommended" if self.item_data.recommended else "")
