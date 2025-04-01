@@ -2,6 +2,8 @@ import logging
 from collections.abc import Sequence
 
 from src.api.ApiAccessors import DataApiAccessor
+from src.api.models.Map import Map
+from src.api.models.Mod import Mod
 from src.api.parsers.MapParser import MapParser
 from src.api.parsers.MapPoolAssignmentParser import MapPoolAssignmentParser
 from src.api.parsers.ModParser import ModParser
@@ -13,6 +15,7 @@ class VaultsApiConnector(DataApiAccessor):
     def __init__(self, route: str) -> None:
         super().__init__(route)
         self._includes = ("latestVersion", "reviewsSummary")
+        self._filters = ("latestVersion.hidden=='false'",)
 
     def _extend_query_options(self, query_options: dict) -> dict:
         self._add_default_includes(query_options)
@@ -29,6 +32,8 @@ class VaultsApiConnector(DataApiAccessor):
         self.get_by_query(query, self.handle_response)
 
     def _add_default_includes(self, query_options: dict) -> dict:
+        if not self._includes:
+            return query_options
         return self._extend_includes(query_options, self._includes)
 
     def _extend_includes(self, query_options: dict, to_include: Sequence[str]) -> dict:
@@ -38,9 +43,10 @@ class VaultsApiConnector(DataApiAccessor):
         return query_options
 
     def _apply_default_filters(self, query_options: dict) -> dict:
+        if not self._filters:
+            return query_options
         cur_filters = query_options.get("filter", "")
-        additional_filter = "latestVersion.hidden=='false'"
-        query_options["filter"] = ";".join((cur_filters, additional_filter)).removeprefix(";")
+        query_options["filter"] = ";".join((cur_filters, *self._filters)).removeprefix(";")
         return query_options
 
 
@@ -64,9 +70,9 @@ class MapApiConnector(VaultsApiConnector):
     def __init__(self) -> None:
         super().__init__("/data/map")
 
-    def _extend_query_options(self, query_options: dict) -> None:
+    def _extend_query_options(self, query_options: dict) -> dict:
         super()._extend_query_options(query_options)
-        self._extend_includes(query_options, ["author"])
+        return self._extend_includes(query_options, ["author"])
 
     def prepare_data(self, message: dict) -> dict:
         return {
@@ -94,3 +100,14 @@ class MapPoolApiConnector(VaultsApiConnector):
             "values": MapPoolAssignmentParser.parse_many_to_maps(message["data"]),
             "meta": message["meta"],
         }
+
+
+class ReviewsApiConnector(VaultsApiConnector):
+    def __init__(self) -> None:
+        super().__init__("")
+        self._includes = ("versions", "versions.reviews", "versions.reviews.player")
+        self._filters = tuple()
+
+    def request_reviews(self, item: Map | Mod, query_options: dict | None = None) -> None:
+        self.route = f"/data/{type(item).__name__.lower()}/{item.xd}"
+        self.request_data(query_options)

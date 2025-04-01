@@ -515,12 +515,12 @@ def strtodate(s: str) -> QDateTime:
     return QDateTime.fromString(s, Qt.DateFormat.ISODate).toLocalTime()
 
 
-def datetostr(d: QDateTime) -> str:
-    return d.toString("yyyy-MM-dd hh:mm")
+def datetostr(d: QDateTime, format: str) -> str:
+    return d.toString(format)
 
 
-def utctolocal(s: str) -> str:
-    return datetostr(strtodate(s))
+def utctolocal(s: str, format: str = "yyyy-MM-dd hh:mm") -> str:
+    return datetostr(strtodate(s), format)
 
 
 def capitalize(string: str) -> str:

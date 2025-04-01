@@ -20,6 +20,7 @@ class StarRatingWidget(QWidget):
             rating: float = 0.0,
             max_rating: int = 5,
             star_size: int = 30,
+            star_color_filled: QColor = QColor(255, 215, 0),
             parent: QWidget | None = None,
     ) -> None:
         QWidget.__init__(self, parent)
@@ -28,7 +29,7 @@ class StarRatingWidget(QWidget):
         self.max_rating = max_rating
         self.star_size = star_size
 
-        self.star_color_filled = QColor(255, 215, 0)  # Gold
+        self.star_color_filled = star_color_filled
         self.star_color_empty = Qt.GlobalColor.black
 
         # Set widget size

@@ -1,20 +1,41 @@
+from __future__ import annotations
+
+from operator import attrgetter
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtCore import QUrl
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QLabel
 from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QPushButton
 from PyQt6.QtWidgets import QTableWidgetItem
 from PyQt6.QtWidgets import QWidget
 
 from src import util
 from src.api.models.Map import Map
+from src.api.models.MapVersionReview import MapVersionReview
 from src.api.models.Mod import Mod
+from src.api.models.ModVersionReview import ModVersionReview
+from src.api.vaults_api import ReviewsApiConnector
 from src.downloadManager import DownloadRequest
 from src.downloadManager import ImageDownloader
 from src.vaults.detailswidgetui import DetailsWidgetUI
+from src.vaults.reviewwidget import CommentWidget
+from src.vaults.reviewwidget import RatingBarWidget
+from src.vaults.reviewwidget import RatingDistribution
 
 STYLESHEET = util.THEME.readstylesheet("client/client.css")
+
+type VersionReview = MapVersionReview | ModVersionReview
+
+
+def convert_review(dto_cls: type[Map | Mod], dto: dict) -> VersionReview:
+    if dto_cls == Map:
+        return MapVersionReview(**dto)
+    elif dto_cls == Mod:
+        return ModVersionReview(**dto)
+    raise ValueError(f"Unexpected dto_cls: {dto_cls}")
 
 
 class DetailsWidget(QWidget):
@@ -30,10 +51,14 @@ class DetailsWidget(QWidget):
         self.item_data = item_data
         assert item_data.version is not None
         self.item_version = item_data.version
+        self.item_type_name = type(item_data).__name__
 
         self.image_downloader = ImageDownloader(image_cache_dir)
         self.image_dl_request = DownloadRequest()
         self.image_dl_request.done.connect(self.on_image_downloaded)
+
+        self.reviews_api = ReviewsApiConnector()
+        self.reviews_api.data_ready.connect(self.on_reviews_data)
 
         self.ui = DetailsWidgetUI()
         self.ui.setupUi(self)
@@ -45,7 +70,7 @@ class DetailsWidget(QWidget):
     def set_author(self) -> None:
         self.ui.authorLayout.addWidget(QLabel("Unknown Author"))
 
-    def set_reviews(self) -> None:
+    def set_reviews_summary(self) -> None:
         if summary := self.item_data.reviews_summary:
             rows = (
                 ("Average Score:", f"{summary.average_score:.1f}/5.0"),
@@ -56,7 +81,10 @@ class DetailsWidget(QWidget):
                 ("Lower Bound:", f"{summary.lower_bound:.1f}"),
             )
             for label, field in rows:
-                self.ui.reviewsLayout.addRow(QLabel(label), QLabel(field))
+                self.ui.reviewsForm.addRow(QLabel(label), QLabel(field))
+            view_reviews_btn = QPushButton("View All Reviews")
+            view_reviews_btn.clicked.connect(lambda: self.ui.tabs.setCurrentIndex(2))
+            self.ui.reviewsLayout.addWidget(view_reviews_btn)
         else:
             self.ui.reviewsLayout.addWidget(QLabel("No reviews available"))
 
@@ -74,21 +102,22 @@ class DetailsWidget(QWidget):
 
     def update_download_button_text(self) -> None:
         if self.is_installed():
-            self.ui.downloadButton.setText(f"Remove {self.item_data.__class__.__name__}")
+            self.ui.downloadButton.setText(f"Remove {self.item_type_name}")
         else:
-            self.ui.downloadButton.setText(f"Download {self.item_data.__class__.__name__}")
+            self.ui.downloadButton.setText(f"Download {self.item_type_name}")
 
     def init_ui(self) -> None:
         self.update_download_button_text()
         self.ui.downloadButton.clicked.connect(self.download_or_remove_item)
 
         self.ui.viewFolderButton.clicked.connect(self.view_folder)
+        self.ui.tabs.currentChanged.connect(self.on_tab_changed)
 
         self.ui.titleLabel.setText(self.item_data.display_name)
         self.set_type()
         self.set_additional_info()
         self.set_author()
-        self.set_reviews()
+        self.set_reviews_summary()
 
         for label, field in self.version_info():
             self.ui.versionLayout.addRow(QLabel(label), QLabel(field))
@@ -143,8 +172,8 @@ class DetailsWidget(QWidget):
     def remove_item_safe(self) -> bool:
         answer = QMessageBox.question(
             self,
-            f"Delete {self.item_data.__class__.__name__}",
-            f"Are you sure you want to delete this {self.item_data.__class__.__name__}?",
+            f"Delete {self.item_type_name}",
+            f"Are you sure you want to delete this {self.item_type_name}?",
             QMessageBox.StandardButton.Yes,
             QMessageBox.StandardButton.No,
         )
@@ -164,3 +193,39 @@ class DetailsWidget(QWidget):
             self.download_item()
         self.item_availability_changed.emit()
         self.update_download_button_text()
+
+    def on_reviews_data(self, message: dict) -> None:
+        map_info = message["data"]
+
+        reviews = []
+        for version in map_info["versions"]:
+            for review_dct in version["reviews"]:
+                if review_dct["text"] is None:
+                    review_dct["text"] = ""
+                review = convert_review(type(self.item_data), review_dct)
+                reviews.append(review)
+        reviews.sort(key=attrgetter("create_time"), reverse=True)
+        self.set_reviews_and_comments(reviews)
+
+    def set_reviews_and_comments(self, reviews: list[VersionReview]) -> None:
+        rating_distribution = RatingDistribution(reviews)
+        self.ui.detailedReviews.ratingBarsLayout.addWidget(RatingBarWidget(rating_distribution))
+        for review in reviews:
+            comment_widget = CommentWidget(review)
+            self.ui.detailedReviews.commentsContainer.addWidget(comment_widget)
+        self.ui.detailedReviews.commentsContainer.addStretch()
+
+        self.ui.detailedReviews.show_reviews()
+
+    def show_comments(self) -> None:
+        self.reviews_api.request_data({"filter": f"id=={self.item_data.xd}"})
+
+    def on_tab_changed(self, index: int) -> None:
+        if index != 2:
+            return
+
+        if self.item_data.reviews_summary is None:
+            self.ui.detailedReviews.show_no_reviews()
+        elif self.ui.detailedReviews.commentsContainer.count() == 0:
+            self.ui.detailedReviews.show_loading()
+            self.reviews_api.request_reviews(self.item_data)

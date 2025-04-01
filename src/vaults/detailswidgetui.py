@@ -75,7 +75,9 @@ class DetailsWidgetUI:
         content_layout.addWidget(author_box, 0, 1)
 
         reviews_box = QGroupBox("Reviews")
-        self.reviewsLayout = QFormLayout()
+        self.reviewsLayout = QVBoxLayout()
+        self.reviewsForm = QFormLayout()
+        self.reviewsLayout.addLayout(self.reviewsForm)
         reviews_box.setLayout(self.reviewsLayout)
         content_layout.addWidget(reviews_box, 1, 1)
 
@@ -124,4 +126,139 @@ class DetailsWidgetUI:
         tech_widget.setLayout(tech_layout)
         self.tabs.addTab(tech_widget, "Technical Details")
 
+        self.detailedReviews = ReviewsWidgetUI()
+        self.tabs.addTab(self.detailedReviews, "Reviews")
         self.mainLayout.addWidget(self.tabs)
+
+
+class ReviewsWidgetUI(QScrollArea):
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.init_ui()
+
+    def show_reviews(self) -> None:
+        self.loadingLabel.hide()
+        self.noReviewsLabel.hide()
+        self.contentWidget.show()
+
+    def show_no_reviews(self) -> None:
+        self.loadingLabel.hide()
+        self.noReviewsLabel.show()
+        self.contentWidget.hide()
+
+    def show_loading(self) -> None:
+        self.loadingLabel.show()
+        self.noReviewsLabel.hide()
+        self.contentWidget.hide()
+
+    def create_content_widget(self) -> QWidget:
+        contentWidget = QWidget()
+        content_layout = QVBoxLayout()
+
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        content_layout.addWidget(separator)
+
+        self.ratingBarsLayout = QVBoxLayout()
+        content_layout.addLayout(self.ratingBarsLayout)
+
+        separator2 = QFrame()
+        separator2.setFrameShape(QFrame.Shape.HLine)
+        separator2.setFrameShadow(QFrame.Shadow.Sunken)
+        content_layout.addWidget(separator2)
+
+        content_layout.addWidget(QLabel("Comments"))
+        self.commentsContainer = QVBoxLayout()
+        content_layout.addLayout(self.commentsContainer)
+        contentWidget.setLayout(content_layout)
+        return contentWidget
+
+    def init_ui(self) -> None:
+        self.setWidgetResizable(True)
+        self.setObjectName("overview_widget")
+        reviews_content = QWidget()
+        reviews_content.setObjectName("overview_content")
+        self.main_layout = QVBoxLayout(reviews_content)
+
+        self.loadingLabel = QLabel("Loading reviews...")
+        self.loadingLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        font = self.loadingLabel.font()
+        font.setPointSize(20)
+        font.setBold(True)
+        self.loadingLabel.setFont(font)
+        self.main_layout.addWidget(self.loadingLabel)
+
+        self.noReviewsLabel = QLabel("No reviews available for this map.")
+        self.noReviewsLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        font = self.noReviewsLabel.font()
+        font.setPointSize(20)
+        font.setBold(True)
+        self.noReviewsLabel.setFont(font)
+        self.main_layout.addWidget(self.noReviewsLabel)
+
+        self.contentWidget = self.create_content_widget()
+        self.main_layout.addWidget(self.contentWidget)
+
+        self.setWidget(reviews_content)
+
+        self.noReviewsLabel.hide()
+        self.loadingLabel.hide()
+        self.contentWidget.hide()
+        return
+        # reviews_content = QWidget()
+        # reviews_content.setObjectName("overview_content")
+        # self.main_layout = QVBoxLayout(reviews_content)
+
+        reviews_header = QLabel("Reviews & Comments")
+        reviews_header_font = QFont()
+        reviews_header_font.setPointSize(14)
+        reviews_header_font.setBold(True)
+        reviews_header.setFont(reviews_header_font)
+        self.main_layout.addWidget(reviews_header)
+
+        summary_layout = QHBoxLayout()
+
+        self.avgScoreLabel = QLabel()
+        self.avgScoreLabel.setFont(QFont(self.avgScoreLabel.font().family(), 12, QFont.Weight.Bold))
+
+        self.totalReviewsLabel = QLabel()
+
+        summary_layout.addWidget(self.avgScoreLabel)
+        summary_layout.addStretch()
+        summary_layout.addWidget(self.totalReviewsLabel)
+
+        self.main_layout.addLayout(summary_layout)
+
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        self.main_layout.addWidget(separator)
+
+        self.ratingBarsLayout = QVBoxLayout()
+        # rating_bars = RatingBarWidget(self.rating_distribution)
+        # self.detailedReviewsLayout.addWidget(rating_bars)
+        self.main_layout.addLayout(self.ratingBarsLayout)
+
+        separator2 = QFrame()
+        separator2.setFrameShape(QFrame.Shape.HLine)
+        separator2.setFrameShadow(QFrame.Shadow.Sunken)
+        self.main_layout.addWidget(separator2)
+
+        self.main_layout.addWidget(QLabel("Comments"))
+        self.commentsContainer = QVBoxLayout()
+
+        # if self.reviews:
+        #     # Add each review
+        #     for review in self.reviews:
+        #         review_widget = ReviewItemWidget(review)
+        #         self.commentsContainer.addWidget(review_widget)
+        # else:
+        #     no_reviews_label = QLabel("No reviews available for this map.")
+        #     no_reviews_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        #     self.commentsContainer.addWidget(no_reviews_label)
+
+        # self.commentsContainer.addStretch()
+        self.main_layout.addLayout(self.commentsContainer)
+
+        self.setWidget(reviews_content)

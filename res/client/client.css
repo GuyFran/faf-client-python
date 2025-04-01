@@ -1137,3 +1137,42 @@ QLabel[ranked_mod="true"]
 {
     color: orange;
 }
+
+QTextEdit#reviewText
+{
+    border-style: solid;
+    border-width: 1px;
+    border-color: #353535;
+    color: silver;
+    padding: 5px;
+    background-color: #303035;
+    alternate-background-color: #303035;
+}
+
+QLabel#starLabel
+{
+    color: gold;
+}
+
+QLabel#averageReviewRatingLabel
+{
+    font-size: 34pt;
+    font-weight: bold;
+    color: #4CAF50;
+}
+
+QLabel#reviewRatingCountLabel
+{
+    color: #666;
+    font-size: 11pt;
+}
+
+QProgressBar#reviewRatingProgressBar
+{
+    color: silver;
+    border: none;
+    background-color: black;
+    text-align: right;
+    height: 14pt;
+    margin-right: 2em;
+}
