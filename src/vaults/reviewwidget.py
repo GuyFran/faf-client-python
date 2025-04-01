@@ -143,20 +143,7 @@ class RatingBarWidgetUI:
             progress_bar = QProgressBar()
             progress_bar.setObjectName("reviewRatingProgressBar")
             progress_bar.setRange(0, 100)
-
-            color_map = {
-                5: "#4CAF50",
-                4: "#8BC34A",
-                3: "#FFEB3B",
-                2: "#FF9800",
-                1: "#F44336",
-            }
-
-            progress_bar.setStyleSheet(f"""
-                QProgressBar::chunk {{
-                    background-color: {color_map[score]};
-                }}
-            """)
+            progress_bar.setProperty("rating", str(score))
 
             row_layout.addWidget(progress_bar, 7)
 

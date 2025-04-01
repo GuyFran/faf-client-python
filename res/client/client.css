@@ -1176,3 +1176,28 @@ QProgressBar#reviewRatingProgressBar
     height: 14pt;
     margin-right: 2em;
 }
+
+QProgressBar#reviewRatingProgressBar[rating="1"]::chunk
+{
+    background-color: red;
+}
+
+QProgressBar#reviewRatingProgressBar[rating="2"]::chunk
+{
+    background-color: #FF9800;
+}
+
+QProgressBar#reviewRatingProgressBar[rating="3"]::chunk
+{
+    background-color: #FFEB3B;
+}
+
+QProgressBar#reviewRatingProgressBar[rating="4"]::chunk
+{
+    background-color: #8BC34A;
+}
+
+QProgressBar#reviewRatingProgressBar[rating="5"]::chunk
+{
+    background-color: #4CAF50;
+}
