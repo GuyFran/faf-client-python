@@ -55,6 +55,7 @@ class MapVault(Vault):
         return MapListItem(self.itemList, data)
 
     def create_details_widget(self, data: Map | Mod) -> MapDetailsWidget:
+        assert isinstance(data, Map)
         return MapDetailsWidget(data)
 
     def requestMapPool(self, queueName, minRating):
