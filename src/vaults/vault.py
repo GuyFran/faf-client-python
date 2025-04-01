@@ -35,6 +35,7 @@ class Vault(FormClass, BaseClass, BusyWidget):
 
         self.itemList.itemDoubleClicked.connect(self.on_item_double_clicked)
         self.itemList.currentItemChanged.connect(self.on_item_selected)
+        self.itemList.setSpacing(10)
 
         placeholder = QLabel("<h1>Select an item to view details</h1>")
         placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -139,13 +140,13 @@ class Vault(FormClass, BaseClass, BusyWidget):
         self.detailStack.setCurrentIndex(1)
 
     def create_item(self, data: Map | Mod) -> VaultListWidget:
-        return VaultListWidget(data)
+        return VaultListWidget(data, util.CACHE_DIR)
 
     def create_list_item(self, data: Map | Mod) -> VaultListItem:
         return VaultListItem(self.itemList, data)
 
     def create_details_widget(self, data: Map | Mod) -> DetailsWidget:
-        return DetailsWidget(data)
+        return DetailsWidget(data, util.CACHE_DIR)
 
     @QtCore.pyqtSlot(dict)
     def items_info(self, message: dict) -> None:
