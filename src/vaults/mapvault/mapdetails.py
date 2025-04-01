@@ -53,6 +53,7 @@ class MapDetailsWidget(DetailsWidget):
 
     def technical_info(self) -> list[tuple[str, str]]:
         return [
+            *super().technical_info(),
             ("Folder Name", self.item_version.folder_name),
             ("Width", str(self.item_version.size.width_km)),
             ("Height", str(self.item_version.size.height_km)),

@@ -50,6 +50,7 @@ class ModDetailsWidget(DetailsWidget):
 
     def technical_info(self) -> list[tuple[str, str]]:
         return [
+            *super().technical_info(),
             ("UID", self.item_version.uid),
             ("Filename", self.item_version.filename),
             ("Version", str(self.item_version.version)),

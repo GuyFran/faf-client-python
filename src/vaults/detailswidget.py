@@ -92,7 +92,13 @@ class DetailsWidget(QWidget):
         raise NotImplementedError
 
     def technical_info(self) -> list[tuple[str, str]]:
-        raise NotImplementedError
+        name = self.item_type_name
+        return [
+            (f"{name} created", util.utctolocal(self.item_data.create_time)),
+            (f"{name} updated", util.utctolocal(self.item_data.update_time)),
+            (f"{name}Version created", util.utctolocal(self.item_version.create_time)),
+            (f"{name}Version updated", util.utctolocal(self.item_version.update_time)),
+        ]
 
     def set_type(self) -> None:
         raise NotImplementedError
