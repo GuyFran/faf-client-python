@@ -10,6 +10,7 @@ from src.vaults.listitem import VaultListItem
 
 
 class MapSortType(Enum):
+    NONE = "None"
     ALPHABETICAL = "Alphabetic"
     DATE = "Date"
     RATING = "Rating"
@@ -58,12 +59,14 @@ class MapListItem(VaultListItem):
     def _less_than(self, other: VaultListItem) -> bool:
         if not isinstance(other, MapListItem):
             return VaultListItem._less_than(self, other)
-        if self.sort_type == MapSortType.ALPHABETICAL:
-            return self._lt_alphabetical(other)
-        elif self.sort_type == MapSortType.RATING:
-            return self._lt_rating(other)
-        elif self.sort_type == MapSortType.DATE:
-            return self._lt_date(other)
-        elif self.sort_type == MapSortType.SIZE:
-            return self._lt_size(other)
-        return True
+        match self.sort_type:
+            case MapSortType.NONE:
+                return VaultListItem._less_than(self, other)
+            case MapSortType.ALPHABETICAL:
+                return self._lt_alphabetical(other)
+            case MapSortType.RATING:
+                return self._lt_rating(other)
+            case MapSortType.DATE:
+                return self._lt_date(other)
+            case MapSortType.SIZE:
+                return self._lt_size(other)

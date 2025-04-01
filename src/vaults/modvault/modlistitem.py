@@ -12,6 +12,7 @@ from src.vaults.modvault import utils
 
 
 class ModSortType(Enum):
+    NONE = "None"
     ALPHABETICAL = "Alphabetic"
     DATE = "Date"
     RATING = "Rating"
@@ -59,10 +60,12 @@ class ModListItem(VaultListItem):
             return True
 
     def _less_than(self, other: VaultListItem) -> bool:
-        if self.sort_type == ModSortType.ALPHABETICAL:
-            return self._lt_alphabetical(other)
-        elif self.sort_type == ModSortType.RATING:
-            return self._lt_rating(other)
-        elif self.sort_type == ModSortType.DATE:
-            return self._lt_date(other)
-        return True
+        match self.sort_type:
+            case ModSortType.NONE:
+                return VaultListItem._less_than(self, other)
+            case ModSortType.ALPHABETICAL:
+                return self._lt_alphabetical(other)
+            case ModSortType.RATING:
+                return self._lt_rating(other)
+            case ModSortType.DATE:
+                return self._lt_date(other)

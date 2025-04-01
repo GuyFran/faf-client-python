@@ -196,7 +196,7 @@ class Vault(FormClass, BaseClass, BusyWidget):
                 self._items[item_key] = list_item
                 self.itemList.setItemWidget(list_item, item)
             self.itemList.addItem(list_item)
-        self.itemList.sortItems(QtCore.Qt.SortOrder.DescendingOrder)
+        self.sort_items()
         self.processMeta(message["meta"])
 
     def processMeta(self, message: dict) -> None:
@@ -236,7 +236,7 @@ class Vault(FormClass, BaseClass, BusyWidget):
     def update_visibilities(self) -> None:
         for item in self._items.values():
             item.update_visibility()
-        self.itemList.sortItems(QtCore.Qt.SortOrder.DescendingOrder)
+        self.sort_items()
 
     def on_item_availability_changed(self) -> None:
         current_item = self.itemList.currentItem()
@@ -253,3 +253,8 @@ class Vault(FormClass, BaseClass, BusyWidget):
         for item in self._items.values():
             item.on_display_type_changed(index)
         self.update_visibilities()
+
+    def sort_items(self) -> None:
+        if self.SortTypeList.currentIndex() == 0:
+            return
+        self.itemList.sortItems(QtCore.Qt.SortOrder.DescendingOrder)

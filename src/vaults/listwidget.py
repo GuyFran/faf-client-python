@@ -101,7 +101,9 @@ class VaultListWidget(QWidget):
 
     def created_label(self) -> QLabel:
         local_time = util.utctolocal(self.item_version.create_time)
-        return QLabel(f"<b>Created:</b> {local_time}")
+        created_label = QLabel(f"<b>Created:</b> {local_time}")
+        created_label.setFixedWidth(150)
+        return created_label
 
     def recommended_label(self) -> QLabel:
         label = QLabel("✓ Recommended" if self.item_data.recommended else "")
