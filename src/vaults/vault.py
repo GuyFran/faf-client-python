@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import QVBoxLayout
 from src import util
 from src.api.models.Map import Map
 from src.api.models.Mod import Mod
+from src.config import Settings
 from src.ui.busy_widget import BusyWidget
 from src.vaults.detailswidget import DetailsWidget
 from src.vaults.listitem import VaultListItem
@@ -92,10 +93,34 @@ class Vault(FormClass, BaseClass, BusyWidget):
         self.UIButton.hide()
         self.uploadButton.hide()
 
+        self.vault_type = type(self).__name__
+
+        with Settings.group("vaults"):
+            splitter_sizes = Settings.get(f"{self.vault_type}/splitter", type=list, default=[])
+            if len(splitter_sizes) == 2:
+                self.splitter.setSizes(list(map(int, splitter_sizes)))
+            flow_type = Settings.get(
+                f"{self.vault_type}/flow",
+                type=self.itemList.Flow,
+                default=self.itemList.Flow.LeftToRight,
+            )
+            self.itemList.setFlow(flow_type)
+            self.itemList.setWrapping(flow_type == self.itemList.Flow.LeftToRight)
+        self.splitter.splitterMoved.connect(self.save_splitter_sizes)
+
+    def save_splitter_sizes(self) -> None:
+        with Settings.group("vaults"):
+            Settings.set(f"{self.vault_type}/splitter", self.splitter.sizes())
+
+    def save_flow_type(self) -> None:
+        with Settings.group("vaults"):
+            Settings.set(f"{self.vault_type}/flow", self.itemList.flow())
+
     def on_flow_type_changed(self, index: int) -> None:
         flow_type = list(self.itemList.Flow)[index]
         self.itemList.setFlow(flow_type)
         self.itemList.setWrapping(flow_type == self.itemList.Flow.LeftToRight)
+        self.save_flow_type()
 
     def on_browse_type_changed(self, index: int) -> None:
         browse_type = list(BrowseType)[index]
