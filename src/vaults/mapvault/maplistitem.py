@@ -41,16 +41,15 @@ class MapListItem(VaultListItem):
         self.display_type = tuple(MapDisplayType)[index]
 
     def should_be_visible(self) -> bool:
-        if self.display_type == MapDisplayType.ALL:
-            return True
-        elif self.display_type == MapDisplayType.UNRANKED:
-            return not self.item_version.ranked
-        elif self.display_type == MapDisplayType.RANKED:
-            return self.item_version.ranked
-        elif self.display_type == MapDisplayType.INSTALLED:
-            return maps.isMapAvailable(self.item_version.folder_name)
-        else:
-            return True
+        match self.display_type:
+            case MapDisplayType.ALL:
+                return True
+            case MapDisplayType.UNRANKED:
+                return not self.item_version.ranked
+            case MapDisplayType.RANKED:
+                return self.item_version.ranked
+            case MapDisplayType.INSTALLED:
+                return maps.isMapAvailable(self.item_version.folder_name)
 
     def _lt_size(self, other: MapListItem) -> bool:
         if self.item_version.size == other.item_version.size:

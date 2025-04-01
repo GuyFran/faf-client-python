@@ -43,21 +43,19 @@ class ModListItem(VaultListItem):
         self.display_type = tuple(ModDisplayType)[index]
 
     def should_be_visible(self) -> bool:
-        if self.display_type == ModDisplayType.ALL:
-            return True
-        elif self.display_type == ModDisplayType.UNRANKED:
-            return not self.item_version.ranked
-        elif self.display_type == ModDisplayType.RANKED:
-            return self.item_version.ranked
-        elif self.display_type == ModDisplayType.INSTALLED:
-            return self.item_version.uid in [mod.uid for mod in utils.installedMods]
-        elif self.display_type == ModDisplayType.SIM:
-            return self.item_version.modtype == ModType.SIM
-        elif self.display_type == ModDisplayType.UI:
-            return self.item_version.modtype == ModType.UI
-
-        else:
-            return True
+        match self.display_type:
+            case ModDisplayType.ALL:
+                return True
+            case ModDisplayType.UNRANKED:
+                return not self.item_version.ranked
+            case ModDisplayType.RANKED:
+                return self.item_version.ranked
+            case ModDisplayType.INSTALLED:
+                return self.item_version.uid in [mod.uid for mod in utils.installedMods]
+            case ModDisplayType.SIM:
+                return self.item_version.modtype == ModType.SIM
+            case ModDisplayType.UI:
+                return self.item_version.modtype == ModType.UI
 
     def _less_than(self, other: VaultListItem) -> bool:
         match self.sort_type:
