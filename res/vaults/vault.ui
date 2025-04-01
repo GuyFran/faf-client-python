@@ -21,7 +21,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_6">
+    <layout class="QHBoxLayout" name="headerLayout">
      <property name="spacing">
       <number>5</number>
      </property>
@@ -142,6 +142,22 @@
       </widget>
      </item>
      <item>
+      <widget class="QLabel" name="browseLabel">
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>25</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Browse:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="browseComboBox"/>
+     </item>
+     <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">
         <enum>Qt::Orientation::Horizontal</enum>
@@ -153,6 +169,22 @@
         </size>
        </property>
       </spacer>
+     </item>
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>25</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>List Items Flow:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="flowComboBox"/>
      </item>
      <item>
       <widget class="QPushButton" name="UIButton">
@@ -234,13 +266,16 @@
           <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
          </property>
          <property name="flow">
-          <enum>QListView::Flow::TopToBottom</enum>
+          <enum>QListView::Flow::LeftToRight</enum>
          </property>
          <property name="isWrapping" stdset="0">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <property name="resizeMode">
           <enum>QListView::ResizeMode::Adjust</enum>
+         </property>
+         <property name="layoutMode">
+          <enum>QListView::LayoutMode::Batched</enum>
          </property>
          <property name="viewMode">
           <enum>QListView::ViewMode::ListMode</enum>

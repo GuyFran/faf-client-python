@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import TYPE_CHECKING
 
 from PyQt6 import QtCore
@@ -19,6 +20,14 @@ from src.vaults.listwidget import VaultListWidget
 
 if TYPE_CHECKING:
     from src.client._clientwindow import ClientWindow
+
+
+class BrowseType(Enum):
+    ALL = "All"
+    RECOMMENDED = "Recommended"
+    MOST_PLAYED = "Most Played"
+    MOST_LIKED = "Most Liked"
+    NEWEST = "Newest"
 
 
 FormClass, BaseClass = util.THEME.loadUiType("vaults/vault.ui")
@@ -70,12 +79,38 @@ class Vault(FormClass, BaseClass, BusyWidget):
         )
         self.firstButton.clicked.connect(lambda: self.goToPage(1))
         self.lastButton.clicked.connect(lambda: self.goToPage(self.totalPages))
-        self.resetButton.clicked.connect(self.resetSearch)
+        self.resetButton.clicked.connect(self.reset_search)
+
+        self.browseComboBox.addItems([browse.value for browse in BrowseType])
+        self.browseComboBox.currentIndexChanged.connect(self.on_browse_type_changed)
+
+        self.flowComboBox.addItems([flow.name for flow in self.itemList.Flow])
+        self.flowComboBox.currentIndexChanged.connect(self.on_flow_type_changed)
 
         self._items: dict[str, VaultListItem] = {}
 
         self.UIButton.hide()
         self.uploadButton.hide()
+
+    def on_flow_type_changed(self, index: int) -> None:
+        flow_type = list(self.itemList.Flow)[index]
+        self.itemList.setFlow(flow_type)
+        self.itemList.setWrapping(flow_type == self.itemList.Flow.LeftToRight)
+
+    def on_browse_type_changed(self, index: int) -> None:
+        browse_type = list(BrowseType)[index]
+        match browse_type:
+            case BrowseType.ALL:
+                self.searchQuery = {}
+            case BrowseType.RECOMMENDED:
+                self.searchQuery = {"filter": "recommended=='true'"}
+            case BrowseType.MOST_PLAYED:
+                self.searchQuery = {"sort": "-gamesPlayed"}
+            case BrowseType.MOST_LIKED:
+                self.searchQuery = {"sort": "-reviewsSummary.lowerBound"}
+            case BrowseType.NEWEST:
+                self.searchQuery = {"sort": "-createTime"}
+        self.goToPage(1)
 
     def showEvent(self, event: QShowEvent) -> None:
         self.busy_entered()
@@ -172,19 +207,25 @@ class Vault(FormClass, BaseClass, BusyWidget):
         self.labelTotalPages.setText(str(self.totalPages))
 
     @QtCore.pyqtSlot(bool)
-    def resetSearch(self):
+    def reset_search(self) -> None:
         self.searchString = ''
         self.searchInput.clear()
         self.searchQuery.clear()
+        self.browseComboBox.blockSignals(True)
+        self.browseComboBox.setCurrentIndex(0)
+        self.browseComboBox.blockSignals(False)
         self.goToPage(1)
 
-    def search(self):
+    def search(self) -> None:
         self.searchString = self.searchInput.text().lower()
         if self.searchString == '' or self.searchString.replace(' ', '') == '':
-            self.resetSearch()
+            self.reset_search()
         else:
             self.searchString = self.searchString.strip()
             self.searchQuery = {"filter": f"displayName=='*{self.searchString}*'"}
+            self.browseComboBox.blockSignals(True)
+            self.browseComboBox.setCurrentIndex(0)
+            self.browseComboBox.blockSignals(False)
             self.goToPage(1)
 
     @QtCore.pyqtSlot()

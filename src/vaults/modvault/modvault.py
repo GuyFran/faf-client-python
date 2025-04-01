@@ -16,6 +16,7 @@ from src.vaults.modvault.modlistitem import ModDisplayType
 from src.vaults.modvault.modlistitem import ModListItem
 from src.vaults.modvault.modlistitem import ModSortType
 from src.vaults.modvault.modlistwidget import ModListWidget
+from src.vaults.vault import BrowseType
 from src.vaults.vault import Vault
 
 from .uimodwidget import UIModWidget
@@ -41,6 +42,11 @@ class ModVault(Vault):
 
         self.apiConnector = ModApiConnector()
         self.apiConnector.data_ready.connect(self.items_info)
+
+        most_played_row = self.browseComboBox.findText(BrowseType.MOST_PLAYED.value)
+        self.browseComboBox.view().setRowHidden(most_played_row, True)
+        item = self.browseComboBox.model().item(most_played_row)
+        item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEnabled)
 
         self.UIButton.show()
 
