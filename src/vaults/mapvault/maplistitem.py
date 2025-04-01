@@ -15,6 +15,7 @@ class MapSortType(Enum):
     DATE = "Date"
     RATING = "Rating"
     SIZE = "Size"
+    GAMES_PLAYED = "Games Played"
 
 
 class MapDisplayType(Enum):
@@ -56,6 +57,9 @@ class MapListItem(VaultListItem):
             return self._lt_alphabetical(other)
         return self.item_version.size < other.item_version.size
 
+    def _lt_games_played(self, other: MapListItem) -> bool:
+        return self.item_data.games_played < other.item_data.games_played
+
     def _less_than(self, other: VaultListItem) -> bool:
         if not isinstance(other, MapListItem):
             return VaultListItem._less_than(self, other)
@@ -70,3 +74,5 @@ class MapListItem(VaultListItem):
                 return self._lt_date(other)
             case MapSortType.SIZE:
                 return self._lt_size(other)
+            case MapSortType.GAMES_PLAYED:
+                return self._lt_games_played(other)
