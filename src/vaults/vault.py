@@ -110,6 +110,15 @@ class Vault(FormClass, BaseClass, BusyWidget):
                 self.searchQuery = {"sort": "-reviewsSummary.lowerBound"}
             case BrowseType.NEWEST:
                 self.searchQuery = {"sort": "-createTime"}
+
+        self.SortTypeList.blockSignals(True)
+        self.SortTypeList.setCurrentIndex(0)
+        self.SortTypeList.blockSignals(False)
+
+        self.ShowTypeList.blockSignals(True)
+        self.ShowTypeList.setCurrentIndex(0)
+        self.ShowTypeList.blockSignals(False)
+
         self.goToPage(1)
 
     def showEvent(self, event: QShowEvent) -> None:
