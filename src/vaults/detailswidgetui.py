@@ -102,12 +102,14 @@ class DetailsWidgetUI:
         spacer = QSpacerItem(5, 5, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         buttonLayout.addItem(spacer)
         self.downloadButton = QPushButton()
+        self.downloadButton.setProperty("download", "true")
         buttonLayout.addWidget(self.downloadButton)
+        self.removeButton = QPushButton()
+        self.removeButton.setProperty("remove", "true")
+        buttonLayout.addWidget(self.removeButton)
 
         self.viewFolderButton = QPushButton("View Files")
         buttonLayout.addWidget(self.viewFolderButton)
-
-        self.overviewLayout.addLayout(buttonLayout)
 
         self.overviewLayout.addStretch()
         overview_widget.setWidget(overview_content)
@@ -129,6 +131,7 @@ class DetailsWidgetUI:
         self.detailedReviews = ReviewsWidgetUI()
         self.tabs.addTab(self.detailedReviews, "Reviews")
         self.mainLayout.addWidget(self.tabs)
+        self.mainLayout.addLayout(buttonLayout)
 
 
 class ReviewsWidgetUI(QScrollArea):

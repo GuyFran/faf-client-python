@@ -100,15 +100,19 @@ class DetailsWidget(QWidget):
     def set_additional_info(self) -> None:
         raise NotImplementedError
 
-    def update_download_button_text(self) -> None:
-        if self.is_installed():
-            self.ui.downloadButton.setText(f"Remove {self.item_type_name}")
-        else:
-            self.ui.downloadButton.setText(f"Download {self.item_type_name}")
+    def update_buttons_layout(self) -> None:
+        self.ui.downloadButton.setVisible(not self.is_installed())
+        self.ui.removeButton.setVisible(self.is_installed())
+
+    def configure_buttons(self) -> None:
+        self.ui.downloadButton.setText(f"Download {self.item_type_name}")
+        self.ui.removeButton.setText(f"Remove {self.item_type_name}")
+        self.update_buttons_layout()
+        self.ui.downloadButton.clicked.connect(self.download_and_change_availability)
+        self.ui.removeButton.clicked.connect(self.remove_and_change_availability)
 
     def init_ui(self) -> None:
-        self.update_download_button_text()
-        self.ui.downloadButton.clicked.connect(self.download_or_remove_item)
+        self.configure_buttons()
 
         self.ui.viewFolderButton.clicked.connect(self.view_folder)
         self.ui.tabs.currentChanged.connect(self.on_tab_changed)
@@ -185,14 +189,18 @@ class DetailsWidget(QWidget):
     def remove_item(self) -> None:
         raise NotImplementedError
 
-    def download_or_remove_item(self) -> None:
-        if self.is_installed():
-            if not self.remove_item_safe():
-                return
-        else:
-            self.download_item()
+    def download_and_change_availability(self) -> None:
+        self.download_item()
+        self.on_availability_changed()
+
+    def remove_and_change_availability(self) -> None:
+        if not self.remove_item_safe():
+            return
+        self.on_availability_changed()
+
+    def on_availability_changed(self) -> None:
         self.item_availability_changed.emit()
-        self.update_download_button_text()
+        self.update_buttons_layout()
 
     def on_reviews_data(self, message: dict) -> None:
         map_info = message["data"]
