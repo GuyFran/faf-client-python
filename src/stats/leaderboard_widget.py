@@ -9,6 +9,7 @@ from src import util
 from src.api.player_api import PlayerApiConnector
 from src.api.stats_api import LeaderboardRatingApiConnector
 from src.config import Settings
+from src.qt.utils import block_signals
 
 from .itemviews.leaderboarditemdelegate import LeaderboardItemDelegate
 from .models.leaderboardfiltermodel import LeaderboardFilterModel
@@ -147,23 +148,19 @@ class LeaderboardWidget(BaseClass, FormClass):
     def showColumns(self):
         self.tableView.setColumnHidden(8, True)
 
-        self.showAllCheckBox.blockSignals(True)
-        self.showAllCheckBox.setChecked(self.showAllColumns)
-        self.showAllCheckBox.blockSignals(False)
+        with block_signals(self.showAllCheckBox):
+            self.showAllCheckBox.setChecked(self.showAllColumns)
 
         for index, isShown in enumerate(self.shownColumns):
-            self.showColumnCheckBoxes[index].blockSignals(True)
-
-            if self.showAllColumns:
-                self.tableView.setColumnHidden(index, False)
-                self.showColumnCheckBoxes[index].setChecked(False)
-                self.showColumnCheckBoxes[index].setEnabled(False)
-            else:
-                self.tableView.setColumnHidden(index, not isShown)
-                self.showColumnCheckBoxes[index].setEnabled(True)
-                self.showColumnCheckBoxes[index].setChecked(isShown)
-
-            self.showColumnCheckBoxes[index].blockSignals(False)
+            with block_signals(self.showColumnCheckBoxes[index]):
+                if self.showAllColumns:
+                    self.tableView.setColumnHidden(index, False)
+                    self.showColumnCheckBoxes[index].setChecked(False)
+                    self.showColumnCheckBoxes[index].setEnabled(False)
+                else:
+                    self.tableView.setColumnHidden(index, not isShown)
+                    self.showColumnCheckBoxes[index].setEnabled(True)
+                    self.showColumnCheckBoxes[index].setChecked(isShown)
 
     def process_rating_info(self, message: dict) -> None:
         self.createLeaderboard(message)

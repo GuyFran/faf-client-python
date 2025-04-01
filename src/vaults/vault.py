@@ -14,6 +14,7 @@ from src import util
 from src.api.models.Map import Map
 from src.api.models.Mod import Mod
 from src.config import Settings
+from src.qt.utils import block_signals
 from src.ui.busy_widget import BusyWidget
 from src.vaults.detailswidget import DetailsWidget
 from src.vaults.listitem import VaultListItem
@@ -136,13 +137,11 @@ class Vault(FormClass, BaseClass, BusyWidget):
             case BrowseType.NEWEST:
                 self.searchQuery = {"sort": "-createTime"}
 
-        self.SortTypeList.blockSignals(True)
-        self.SortTypeList.setCurrentIndex(0)
-        self.SortTypeList.blockSignals(False)
+        with block_signals(self.SortTypeList):
+            self.SortTypeList.setCurrentIndex(0)
 
-        self.ShowTypeList.blockSignals(True)
-        self.ShowTypeList.setCurrentIndex(0)
-        self.ShowTypeList.blockSignals(False)
+        with block_signals(self.ShowTypeList):
+            self.ShowTypeList.setCurrentIndex(0)
 
         self.goToPage(1)
 
@@ -245,9 +244,8 @@ class Vault(FormClass, BaseClass, BusyWidget):
         self.searchString = ''
         self.searchInput.clear()
         self.searchQuery.clear()
-        self.browseComboBox.blockSignals(True)
-        self.browseComboBox.setCurrentIndex(0)
-        self.browseComboBox.blockSignals(False)
+        with block_signals(self.browseComboBox):
+            self.browseComboBox.setCurrentIndex(0)
         self.goToPage(1)
 
     def search(self) -> None:
@@ -257,9 +255,8 @@ class Vault(FormClass, BaseClass, BusyWidget):
         else:
             self.searchString = self.searchString.strip()
             self.searchQuery = {"filter": f"displayName=='*{self.searchString}*'"}
-            self.browseComboBox.blockSignals(True)
-            self.browseComboBox.setCurrentIndex(0)
-            self.browseComboBox.blockSignals(False)
+            with block_signals(self.browseComboBox):
+                self.browseComboBox.setCurrentIndex(0)
             self.goToPage(1)
 
     @QtCore.pyqtSlot()

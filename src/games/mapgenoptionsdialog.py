@@ -17,6 +17,7 @@ from src.games.mapgenoptionsvalues import TerrainStyle
 from src.games.mapgenoptionsvalues import TerrainSymmetry
 from src.games.mapgenoptionsvalues import TextureStyle
 from src.mapGenerator.mapgenManager import MapGeneratorManager
+from src.qt.utils import block_signals
 
 FormClass, BaseClass = util.THEME.loadUiType("games/mapgen.ui")
 
@@ -134,9 +135,8 @@ class MapGenDialog(FormClass, BaseClass):
         if (value % 1.25) == 0:
             return
         value = self.nearest_to_multiple(value, 1.25)
-        self.mapSize.blockSignals(True)
-        self.mapSize.setValue(value)
-        self.mapSize.blockSignals(False)
+        with block_signals(self.mapSize):
+            self.mapSize.setValue(value)
 
     @QtCore.pyqtSlot(str)
     def gen_type_changed(self, text: str) -> None:

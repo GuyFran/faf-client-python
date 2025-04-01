@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from typing import Generator
 
 from PyQt6.QtCore import QFile
+from PyQt6.QtCore import QObject
 from PyQt6.QtGui import QPainter
 
 
@@ -31,3 +32,12 @@ def qpainter(painter: QPainter) -> Generator[QPainter, None, None]:
         yield painter
     finally:
         painter.restore()
+
+
+@contextmanager
+def block_signals(obj: QObject, /) -> Generator[QObject, None, None]:
+    try:
+        obj.blockSignals(True)
+        yield obj
+    finally:
+        obj.blockSignals(False)
