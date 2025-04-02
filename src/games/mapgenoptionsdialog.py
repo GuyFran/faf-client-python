@@ -1,9 +1,17 @@
 from __future__ import annotations
 
+import json
+import os
+from enum import Enum
+from enum import auto
+from typing import TypedDict
+
 from PyQt6 import QtCore
+from PyQt6 import QtGui
 from PyQt6 import QtWidgets
 
 from src import config
+from src import fafpath
 from src import util
 from src.games.mapgenoptions import ComboBoxOption
 from src.games.mapgenoptions import RangeOption
@@ -22,6 +30,71 @@ from src.qt.utils import block_signals
 FormClass, BaseClass = util.THEME.loadUiType("games/mapgen.ui")
 
 
+class MapGenDynamicConfig(TypedDict):
+    gen_version: str
+    options: dict[str, list[str]]
+
+
+class OptionsExtractor(QtCore.QObject):
+    class State(Enum):
+        IDLE = auto()
+        EXTRACTING = auto()
+        FINISHED = auto()
+
+    options_extracted = QtCore.pyqtSignal(dict)
+    error_occured = QtCore.pyqtSignal()
+    progress = QtCore.pyqtSignal(str)
+
+    def __init__(self, mapgen_manager: MapGeneratorManager, to_extract: list[str]) -> None:
+        QtCore.QObject.__init__(self)
+        self.state = self.State.IDLE
+        self.to_extract = to_extract
+        self.extracted_options: dict[str, list[str]] = {}
+
+        self.mapgen_manager = mapgen_manager
+        self.process = QtCore.QProcess()
+        self.process.finished.connect(self.process_finished)
+        self.exe_path = fafpath.get_java_path()
+
+        self.mapgen_path = os.path.join(
+            util.MAPGEN_DIR,
+            f"MapGenerator_{self.mapgen_manager.currentVersion}.jar",
+        )
+
+    def extract_all(self) -> None:
+        self.extract_next()
+
+    def extract_next(self) -> None:
+        self.state = self.State.EXTRACTING
+
+        if len(self.to_extract) == 0:
+            self.state = self.State.FINISHED
+            self.options_extracted.emit(self.extracted_options)
+            return
+
+        option = self.to_extract.pop(0)
+        self.progress.emit(option)
+        self.process.start(self.exe_path, ["-jar", self.mapgen_path, option])
+
+    def process_finished(self, code: int, status: QtCore.QProcess.ExitStatus) -> None:
+        if code != 0:
+            self.state = self.State.FINISHED
+            self.error_occured.emit()
+            return
+
+        *_, option_name = self.process.arguments()
+        out = self.process.readAllStandardOutput()
+        self.extracted_options[option_name] = out.data().decode().splitlines()
+        if self.to_extract:
+            self.extract_next()
+        else:
+            self.options_extracted.emit(self.extracted_options)
+            self.state = self.State.FINISHED
+
+    def set_options_to_extract(self, options: list[str]) -> None:
+        self.to_extract = options
+
+
 class MapGenDialog(FormClass, BaseClass):
     map_generated = QtCore.pyqtSignal(str)
 
@@ -35,6 +108,14 @@ class MapGenDialog(FormClass, BaseClass):
         self.load_stylesheet()
 
         self.mapgen_manager = mapgen_manager
+        self.setWindowTitle(f"Map Generator Options - {self.mapgen_manager.currentVersion}")
+
+        self.generationType.setMinimumWidth(80)
+        self.mapStyle.setMinimumWidth(200)
+
+        self.statusBar = QtWidgets.QStatusBar()
+        self.statusBar.setSizeGripEnabled(False)
+        self.statusBarLayout.addWidget(self.statusBar)
 
         self.mapNamePlainTextEdit.textChanged.connect(self.user_mapname_changed)
         self.useCustomStyleCheckBox.checkStateChanged.connect(self.on_custom_style)
@@ -46,6 +127,109 @@ class MapGenDialog(FormClass, BaseClass):
         self.saveMapGenSettingsButton.clicked.connect(self.save_preferences_and_quit)
         self.resetMapGenSettingsButton.clicked.connect(self.reset_mapgen_prefs)
 
+        self.dynamic_options = self.get_dynamic_options()
+        self.options_extractor = OptionsExtractor(self.mapgen_manager, list(self.dynamic_options))
+        self.options_extractor.options_extracted.connect(self.on_options_extracted)
+        self.options_extractor.error_occured.connect(self.on_options_extraction_error)
+        self.options_extractor.progress.connect(
+            lambda msg: self.statusBar.showMessage(f"Extracting options: {msg}"),
+        )
+
+        self.options_path = os.path.join(util.MAPGEN_DIR, "mapgen_options.json")
+
+        self.load_cmd_options()
+
+    def get_dynamic_options(self) -> dict[str, ComboBoxOption]:
+        return {
+            "symmetries": ComboBoxOption(
+                "terrain-symmetry",
+                self.terrainSymmetry,
+                Sentinel.RANDOM.value,
+                Sentinel.values() + TerrainSymmetry.values(),
+            ),
+            "styles": ComboBoxOption(
+                "style",
+                self.mapStyle,
+                Sentinel.RANDOM.value,
+                Sentinel.values() + MapStyle.values(),
+            ),
+            "terrain-styles": ComboBoxOption(
+                "terrain-style",
+                self.terrainStyle,
+                Sentinel.RANDOM.value,
+                Sentinel.values() + TerrainStyle.values(),
+            ),
+            "texture-styles": ComboBoxOption(
+                "texture-style",
+                self.textureStyle,
+                Sentinel.RANDOM.value,
+                Sentinel.values() + TextureStyle.values(),
+            ),
+            "resource-styles": ComboBoxOption(
+                "resource-style",
+                self.resourceGenerator,
+                Sentinel.RANDOM.value,
+                Sentinel.values() + ResourceStyle.values(),
+            ),
+            "prop-styles": ComboBoxOption(
+                "prop-style",
+                self.propGenerator,
+                Sentinel.RANDOM.value,
+                Sentinel.values() + PropStyle.values(),
+            ),
+        }
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        if self.options_extractor.state == OptionsExtractor.State.EXTRACTING:
+            event.ignore()
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Map Options Extractor",
+                "The extractor is still extracting options. Please wait until it is finished.",
+            )
+        else:
+            super().closeEvent(event)
+
+    def on_options_extracted(self, options: dict[str, list[str]]) -> None:
+        to_save = {
+            "gen_version": self.mapgen_manager.currentVersion,
+            "options": options,
+        }
+        with open(self.options_path, "w") as f:
+            json.dump(to_save, f, indent=2)
+
+        self.setWindowTitle(f"Map Generator Options - {self.mapgen_manager.currentVersion}")
+        self.setEnabled(True)
+        self.set_cmd_options(options)
+
+    def on_options_extraction_error(self) -> None:
+        self.setWindowTitle("Map Generator Options")
+        self.setEnabled(True)
+        self.set_cmd_options({})
+
+    def _load_dynamic_options(self) -> MapGenDynamicConfig:
+        if not os.path.exists(self.options_path):
+            return {"gen_version": "-1", "options": {}}
+        with open(self.options_path) as f:
+            return json.load(f)
+
+    def load_cmd_options(self) -> None:
+        dynamic_options = self._load_dynamic_options()
+        if dynamic_options["gen_version"] != self.mapgen_manager.currentVersion:
+            self.setWindowTitle("Loading Mapgen Options...")
+            self.setEnabled(False)
+            self.mapgen_manager.checkUpdates()
+            self.mapgen_manager.versionController(self.mapgen_manager.latestVersion)
+            self.options_extractor.extract_all()
+        else:
+            self.set_cmd_options(dynamic_options["options"])
+
+    def set_cmd_options(self, dynamic_options: dict[str, list[str]]) -> None:
+        self.statusBar.showMessage("")
+        for key, mapgen_option in self.dynamic_options.items():
+            if key in dynamic_options:
+                mapgen_option.set_opts(Sentinel.values() + dynamic_options[key])
+
         self.cmd_options: list[ComboBoxOption | SpinBoxOption | RangeOption] = [
             ComboBoxOption(
                 "visibility",
@@ -53,42 +237,7 @@ class MapGenDialog(FormClass, BaseClass):
                 GenerationType.CASUAL.value,
                 GenerationType.values(),
             ),
-            ComboBoxOption(
-                "terrain-symmetry",
-                self.terrainSymmetry,
-                Sentinel.RANDOM.value,
-                Sentinel.values() + TerrainSymmetry.values(),
-            ),
-            ComboBoxOption(
-                "style",
-                self.mapStyle,
-                Sentinel.RANDOM.value,
-                Sentinel.values() + MapStyle.values(),
-            ),
-            ComboBoxOption(
-                "terrain-style",
-                self.terrainStyle,
-                Sentinel.RANDOM.value,
-                Sentinel.values() + TerrainStyle.values(),
-            ),
-            ComboBoxOption(
-                "texture-style",
-                self.textureStyle,
-                Sentinel.RANDOM.value,
-                Sentinel.values() + TextureStyle.values(),
-            ),
-            ComboBoxOption(
-                "resource-style",
-                self.resourceGenerator,
-                Sentinel.RANDOM.value,
-                Sentinel.values() + ResourceStyle.values(),
-            ),
-            ComboBoxOption(
-                "prop-style",
-                self.propGenerator,
-                Sentinel.RANDOM.value,
-                Sentinel.values() + PropStyle.values(),
-            ),
+            *self.dynamic_options.values(),
             SpinBoxOption("spawn-count", self.numberOfSpawns, int, 2),
             SpinBoxOption("num-teams", self.numberOfTeams, int, 2),
             SpinBoxOption("map-size", self.mapSize, float, 5),

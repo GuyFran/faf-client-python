@@ -31,7 +31,7 @@ class MapGeneratorManager(QObject):
 
     def __init__(self) -> None:
         super().__init__()
-        self.latestVersion = None
+        self.latestVersion = ""
 
         self.currentVersion = Settings.get('mapGenerator/version', "0", str)
 
@@ -173,7 +173,7 @@ class MapGeneratorManager(QObject):
         progress.setMinimum(0)
         progress.setMaximum(0)
         progress.setValue(0)
-        progress.setModal(1)
+        progress.setModal(True)
         progress.setWindowTitle("Looking for updates")
         progress.show()
 

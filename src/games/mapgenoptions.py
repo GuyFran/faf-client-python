@@ -80,6 +80,9 @@ class ComboBoxOption(MapGenOption):
         MapGenOption.__init__(self, name, ui_elem, str, default)
         self.opts = opts
 
+    def set_opts(self, opts: list[str] | None) -> None:
+        self.opts = opts
+
     def set_value(self, value: str) -> None:
         self.ui_elem.setCurrentText(value)
 
