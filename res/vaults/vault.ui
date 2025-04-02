@@ -248,7 +248,7 @@
           <enum>Qt::FocusPolicy::NoFocus</enum>
          </property>
          <property name="selectionMode">
-          <enum>QAbstractItemView::SelectionMode::NoSelection</enum>
+          <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
          </property>
          <property name="iconSize">
           <size>
