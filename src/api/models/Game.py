@@ -1,18 +1,22 @@
 from pydantic import Field
 
 from src.api.models.ConfiguredModel import ConfiguredModel
+from src.api.models.MapVersion import MapVersion
 from src.api.models.Player import Player
 from src.api.models.PlayerStats import PlayerStats
 
 
 class Game(ConfiguredModel):
-    end_time:         str                      = Field(alias="endTime")
-    xd:               str                      = Field(alias="id")
-    name:             str
-    replay_available: bool                     = Field(alias="replayAvailable")
-    replay_ticks:     int | None               = Field(alias="replayTicks")
-    replay_url:       str                      = Field(alias="replayUrl")
-    start_time:       str                      = Field(alias="startTime")
+    end_time:          str | None              = Field(alias="endTime")
+    xd:                str                     = Field(alias="id")
+    name:              str
+    replay_available:  bool                    = Field(alias="replayAvailable")
+    replay_ticks:      int | None              = Field(alias="replayTicks")
+    replay_url:        str                     = Field(alias="replayUrl")
+    start_time:        str                     = Field(alias="startTime")
+    validity:          str
+    victory_condition: str                     = Field(alias="victoryCondition")
 
     host:             Player | None            = Field(None)
     player_stats:     list[PlayerStats] | None = Field(None, alias="playerStats")
+    map_version:      MapVersion | None        = Field(None)

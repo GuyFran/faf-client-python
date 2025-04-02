@@ -1242,3 +1242,9 @@ QPushButton[remove="true"]:pressed
 {
     background-color: #d32f2f;
 }
+
+QLabel[replay_misc_info="true"]
+{
+    color: #666;
+    font-size: 8pt;
+}
