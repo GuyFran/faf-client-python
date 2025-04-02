@@ -136,6 +136,8 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
             self.mapid = replay["mapVersion"]["id"]
             self.mapname = replay["mapVersion"]["folderName"]
             self.previewUrlLarge = replay["mapVersion"]["thumbnailUrlLarge"]
+        elif replay["featuredMod"]["technicalName"].lower() != "coop":
+            self.mapname = "Neroxis Map Generator"
         else:
             self.mapname = "unknown"
 
@@ -183,7 +185,10 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
         # Map preview code
         self.mapdisplayname = maps.getDisplayName(self.mapname)
 
-        self.thumbnail = maps.preview(self.mapname)
+        if self.mapname == "Neroxis Map Generator":
+            self.thumbnail = maps.get_preview_for_generated_map(self.mapname)
+        else:
+            self.thumbnail = maps.preview(self.mapname)
         if not self.thumbnail:
             self.thumbnail = util.THEME.icon("games/unknown_map.png")
             if self.mapname != "unknown":
