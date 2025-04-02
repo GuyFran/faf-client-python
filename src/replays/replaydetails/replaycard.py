@@ -35,6 +35,8 @@ from src.fa.maps import downloadMap
 from src.fa.maps import folderForMap
 from src.fa.maps import isMapAvailable
 from src.fa.maps_.preview import create_large_preview
+from src.fa.maps_.preview import largest_preview_scale
+from src.fa.maps_.previewdialog import MapPreviewDialog
 from src.mapGenerator.mapgenManager import MapGeneratorManager
 from src.mapGenerator.mapgenUtils import isGeneratedMap
 from src.replays.replaydetails.chart import ChartWidget
@@ -247,16 +249,8 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.generator = MapGeneratorManager()
 
     def on_map_clicked(self, event: QtGui.QMouseEvent) -> None:
-        size = self.screen().availableSize()
-        scale = min(size.height() // 256, 4)
-        preview_dialog = QtWidgets.QDialog()
-        preview_dialog.setWindowTitle("Map Preview")
-        preview_dialog.setLayout(QtWidgets.QVBoxLayout())
-        preview_dialog.layout().setContentsMargins(2, 2, 2, 2)
-        preview_dialog.setStyleSheet(STYLESHEET)
-        preview_label = QtWidgets.QLabel()
-        preview_label.setPixmap(self.map_preview_pixmap(scale=scale))
-        preview_dialog.layout().addWidget(preview_label)
+        scale = largest_preview_scale(self.screen())
+        preview_dialog = MapPreviewDialog(self.map_preview_pixmap(scale=scale))
         preview_dialog.exec()
         preview_dialog.deleteLater()
 

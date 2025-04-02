@@ -4,6 +4,7 @@ import struct
 
 from PyQt6.QtGui import QImage
 from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QScreen
 
 from src.fa.maps_._preview import add_markers
 from src.fa.maps_.map_utils import get_scmap_file
@@ -69,3 +70,18 @@ def create_large_preview(
     mapdata = map_data_from_scmap(scmap).scale_image_by(scale)
     add_markers(mapdir, mapdata, armies, scale=scale)
     return QPixmap(mapdata.image)
+
+
+def create_largest_preview(
+        screen: QScreen | None,
+        mapdir: str,
+        armies: dict | None = None,
+) -> QPixmap:
+    return create_large_preview(mapdir, armies=armies, scale=largest_preview_scale(screen))
+
+
+def largest_preview_scale(screen: QScreen | None) -> int:
+    if screen is None:
+        return 2
+    size = screen.availableSize()
+    return min(size.height() // 256, 4)
