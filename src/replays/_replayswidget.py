@@ -912,8 +912,9 @@ class ReplayVaultWidgetHandler(object):
         scoreboard = item.generate_scoreboard()
         self._w.replayScoreLayout.addWidget(scoreboard)
         self.adjust_scoreboard_size(scoreboard.width(), scoreboard.height())
-        details_visible = hasattr(item, "duration") and "playing" not in item.duration
-        self._w.detailsButton.setVisible(details_visible)
+        game_finished = hasattr(item, "duration") and "playing" not in item.duration
+        available = item.game and item.game.replay_available
+        self._w.detailsButton.setVisible(game_finished and available)
 
     def online_tree_clicked(self, item: ReplayItem | QTreeWidgetItem) -> None:
         if not isinstance(item, ReplayItem):
