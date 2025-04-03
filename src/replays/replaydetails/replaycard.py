@@ -145,6 +145,18 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.resize(1024, 768)
         self.generator = MapGeneratorManager()
 
+        self.tab_history = set()
+        self.replayTabs.currentChanged.connect(self.on_tab_changed)
+
+    def on_tab_changed(self, index: int) -> None:
+        if index in self.tab_history:
+            return
+
+        self.tab_history.add(index)
+        widget = self.replayTabs.widget(index)
+        assert isinstance(widget, (ReplayInfoTab, ChatTab, ChartsTab, StatsVisualizer, Heatmap))
+        widget.initialize(self.loader.replay)
+
     def show_replay_exception_msg(self, msg: str) -> None:
         self.statusBar.showMessage("")
         msg = f"Can't parse this replay.<br/><br/>Error message:<br/><b>{msg}</b>"
@@ -239,10 +251,8 @@ class ReplayDetailsCard(QtWidgets.QDialog):
     @QtCore.pyqtSlot(int)
     def populatePages(self, ms: int) -> None:
         self.statusBar.showMessage(f"Replay loaded in {ms} ms")
-        for index in range(self.replayTabs.count()):
-            tab = self.replayTabs.widget(index)
-            assert isinstance(tab, (ReplayInfoTab, ChatTab, ChartsTab, StatsVisualizer, Heatmap))
-            tab.initialize(self.loader.replay)
+        self.tab_history.clear()
+        self.on_tab_changed(0)
 
     @QtCore.pyqtSlot()
     def select_file(self) -> None:
