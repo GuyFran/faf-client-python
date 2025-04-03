@@ -238,7 +238,7 @@ class ReplayParser(QObject):
                     digest = self.binary.readRawData(16)
                     tick_num = self.binary.readUInt32()
 
-                    if tick_num == prev_tick and digest != prev_digest:
+                    if tick_num == prev_tick and digest != prev_digest and not self.game_stats:
                         raise ReplayException("DESYNC")
 
                     prev_digest = digest
