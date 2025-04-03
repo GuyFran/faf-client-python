@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Generator
 from functools import lru_cache
 
 from PyQt6 import QtCore
@@ -481,25 +482,22 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         ]
         self.cpms.graph(self.cpmData, max_h_val, colors, ticks_number)
 
-    def on_mouse_moved(self, tick: int) -> None:
-        if not self.loader.replay.commands:
-            return
-
-        text = (
+    def _gen_player_actions(self, tick: int) -> Generator[str, None, None]:
+        yield (
             f"time: {seconds_to_human(tick//10)}"
             f" to {seconds_to_human(min(tick+600, self.loader.replay.ticks)//10)}"
             f"<br/>"
         )
-        for playerId in self.loader.replay.cpmChart:
-            text += (
-                f"<b style='color:{self.cpms.colors[playerId]}'>"
-                f"{self.loader.replay.army[playerId]['PlayerName']}</b>: "
-                f"{self.cpmData[playerId][tick] or 'no'} actions<br/>"
+        for player_id in self.loader.replay.cpmChart:
+            yield (
+                f"<b style='color:{self.cpms.colors[player_id]}'>"
+                f"{self.loader.replay.army[player_id]['PlayerName']}</b>: "
+                f"{self.cpmData[player_id][tick] or 'no'} actions<br/>"
             )
-            if not self.show_player_actions[playerId].isChecked():
+            if not self.show_player_actions[player_id].isChecked():
                 continue
 
-            for action in self.loader.replay.commands[playerId]:
+            for action in self.loader.replay.commands[player_id]:
                 if action["tick"] < tick or action["tick"] >= tick + 600:
                     continue
 
@@ -508,19 +506,22 @@ class ReplayDetailsCard(QtWidgets.QDialog):
                     case "BuildFactory" | "BuildMobile" | "Upgrade":
                         blueprint = action["blueprint"]
                         unit_name = self.unitsdb.get(blueprint, "")
-                        text += f"<img title='{unit_name}' src=\"{blueprint}\"/>"
+                        yield f"<img title='{unit_name}' src=\"{blueprint}\"/>"
                     case "Script":
                         if "Enhancement" in action["upgrades"]:
-                            text += f"{command}: {action['upgrades']['Enhancement']}"
+                            yield f"{command}: {action['upgrades']['Enhancement']}"
                         elif "TaskName" in action["upgrades"]:
-                            text += f"{command}: {action['upgrades']['TaskName']}"
+                            yield f"{command}: {action['upgrades']['TaskName']}"
                     case _:
                         url = f"{command.lower()}_pix"
                         if url in ACTION_ICONS:
-                            text += f"<img title='{command}' src=\"{url}\"/>"
-            text += "<br/>" * 2
+                            yield f"<img title='{command}' src=\"{url}\"/>"
+            yield "<br/>" * 2
 
-        self.actionsDisplay.setText(text)
+    def on_mouse_moved(self, tick: int) -> None:
+        if not self.loader.replay.commands:
+            return
+        self.actionsDisplay.setText("".join(self._gen_player_actions(tick)))
 
     @QtCore.pyqtSlot()
     def select_file(self) -> None:

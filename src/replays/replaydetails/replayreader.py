@@ -27,6 +27,7 @@ import logging
 import os
 from collections import Counter
 from collections import defaultdict
+from collections.abc import Generator
 from datetime import datetime
 from typing import Any
 from typing import NamedTuple
@@ -399,70 +400,69 @@ class ReplayParser(QObject):
         else:
             return self._non_coop_teams()
 
-    def get_info(self) -> str:
+    def _gen_info(self) -> Generator[str, None, None]:
         teams = self.get_teams()
-
-        tmp = f"<center><h2>{self.faf_info['title']}</h2>"
-        tmp += f"<center><h3>{self.replayPatchFieldId}</h3>"
-        tmp += f"<center><h4>host: {self.faf_info['host']}</h4>"
-
-        tmp += (
+        yield (
+            f"<center><h2>{self.faf_info['title']}</h2>"
+            f"<center><h3>{self.replayPatchFieldId}</h3>"
+            f"<center><h4>host: {self.faf_info['host']}</h4>"
             f"<h3>{seconds_to_human(self.ticks // 10, sep=' ', full=False)}</h3>"
             f"<h4>{self.real_time()}</h4>"
             "</center>"
+            "<p><table width=100%><tr>"
         )
 
-        tmp += "<p><table width=100%><tr>"
         if self.gameMods:
-            tmp += "<td><b>Mods</b><br/>"
+            yield "<td><b>Mods</b><br/>"
             for mod in self.gameMods.values():
-                tmp += f"{mod['name']}<br/>"
-            tmp += "</td>"
+                yield f"{mod['name']}<br/>"
+            yield "</td>"
         if self.observers:
-            tmp += "<td><b>Observers</b><br/>"
+            yield "<td><b>Observers</b><br/>"
             for observer in self.observers.values():
-                tmp += f"{observer}<br/>"
-            tmp += "</td>"
-        tmp += "</table></p>"
+                yield f"{observer}<br/>"
+            yield "</td>"
+        yield "</table></p>"
 
         teamid = 0
-        tmp += "<p><table width=100%>"
+        yield "<p><table width=100%>"
         for team in teams.items():
             teamid += 1
-            tmp += (
+            yield (
                 f"<tr><th bgcolor=grey colspan=5><font color=white>"
                 f"team {str(teamid)}"
                 f"</font></th></tr>"
             )
             for id in team[1]:
-                tmp += "<tr>"
+                yield "<tr>"
                 color_num = int(self.army[id]["PlayerColor"])
                 color = PLAYER_COLORS[color_num - 1]
-                tmp += f"<td width=40 style='background-color:{color}'></td>"
+                yield f"<td width=40 style='background-color:{color}'></td>"
                 fac_icon = self.get_faction_img_path(self.army[id]['Faction'])
-                tmp += f"<td align='center'><img height=24 src=\"{fac_icon}\"/></td>"
+                yield f"<td align='center'><img height=24 src=\"{fac_icon}\"/></td>"
                 if country := self.army[id].get("Country", ""):
                     flagfile = self.get_country_img_path(country)
-                    tmp += f"<td><img src=\"{flagfile}\" title=\"{country}\"/></td>"
-                tmp += f"<td><b>{self.army[id]["PlayerName"]}</b><br/>"
+                    yield f"<td><img src=\"{flagfile}\" title=\"{country}\"/></td>"
+                yield f"<td><b>{self.army[id]["PlayerName"]}</b><br/>"
                 if "MEAN" in self.army[id] and "DEV" in self.army[id]:
                     rating = int(self.army[id]["MEAN"] - 3*self.army[id]["DEV"])
-                    tmp += f"Rating: {rating}"
+                    yield f"Rating: {rating}"
                 # Commands per minute
                 if self.ticks and id in self.players:
-                    tmp += " apm: "
+                    yield " apm: "
                     try:
                         if id in self.lasttick:  # player dies before the game ends
-                            tmp += f"{self.CPM[id] / (self.lasttick[id] * 1.0 / 10 / 60):.2f}"
+                            yield f"{self.CPM[id] / (self.lasttick[id] * 1.0 / 10 / 60):.2f}"
                         else:
-                            tmp += f"{self.CPM[id] / (self.ticks * 1.0 / 10 / 60):.2f}"
+                            yield f"{self.CPM[id] / (self.ticks * 1.0 / 10 / 60):.2f}"
                     except ZeroDivisionError:
-                        tmp += "0.00"
-                tmp += "</td></tr>"
-            tmp += "<tr><td>&nbsp;</td></tr>"
+                        yield "0.00"
+                yield "</td></tr>"
+            yield "<tr><td>&nbsp;</td></tr>"
+        yield "</table></p>"
 
-        tmp += "</table></p>"
-        return tmp
+    def get_info(self) -> str:
+        return "".join(self._gen_info())
 
     def generated_map_size(self) -> str:
         desc = self.luaScenarioInfo["description"].split("\r\n")
@@ -484,51 +484,55 @@ class ReplayParser(QObject):
     def map_display_name(self) -> str:
         return self.luaScenarioInfo["name"]
 
-    def get_chat(self) -> str:
-        tmp = "<table width=100%>"
+    def _gen_chat(self) -> Generator[str, None, None]:
+        yield "<table width=100%>"
         for index, line in enumerate(self.chatLine):
             bgcolor = ("#202025", "#303035")[index % 2]
-            tmp += f"<tr bgcolor='{bgcolor}'>"
+            yield f"<tr bgcolor='{bgcolor}'>"
             for i, elem in enumerate(line[:-1]):
                 if i == 0:
                     text = seconds_to_human(elem // 10)
                 else:
                     text = elem
-                tmp += f"<td style='color: silver;'>{text}</td>"
-            tmp += "</tr>"
-        tmp += "</table>"
-        return tmp
+                yield f"<td style='color: silver;'>{text}</td>"
+            yield "</tr>"
+        yield "</table>"
+
+    def get_chat(self) -> str:
+        return "".join(self._gen_chat())
 
     def _html_escape(self, value: Any) -> Any:
         if not isinstance(value, str):
             return value
         return html.escape(value)
 
-    def get_settings(self) -> str:
-        tmp = (
+    def _gen_settings(self) -> Generator[str, None, None]:
+        yield (
             f"<center><h2>{self.map_display_name()}</h2><h4>"
             f"{self.actual_map_size()}</h4></center><table>"
         )
         for k, v in self.luaScenarioInfo["Options"].items():
             if k not in ["Ratings", "ScenarioFile", "ReplayID"]:
                 if not isinstance(v, dict):
-                    tmp += (
+                    yield (
                         f"<tr>"
                         f"<td><b>{self._html_escape(k)}</b></td>"
                         f"<td>{self._html_escape(v)}</td>"
                         f"</tr>"
                     )
                 else:
-                    tmp += f"<tr><td><b>{self._html_escape(k)}</b></td><td>&nbsp;</td></tr>"
+                    yield f"<tr><td><b>{self._html_escape(k)}</b></td><td>&nbsp;</td></tr>"
                     for k2, v2 in v.items():
-                        tmp += (
+                        yield (
                             f"<tr>"
                             f"<td><i>{self._html_escape(k2)}</i></td>"
                             f"<td>{self._html_escape(v2)}</td>"
                             f"</tr>"
                         )
-        tmp += "</table>"
-        return tmp
+        yield "</table>"
+
+    def get_settings(self) -> str:
+        return "".join(self._gen_settings())
 
     def get_game_id(self) -> int:
         return self.faf_info["uid"] if self.faf_info and "uid" in self.faf_info else 0
