@@ -1248,3 +1248,9 @@ QLabel[replay_misc_info="true"]
     color: #666;
     font-size: 8pt;
 }
+
+QLabel#searchInfoLabel,#advSearchInfoLabel
+{
+    color: gold;
+    font-weight: bold;
+}

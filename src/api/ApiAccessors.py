@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Callable
 
 from PyQt6.QtCore import pyqtSignal
 
@@ -92,9 +93,16 @@ class DataApiAccessor(ApiAccessor):
             return message["meta"]
         return {}
 
-    def requestData(self, query_dict: dict | None = None) -> None:
+    def requestData(
+            self,
+            query_dict: dict | None = None,
+            error_handler: Callable | None = None,
+    ) -> None:
         query_dict = query_dict or {}
-        self.get_by_query(query_dict, self.handle_response)
+        if error_handler is None:
+            self.get_by_query(query_dict, self.handle_response)
+        else:
+            self.get_by_query(query_dict, self.handle_response, error_handler)
 
     def prepare_data(self, message: dict) -> dict:
         return message

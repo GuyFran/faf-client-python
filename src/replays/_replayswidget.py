@@ -664,7 +664,7 @@ class ReplayVaultWidgetHandler(object):
 
         self.showLatest = True
         self.searching = False
-        self.searchInfo = "<font color='gold'><b>Searching...</b></font>"
+        self.searchInfo = "Searching..."
         self.defaultSearchParams = {
             "page[number]": 1,
             "page[size]": 100,
@@ -813,7 +813,7 @@ class ReplayVaultWidgetHandler(object):
         if filters:
             parameters["filter"] = filters
 
-        self.apiConnector.requestData(parameters)
+        self.apiConnector.requestData(parameters, self.on_api_request_error)
         self.timer.start(90000)
 
     def prepareFilters(
@@ -1042,6 +1042,10 @@ class ReplayVaultWidgetHandler(object):
             faf_replay.close()
             replay(os.path.join(util.CACHE_DIR, "temp.fafreplay"))
 
+    def on_api_request_error(self, reply: QNetworkReply) -> None:
+        self.stopSearchVault()
+        self._w.searchInfoLabel.setText(reply.errorString())
+
     def process_replays_data(self, message: dict) -> None:
         self.stopSearchVault()
         self.clear_scoreboard()
@@ -1055,12 +1059,8 @@ class ReplayVaultWidgetHandler(object):
         self.update_online_tree()
 
         if len(message["data"]) == 0:
-            self._w.searchInfoLabel.setText(
-                "<font color='gold'><b>No replays found</b></font>",
-            )
-            self._w.advSearchInfoLabel.setText(
-                "<font color='gold'><b>No replays found</b></font>",
-            )
+            self._w.searchInfoLabel.setText("No replays found")
+            self._w.advSearchInfoLabel.setText("No replays found")
 
     def process_leaderboards(self, message: dict[str, list[Leaderboard]]) -> None:
         for leaderboard in message["values"]:
