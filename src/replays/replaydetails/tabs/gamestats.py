@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import QVBoxLayout
 from PyQt6.QtWidgets import QWidget
 
 from src.qt.graphics.labeledbargraphitem import LabeledBarGraphItem
+from src.replays.replaydetails.replayreader import ReplayParser
 
 UNIT_TYPES = {
     "land": "Land",
@@ -36,6 +37,9 @@ class StatsVisualizer(QWidget):
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)
         self.stats = {}
+
+    def initialize(self, replay: ReplayParser) -> None:
+        self.draw_stats(replay.game_stats)
 
     def _remove_old_widgets(self) -> None:
         while (item := self.main_layout.takeAt(0)) is not None:

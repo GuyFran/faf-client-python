@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import QWidget
 from src.config import Settings
 from src.replays.replaydetails.helpers import seconds_to_human
 from src.replays.replaydetails.rangeslider import RangeSlider
+from src.replays.replaydetails.replayreader import ReplayParser
 
 
 def create_colorbar_hist() -> pg.HistogramLUTWidget:
@@ -148,6 +149,10 @@ class Heatmap(QWidget):
         self.heatmap_properties = HeatmapProperties()
 
         self.pts_norm = []
+
+    def initialize(self, replay: ReplayParser) -> None:
+        self.set_pts(replay.pts)
+        self.create_heatmap(replay.ticks)
 
     def generate_new_heatmap(self) -> None:
         if len(self.pts_norm) == 0:

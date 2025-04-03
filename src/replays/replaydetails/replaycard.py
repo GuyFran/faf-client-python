@@ -23,8 +23,6 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Generator
-from functools import lru_cache
 
 from PyQt6 import QtCore
 from PyQt6 import QtGui
@@ -32,58 +30,17 @@ from PyQt6 import QtNetwork
 from PyQt6 import QtWidgets
 
 from src import util
-from src.fa.maps import downloadMap
-from src.fa.maps import folderForMap
-from src.fa.maps import isMapAvailable
-from src.fa.maps_.preview import create_large_preview
-from src.fa.maps_.preview import largest_preview_scale
-from src.fa.maps_.previewdialog import MapPreviewDialog
 from src.mapGenerator.mapgenManager import MapGeneratorManager
-from src.mapGenerator.mapgenUtils import isGeneratedMap
-from src.replays.replaydetails.chart import ChartWidget
-from src.replays.replaydetails.gamestats import StatsVisualizer
-from src.replays.replaydetails.heatmap import Heatmap
-from src.replays.replaydetails.helpers import seconds_to_human
-from src.replays.replaydetails.replayformat import cmdTypeToString
 from src.replays.replaydetails.replayreader import Replay
 from src.replays.replaydetails.replayreader import ReplayException
 from src.replays.replaydetails.replayreader import ReplayParser
-from src.replays.replaydetails.utils import ACTION_ICONS
-from src.replays.replaydetails.utils import PLAYER_COLORS
+from src.replays.replaydetails.tabs.charttab import ChartsTab
+from src.replays.replaydetails.tabs.chattab import ChatTab
+from src.replays.replaydetails.tabs.gamestats import StatsVisualizer
+from src.replays.replaydetails.tabs.heatmap import Heatmap
+from src.replays.replaydetails.tabs.maintab import ReplayInfoTab
 
 STYLESHEET = util.THEME.readstylesheet("client/client.css")
-
-
-@lru_cache(1)
-def units_pixmaps(units_dir: str) -> dict[str, QtGui.QPixmap]:
-    pixmaps = {}
-    pixmap = QtGui.QPixmap()
-    for file in os.listdir(units_dir):
-        icon = os.path.join(units_dir, file)
-        pixmap.load(icon)
-        unit, *_ = file.lower().partition(".")
-        pixmaps[unit] = pixmap.scaled(48, 48)
-    return pixmaps
-
-
-@lru_cache(1)
-def action_pixmaps(file: str) -> dict[str, QtGui.QPixmap]:
-    pixmap = QtGui.QPixmap()
-    pixmap.load(file)
-    return {
-        name: pixmap.copy(0, i * 48, 48, 48)
-        for i, name in enumerate(ACTION_ICONS)
-    }
-
-
-class ClickableLabel(QtWidgets.QLabel):
-    clicked = QtCore.pyqtSignal(QtGui.QMouseEvent)
-
-    def mousePressEvent(self, ev: QtGui.QMouseEvent | None) -> None:
-        if ev is None or ev.button() != QtCore.Qt.MouseButton.LeftButton:
-            return
-        self.clicked.emit(ev)
-        QtWidgets.QLabel.mousePressEvent(self, ev)
 
 
 class ReplayLoader(QtCore.QThread):
@@ -157,79 +114,17 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         filemenu.addSeparator()
         menubar.addAction(self.aboutAction)
 
-        self.replayInfo = QtWidgets.QTextBrowser()
-        self.replayInfo.setText(
-            "<h2>No replay loaded</h2>"
-            "<p>To load a replay click <b>File</b> menu <b>Load</b> option</p>",
-        )
-        self.replayInfo.setReadOnly(True)
-
-        self.replayInfoMap = ClickableLabel()
-        self.replayInfoMap.setMinimumHeight(256)
-        self.replayInfoMap.setMinimumWidth(256)
-        self.replayInfoMap.setMaximumWidth(256)
-        self.replayInfoMap.clicked.connect(self.on_map_clicked)
-
-        self.map_description = QtWidgets.QLabel()
-        self.map_description.setWordWrap(True)
-        self.map_description.setMaximumWidth(256)
-        interaction_flag = QtCore.Qt.TextInteractionFlag.TextSelectableByMouse
-        self.map_description.setTextInteractionFlags(interaction_flag)
-        self.map_layout = QtWidgets.QHBoxLayout()
-        self.map_layout.setSpacing(6)
-        self.map_layout.addWidget(self.replayInfoMap)
-        self.map_layout.addWidget(self.map_description)
-
-        self.lobby_options = QtWidgets.QTextBrowser()
-        self.lobby_options.setReadOnly(True)
-        self.lobby_options.setVisible(False)
-
-        self.get_map_button = QtWidgets.QPushButton("Generate map")
-        self.get_map_button.setVisible(False)
-        self.get_map_button.clicked.connect(self.obtain_map)
-
-        self.replayInfoTabLayout = QtWidgets.QGridLayout()
-        self.replayInfoTabLayout.addWidget(self.replayInfo, 0, 0, 4, 1)
-        self.replayInfoTabLayout.addItem(self.map_layout, 0, 1)
-        self.replayInfoTabLayout.addWidget(self.get_map_button, 1, 1)
-        self.replayInfoTabLayout.addWidget(self.lobby_options, 2, 1)
-
-        self.replayInfoTab = QtWidgets.QWidget()
-        self.replayInfoTab.setLayout(self.replayInfoTabLayout)
-
-        self.chatTab = QtWidgets.QTextEdit()
-        self.chatTab.setReadOnly(True)
-
+        self.replay_info_tab = ReplayInfoTab()
+        self.chat_tab = ChatTab()
         self.heatmap_tab = Heatmap()
-
-        self.cpms = ChartWidget()
-        self.cpms.setMaximumHeight(330)
-        self.cpms.selected_tick_signal.connect(self.on_mouse_moved)
-
-        self.actionsDisplay = QtWidgets.QTextBrowser()
-
-        self.action_icons = os.path.join(util.COMMON_DIR, "replays", "actions48.png")
-        self.units_icons = os.path.join(util.COMMON_DIR, "unitdb", "units")
-
-        self.chartsTabLayout = QtWidgets.QVBoxLayout()
-        self.chartsTabLayout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-        self.chartsTabLayout.addWidget(self.cpms)
-        actions_layout = QtWidgets.QHBoxLayout()
-        actions_layout.addWidget(self.actionsDisplay)
-        self.playerActionFilter = QtWidgets.QWidget()
-        actions_layout.addWidget(self.playerActionFilter)
-        self.chartsTabLayout.addItem(actions_layout)
-
-        self.chartsTab = QtWidgets.QWidget()
-        self.chartsTab.setLayout(self.chartsTabLayout)
-
+        self.charts_tab = ChartsTab()
         self.game_stats_tab = StatsVisualizer()
 
         self.replayTabs = QtWidgets.QTabWidget()
-        self.replayTabs.addTab(self.replayInfoTab, "Info")
-        self.replayTabs.addTab(self.chatTab, "Chat")
+        self.replayTabs.addTab(self.replay_info_tab, "Info")
+        self.replayTabs.addTab(self.chat_tab, "Chat")
         self.replayTabs.addTab(self.heatmap_tab, "Heatmap")
-        self.replayTabs.addTab(self.chartsTab, "Graph")
+        self.replayTabs.addTab(self.charts_tab, "Graph")
         self.replayTabs.addTab(self.game_stats_tab, "Game Stats")
 
         self.loadingBar = QtWidgets.QProgressBar()
@@ -248,25 +143,6 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.setLayout(self._layout)
         self.resize(1024, 768)
         self.generator = MapGeneratorManager()
-
-    def on_map_clicked(self, event: QtGui.QMouseEvent) -> None:
-        scale = largest_preview_scale(self.screen())
-        preview_dialog = MapPreviewDialog(self.map_preview_pixmap(scale=scale))
-        preview_dialog.exec()
-        preview_dialog.deleteLater()
-
-    def update_map_pixmap(self) -> None:
-        pixmap = self.map_preview_pixmap()
-        self.replayInfoMap.setPixmap(pixmap)
-
-    def obtain_map(self) -> None:
-        map_folder = self.loader.replay.map_folder_name()
-        if isGeneratedMap(map_folder):
-            self.generator.generateMap(map_folder)
-        else:
-            downloadMap(map_folder)
-        self.update_map_pixmap()
-        self.update_get_map_button()
 
     def show_replay_exception_msg(self, msg: str) -> None:
         self.statusBar.showMessage("")
@@ -328,20 +204,6 @@ class ReplayDetailsCard(QtWidgets.QDialog):
             QtWidgets.QMessageBox.warning(self, 'Error', 'Can\'t download that replay')
         reply.deleteLater()
 
-    def map_preview_pixmap(self, *, scale: int = 1) -> QtGui.QPixmap:
-        nomap = QtGui.QPixmap(os.path.join(util.COMMON_DIR, "replays", "nomap.png"))
-        folder_path = folderForMap(self.loader.replay.map_folder_name())
-        if folder_path is None or not os.path.exists(folder_path):
-            return nomap
-
-        armies = {
-            army["ArmyName"]: army
-            for army in self.loader.replay.army.values()
-        }
-        for army in armies.values():
-            army["hexcolor"] = PLAYER_COLORS[int(army["PlayerColor"]) - 1]
-        return create_large_preview(folder_path, armies, scale=scale)
-
     def show_about(self) -> None:
         # flags = QtCore.Qt.WindowType.WindowTitleHint | QtCore.Qt.WindowType.WindowSystemMenuHint
         about = QtWidgets.QDialog(None, QtCore.Qt.WindowType.Widget)
@@ -374,154 +236,11 @@ class ReplayDetailsCard(QtWidgets.QDialog):
 
     @QtCore.pyqtSlot(int)
     def populatePages(self, ms: int) -> None:
-        self.replayInfo.setText(self.loader.replay.get_info())
-        self.chatTab.setText(self.loader.replay.get_chat())
-        self.lobby_options.setVisible(True)
-        self.lobby_options.setText(self.loader.replay.get_settings())
-
-        self.heatmap_tab.set_pts(self.loader.replay.pts)
-        self.heatmap_tab.create_heatmap(self.loader.replay.ticks)
-
         self.statusBar.showMessage(f"Replay loaded in {ms} ms")
-        self.update_map_pixmap()
-        self.replayInfoMap.setToolTip(self.loader.replay.map_display_name())
-        self.map_description.setText(self.loader.replay.luaScenarioInfo["description"])
-        self.update_get_map_button()
-        self.gen_chart()
-        self.populate_player_selection()
-        self.game_stats_tab.draw_stats(self.loader.replay.game_stats)
-
-    def populate_player_selection(self) -> None:
-        select_all = QtWidgets.QCheckBox("Select all")
-        select_all.setChecked(True)
-        select_all.checkStateChanged.connect(
-            lambda state: [
-                checkbox.setChecked(state == QtCore.Qt.CheckState.Checked)
-                for key, checkbox in self.show_player_actions.items()
-                if key != "all"
-            ],
-        )
-
-        self.show_player_actions = {"all": select_all}
-
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(select_all)
-        army = self.loader.replay.army
-        for id, name in self.loader.replay.players.items():
-            line = QtWidgets.QHBoxLayout()
-            line.setSpacing(6)
-
-            checkbox = QtWidgets.QCheckBox(text=name)
-            checkbox.setChecked(True)
-
-            label = QtWidgets.QLabel()
-            label.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
-            label.setMaximumSize(10, 10)
-
-            pixmap = QtGui.QPixmap(10, 10)
-            pixmap.fill(QtGui.QColor(PLAYER_COLORS[int(army[id]["PlayerColor"]) - 1]))
-            label.setPixmap(pixmap)
-
-            line.addWidget(checkbox)
-            line.addWidget(label)
-
-            layout.addItem(line)
-            self.show_player_actions[id] = checkbox
-        self.playerActionFilter.setLayout(layout)
-
-    def update_get_map_button(self) -> None:
-        map_folder = self.loader.replay.map_folder_name()
-        self.get_map_button.setVisible(not isMapAvailable(map_folder))
-        text = "Generate map" if isGeneratedMap(map_folder) else "Download map"
-        self.get_map_button.setText(text)
-
-    def add_resources(self) -> None:
-        document = self.actionsDisplay.document()
-        assert document is not None
-        source_type = document.ResourceType.ImageResource
-        for name, pixmap_ in action_pixmaps(self.action_icons).items():
-            document.addResource(source_type, QtCore.QUrl(name), pixmap_)
-        for name, pixmap_ in units_pixmaps(self.units_icons).items():
-            document.addResource(source_type, QtCore.QUrl(name), pixmap_)
-
-    def gen_chart(self) -> None:
-        self.actionsDisplay.clear()
-        self.add_resources()
-        players_number = len(self.loader.replay.players)
-        ticks_number = self.loader.replay.ticks
-        max_h_val = 0
-
-        self.cpmData = [[] for _ in range(players_number)]
-        for i in range(players_number):
-            if i not in self.loader.replay.cpmChart:
-                continue
-            self.cpmData[i] = [0] * (ticks_number + 600)
-            for tick in self.loader.replay.cpmChart[i]:
-                self.cpmData[i][tick] += 1
-
-            num = sum(self.cpmData[i][0:600])
-            prev_num = self.cpmData[i][0]
-            for tick in range(1, ticks_number):
-                num = num - prev_num + self.cpmData[i][tick+600]
-                prev_num = self.cpmData[i][tick]
-                if num > max_h_val:
-                    max_h_val = num
-                self.cpmData[i][tick] = num
-
-            del self.cpmData[i][ticks_number:]
-
-        if max_h_val == 0:
-            self.actionsDisplay.setText("<b>No actions</b>")
-            self.cpms.reset()
-            self.cpms.update()
-            return
-
-        colors = [
-                PLAYER_COLORS[int(self.loader.replay.army[i]["PlayerColor"]) - 1]
-                for i in range(players_number)
-        ]
-        self.cpms.graph(self.cpmData, max_h_val, colors, ticks_number)
-
-    def _gen_player_actions(self, tick: int) -> Generator[str, None, None]:
-        yield (
-            f"time: {seconds_to_human(tick//10)}"
-            f" to {seconds_to_human(min(tick+600, self.loader.replay.ticks)//10)}"
-            f"<br/>"
-        )
-        for player_id in self.loader.replay.cpmChart:
-            yield (
-                f"<b style='color:{self.cpms.colors[player_id]}'>"
-                f"{self.loader.replay.army[player_id]['PlayerName']}</b>: "
-                f"{self.cpmData[player_id][tick] or 'no'} actions<br/>"
-            )
-            if not self.show_player_actions[player_id].isChecked():
-                continue
-
-            for action in self.loader.replay.commands[player_id]:
-                if action["tick"] < tick or action["tick"] >= tick + 600:
-                    continue
-
-                command = cmdTypeToString[action["cmd_type"]]
-                match command:
-                    case "BuildFactory" | "BuildMobile" | "Upgrade":
-                        blueprint = action["blueprint"]
-                        unit_name = self.unitsdb.get(blueprint, "")
-                        yield f"<img title='{unit_name}' src=\"{blueprint}\"/>"
-                    case "Script":
-                        if "Enhancement" in action["upgrades"]:
-                            yield f"{command}: {action['upgrades']['Enhancement']}"
-                        elif "TaskName" in action["upgrades"]:
-                            yield f"{command}: {action['upgrades']['TaskName']}"
-                    case _:
-                        url = f"{command.lower()}_pix"
-                        if url in ACTION_ICONS:
-                            yield f"<img title='{command}' src=\"{url}\"/>"
-            yield "<br/>" * 2
-
-    def on_mouse_moved(self, tick: int) -> None:
-        if not self.loader.replay.commands:
-            return
-        self.actionsDisplay.setText("".join(self._gen_player_actions(tick)))
+        for index in range(self.replayTabs.count()):
+            tab = self.replayTabs.widget(index)
+            assert isinstance(tab, (ReplayInfoTab, ChatTab, ChartsTab, StatsVisualizer, Heatmap))
+            tab.initialize(self.loader.replay)
 
     @QtCore.pyqtSlot()
     def select_file(self) -> None:
