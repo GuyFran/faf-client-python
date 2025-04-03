@@ -30,6 +30,7 @@ from PyQt6 import QtNetwork
 from PyQt6 import QtWidgets
 
 from src import util
+from src.config import Settings
 from src.mapGenerator.mapgenManager import MapGeneratorManager
 from src.replays.replaydetails.replayreader import Replay
 from src.replays.replaydetails.replayreader import ReplayException
@@ -183,9 +184,10 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         dialog.exec()
 
     def download_by_id(self, id: int) -> None:
-        url = f"https://replay.faforever.com/{id}"
+        host = Settings.get("replay_vault/host")
+        url = QtCore.QUrl(host).resolved(QtCore.QUrl(str(id)))
         self.statusBar.showMessage("Downloading replay...")
-        self.downloader.get(QtNetwork.QNetworkRequest(QtCore.QUrl(url)))
+        self.downloader.get(QtNetwork.QNetworkRequest(url))
 
     def download_by_url(self, qurl: QtCore.QUrl) -> None:
         self.statusBar.showMessage("Downloading replay...")
