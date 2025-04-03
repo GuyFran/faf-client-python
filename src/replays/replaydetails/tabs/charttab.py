@@ -100,8 +100,24 @@ class ChartsTab(QWidget):
         with open(db_path) as file:
             self.unitsdb = json.loads(file.read())
 
+    def clear_old_checkboxes(self) -> None:
+        # FIXME?: maybe we should create and remove the whole widget
+        # with checkboxes and avoid this surgeoning
+        self.ui.showAllPlayers.disconnect()
+        while layout_item := self.ui.actionsFilterLayout.takeAt(1):
+            if checkbox_line := layout_item.layout():
+                while innter_item := checkbox_line.takeAt(0):
+                    widget = innter_item.widget()
+                    if widget is None:
+                        continue
+                    widget.setParent(None)
+                    widget.deleteLater()
+                    checkbox_line.removeWidget(widget)
+            self.ui.actionsFilterLayout.removeItem(layout_item)
+
     def initialize(self, replay: ReplayParser) -> None:
         self.replay = replay
+        self.clear_old_checkboxes()
         self.gen_chart()
         self.populate_player_selection()
         self.ui.cpms.selected_tick_signal.connect(self.on_mouse_moved)
