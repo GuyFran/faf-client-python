@@ -205,6 +205,10 @@ class MapGenDialog(FormClass, BaseClass):
     def on_options_extraction_error(self) -> None:
         self.setWindowTitle("Map Generator Options")
         self.setEnabled(True)
+        try:
+            os.unlink(self.options_path)
+        except FileNotFoundError:
+            pass
         self.set_cmd_options({})
 
     def _load_dynamic_options(self) -> MapGenDynamicConfig:
