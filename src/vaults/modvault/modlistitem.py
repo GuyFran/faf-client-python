@@ -42,6 +42,9 @@ class ModListItem(VaultListItem):
     def on_display_type_changed(self, index: int) -> None:
         self.display_type = tuple(ModDisplayType)[index]
 
+    def set_display_type(self, index: int) -> None:
+        self.on_display_type_changed(index)
+
     def should_be_visible(self) -> bool:
         match self.display_type:
             case ModDisplayType.ALL:

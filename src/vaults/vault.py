@@ -225,11 +225,13 @@ class Vault(FormClass, BaseClass, BusyWidget):
             else:
                 item = self.create_item(value)
                 list_item = self.create_list_item(value)
+                list_item.set_display_type(self.ShowTypeList.currentIndex())
                 list_item.setSizeHint(item.sizeHint())
                 self._items[item_key] = list_item
                 self.itemList.setItemWidget(list_item, item)
             self.itemList.addItem(list_item)
         self.sort_items()
+        self.update_visibilities()
         self.processMeta(message["meta"])
 
     def processMeta(self, message: dict) -> None:

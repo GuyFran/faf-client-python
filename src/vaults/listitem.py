@@ -23,13 +23,16 @@ class VaultListItem(QListWidgetItem):
     def on_display_type_changed(self, index: int) -> None:
         raise NotImplementedError
 
+    def set_display_type(self, index: int) -> None:
+        raise NotImplementedError
+
     def _less_than(self, other: VaultListItem) -> bool:
         return True
 
     def should_be_hidden(self) -> bool:
         return not self.should_be_visible()
 
-    def update_visibility(self):
+    def update_visibility(self) -> None:
         self.setHidden(self.should_be_hidden())
 
     def __ge__(self, other: QListWidgetItem) -> bool:
