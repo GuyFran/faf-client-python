@@ -153,6 +153,9 @@ class ReplayDetailsCard(QtWidgets.QDialog):
 
         self.tab_history = set()
         self.replayTabs.currentChanged.connect(self.on_tab_changed)
+
+        self.download_timer = QtCore.QElapsedTimer()
+        self.download_time = 0
         self._restore_geometry_from_settings()
 
     def _restore_geometry_from_settings(self) -> None:
@@ -218,14 +221,16 @@ class ReplayDetailsCard(QtWidgets.QDialog):
     def download_by_id(self, id: int) -> None:
         host = Settings.get("replay_vault/host")
         url = QtCore.QUrl(host).resolved(QtCore.QUrl(str(id)))
-        self.statusBar.showMessage("Downloading replay...")
-        self.downloader.get(QtNetwork.QNetworkRequest(url))
+        self.download_by_url(url)
 
     def download_by_url(self, qurl: QtCore.QUrl) -> None:
         self.statusBar.showMessage("Downloading replay...")
+        self.download_timer.restart()
+        self.download_time = 0
         self.downloader.get(QtNetwork.QNetworkRequest(qurl))
 
     def on_download_finished(self, reply: QtNetwork.QNetworkReply) -> None:
+        self.download_time = self.download_timer.elapsed()
         if (
             reply.error() == reply.NetworkError.NoError
             and reply.header(QtNetwork.QNetworkRequest.KnownHeaders.ContentLengthHeader) != 0
@@ -270,7 +275,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
 
     @QtCore.pyqtSlot(int)
     def populatePages(self, ms: int) -> None:
-        self.statusBar.showMessage(f"Replay loaded in {ms} ms")
+        self.statusBar.showMessage(f"Download: {self.download_time} ms; Parse: {ms} ms")
         self.tab_history.clear()
         self.on_tab_changed(0)
 
@@ -288,5 +293,6 @@ class ReplayDetailsCard(QtWidgets.QDialog):
     def replay(self, path: str) -> None:
         self.replayTabs.setCurrentIndex(0)
         self.setWindowTitle(os.path.basename(str(path)))
+        self.download_time = 0
         self.statusBar.showMessage("Parsing the replay file..")
         self.loader.load_file(path)
