@@ -50,6 +50,12 @@ from src.util import COMMON_DIR
 
 logger = logging.getLogger(__name__)
 
+try:
+    from zigfafreplay import parse_replaydata
+except ImportError:
+    logger.warning("Zig replay parser not found")
+    parse_replaydata = None
+
 
 def uncompress(compressed: bytes, compression: str = "base64") -> QByteArray:
     if compression == "zstd":
@@ -537,8 +543,41 @@ class ReplayParser(QObject):
     def get_game_id(self) -> int:
         return self.faf_info["uid"] if self.faf_info and "uid" in self.faf_info else 0
 
+    def _parse_with_zig(self) -> bool:
+        if (
+            parse_replaydata is None
+            or (parsed := parse_replaydata(self.body)) is None
+        ):
+            return False
+
+        self.replayPatchFieldId = parsed["header"]["patch"]
+        self.replayVersionId, self.map = parsed["header"]["version"].split("\r\n")
+
+        self.gameMods = parsed["header"]["mods"]
+        self.luaScenarioInfo = parsed["header"]["scenario_info"]
+        self.players = parsed["header"]["players"]
+        self.observers = parsed["header"]["observers"]
+        self.army = parsed["header"]["armies"]
+        self.randomSeed = parsed["header"]["random_seed"]
+
+        self.ticks = parsed["body"]["ticks"]
+        self.pts = parsed["body"]["points"]
+        self.lasttick = parsed["body"]["lasttick"]
+        self.commands = parsed["body"]["commands"]
+        self.chatLine = parsed["body"]["chatlines"]
+        self.cpmChart = parsed["body"]["chart_data"]
+        self.game_stats = parsed["body"]["game_stats"]
+
+        self.CPM = {id: len(comlist) for id, comlist in self.commands.items()}
+        return True
+
     def do_stuff(self) -> None:
         if self.binary == QDataStream():
             raise ReplayException("Invalid File Format or Data")
-        self.parse_header()
-        self.parse_ticks()
+        try:
+            compiled_lib_worked = self._parse_with_zig()
+        except RuntimeError:
+            raise ReplayException("DESYNC")
+        if not compiled_lib_worked:
+            self.parse_header()
+            self.parse_ticks()
