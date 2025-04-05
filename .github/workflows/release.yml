@@ -59,7 +59,10 @@ jobs:
 
       - name: Build zig library
         run: |
-          $LIBPY = $(python -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
+          # python3.12 does not have LIBDIR in its sysconfig for some reason
+          # and cx_Freeze does not support bdist_msi for python3.13
+          # therefore, we use HACKS
+          $LIBPY = $(python -c "import sysconfig; print(sysconfig.get_config_var('BINDIR') + '\\libs')")
           Write-Host "LIBPY=$LIBPY"
           $INCLUDEPY = $(python -c "import sysconfig; print(sysconfig.get_config_var('INCLUDEPY'))")
           Write-Host "INCLUDEPY=$INCLUDEPY"
