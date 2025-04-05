@@ -7,6 +7,8 @@ from PyQt6.QtWidgets import QWidget
 from src import util
 from src.api.models.Map import Map
 from src.fa import maps
+from src.fa.maps_.preview import create_largest_preview
+from src.fa.maps_.previewdialog import MapPreviewDialog
 from src.vaults.detailswidget import DetailsWidget
 
 STYLESHEET = util.THEME.readstylesheet("client/client.css")
@@ -22,6 +24,16 @@ class MapDetailsWidget(DetailsWidget):
         self.item_data = item_data
         assert item_data.version is not None
         self.item_version = item_data.version
+        self.ui.thumbnailLabel.clicked.connect(self.preview_map_large)
+
+    def preview_map_large(self) -> None:
+        if not self.is_installed():
+            return
+        folder = maps.folderForMap(self.item_version.folder_name)
+        assert folder is not None
+        pixmap = create_largest_preview(self.screen(), folder)
+        dialog = MapPreviewDialog(pixmap, self)
+        dialog.exec()
 
     def is_installed(self) -> bool:
         return maps.isMapAvailable(self.item_version.folder_name)

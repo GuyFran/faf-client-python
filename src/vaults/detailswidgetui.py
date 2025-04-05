@@ -15,6 +15,8 @@ from PyQt6.QtWidgets import QTabWidget
 from PyQt6.QtWidgets import QVBoxLayout
 from PyQt6.QtWidgets import QWidget
 
+from src.qt.widgets.clickablelabel import ClickableLabel
+
 
 class DetailsWidgetUI:
     def setupUi(self, widget: QWidget) -> None:
@@ -63,7 +65,7 @@ class DetailsWidgetUI:
 
         content_layout = QGridLayout()
 
-        self.thumbnailLabel = QLabel("Loading thumbnail...")
+        self.thumbnailLabel = ClickableLabel("Loading thumbnail...")
         self.thumbnailLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.thumbnailLabel.setMinimumSize(200, 150)
         content_layout.addWidget(self.thumbnailLabel, 0, 0, 3, 1)
