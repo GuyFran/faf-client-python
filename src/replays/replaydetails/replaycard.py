@@ -82,7 +82,12 @@ class ReplayDetailsCard(QtWidgets.QDialog):
     def __init__(self, *args, **kwargs) -> None:
         QtWidgets.QDialog.__init__(self, *args, **kwargs)
         self.setStyleSheet(STYLESHEET)
-        self.setWindowFlags(QtCore.Qt.WindowType.Widget)
+        window_flags = (
+            QtCore.Qt.WindowType.WindowTitleHint
+            | QtCore.Qt.WindowType.WindowMaximizeButtonHint
+            | QtCore.Qt.WindowType.WindowCloseButtonHint
+        )
+        self.setWindowFlags(window_flags)
         self.setModal(True)
 
         self._layout = QtWidgets.QVBoxLayout()

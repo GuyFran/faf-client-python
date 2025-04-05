@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtWidgets import QTableWidgetItem
 
@@ -27,6 +28,12 @@ class PlayerInfoDialog(FormClass, BaseClass):
     def __init__(self, avatar_dler: CachedImageDownloader, player_id: str) -> None:
         BaseClass.__init__(self)
         self.setupUi(self)
+        window_flags = (
+            Qt.WindowType.WindowTitleHint
+            | Qt.WindowType.WindowMaximizeButtonHint
+            | Qt.WindowType.WindowCloseButtonHint
+        )
+        self.setWindowFlags(window_flags)
         self.load_stylesheet()
 
         self.mainTabWidget.currentChanged.connect(self.on_tab_changed)
