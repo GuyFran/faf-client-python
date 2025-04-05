@@ -32,6 +32,7 @@ from PyQt6 import QtWidgets
 from src import util
 from src.config import Settings
 from src.mapGenerator.mapgenManager import MapGeneratorManager
+from src.qt.utils import center_widget_on_screen
 from src.replays.replaydetails.replayreader import Replay
 from src.replays.replaydetails.replayreader import ReplayException
 from src.replays.replaydetails.replayreader import ReplayParser
@@ -152,6 +153,20 @@ class ReplayDetailsCard(QtWidgets.QDialog):
 
         self.tab_history = set()
         self.replayTabs.currentChanged.connect(self.on_tab_changed)
+        self._restore_geometry_from_settings()
+
+    def _restore_geometry_from_settings(self) -> None:
+        with Settings.group("replaycard") as settings:
+            self.restoreGeometry(settings.value("geometry", self.saveGeometry()))
+            center_widget_on_screen(self)
+
+    def _save_geometry_to_settings(self) -> None:
+        with Settings.group("replaycard") as settings:
+            settings.setValue("geometry", self.saveGeometry())
+
+    def closeEvent(self, event: QtGui.QCloseEvent | None) -> None:
+        self._save_geometry_to_settings()
+        super().closeEvent(event)
 
     def on_tab_changed(self, index: int) -> None:
         if index in self.tab_history:

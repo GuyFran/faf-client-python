@@ -14,12 +14,14 @@ from src.api.player_api import PlayerApiConnector
 from src.api.stats_api import LeaderboardRatingApiConnector
 from src.api.stats_api import LeagueSeasonScoreApiConnector
 from src.api.stats_api import PlayerEventApiAccessor
+from src.config import Settings
 from src.downloadManager import CachedImageDownloader
 from src.playercard.achievements import AchievementsHandler
 from src.playercard.avatarhandler import AvatarHandler
 from src.playercard.leagueformatter import league_formatter_factory
 from src.playercard.ratingtabwidget import RatingTabWidgetController
 from src.playercard.statistics import StatsCharts
+from src.qt.utils import center_widget_on_screen
 
 FormClass, BaseClass = util.THEME.loadUiType("player_card/playercard.ui")
 
@@ -56,6 +58,12 @@ class PlayerInfoDialog(FormClass, BaseClass):
         self.stats_charts = StatsCharts()
 
         self.achievements_handler = AchievementsHandler(self.verticalLayout_2, self.player_id)
+        self._restore_geometry_from_settings()
+
+    def _restore_geometry_from_settings(self) -> None:
+        with Settings.group("playercard") as settings:
+            self.restoreGeometry(settings.value("geometry", self.saveGeometry()))
+            center_widget_on_screen(self)
 
     def load_stylesheet(self) -> None:
         self.setStyleSheet(util.THEME.readstylesheet("client/client.css"))
@@ -105,5 +113,7 @@ class PlayerInfoDialog(FormClass, BaseClass):
             self.statsChartsLayout.addWidget(chartview)
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        with Settings.group("playercard") as settings:
+            settings.setValue("geometry", self.saveGeometry())
         self.tab_widget_ctrl.close()
         BaseClass.closeEvent(self, event)
