@@ -1,6 +1,14 @@
 0.x.x
 =====
 
+0.22.4
+* Add replayparser to the client based on [LiveReplayParser](https://github.com/fafafaf/livereplayparser)
+* Add zig library to parse replays faster
+* Add age info to game items
+* Add context menu to game items with ability to joing game/see large map preview
+* Get mapgen options from generator itself (so they don't break/outdate with every mapgen update)
+* Modernize vaults
+
 0.22.3
 * Allow user to create custom game filters
 * Improve broken reconnection (hopefully fix)
