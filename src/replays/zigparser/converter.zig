@@ -221,10 +221,10 @@ pub fn convert_chart_data(replay_parser: parser.Parser) [*c]py.PyObject {
 }
 
 pub fn convert_gamestats(replay_parser: parser.Parser) [*c]py.PyObject {
-    if (replay_parser.body_data.game_stats == null) {
-        return py.Py_BuildValue("");
+    if (replay_parser.body_data.game_stats) |game_stats| {
+        return convert_object(game_stats.value);
     }
-    return convert_object(replay_parser.body_data.game_stats.?.value);
+    return py.Py_BuildValue("");
 }
 
 pub fn convert_header(replay_parser: parser.Parser) [*c]py.PyObject {

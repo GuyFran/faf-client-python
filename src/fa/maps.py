@@ -404,7 +404,7 @@ def processMapFolderForUpload(mapDir: str) -> None:
         if sum([filename.endswith(x) for x in endings]) > 0:
             files.append(os.path.join(mapDir, filename))
 
-    temp = tempfile.NamedTemporaryFile(mode='w+b', suffi=".zip", delete=False)
+    temp = tempfile.NamedTemporaryFile(mode='w+b', suffix=".zip", delete=False)
 
     # creating the zip
     zipped = zipfile.ZipFile(temp, "w", zipfile.ZIP_DEFLATED)

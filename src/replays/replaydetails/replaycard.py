@@ -244,7 +244,6 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         reply.deleteLater()
 
     def show_about(self) -> None:
-        # flags = QtCore.Qt.WindowType.WindowTitleHint | QtCore.Qt.WindowType.WindowSystemMenuHint
         about = QtWidgets.QDialog(None, QtCore.Qt.WindowType.Widget)
         about.setWindowTitle("About")
         aboutText = (

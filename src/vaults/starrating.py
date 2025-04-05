@@ -32,7 +32,6 @@ class StarRatingWidget(QWidget):
         self.star_color_filled = star_color_filled
         self.star_color_empty = Qt.GlobalColor.black
 
-        # Set widget size
         self.setFixedSize(self.max_rating * self.star_size, self.star_size)
 
     def paintEvent(self, event: QPaintEvent | None) -> None:
