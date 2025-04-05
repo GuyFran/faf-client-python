@@ -2,7 +2,7 @@
 =====
 
 0.22.4
-* Add replayparser to the client based on [LiveReplayParser](https://github.com/fafafaf/livereplayparser)
+* Add replayparser to the client based on [LiveReplayServer](https://github.com/fafafaf/livereplayserver)
 * Add zig library to parse replays faster
 * Add age info to game items
 * Add context menu to game items with ability to joing game/see large map preview
