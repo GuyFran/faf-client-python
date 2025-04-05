@@ -65,7 +65,7 @@ class ClientUpdater(QObject):
     def _buffer(self):
         self._tmp.write(self._rep.read(self._rep.bytesAvailable()))
 
-    def _on_finished(self):
+    def _on_finished(self) -> None:
         self._logger.debug('_on_finished')
         assert self._tmp
         assert self._rep.atEnd()
@@ -75,9 +75,7 @@ class ClientUpdater(QObject):
 
         self._tmp.close()
 
-        redirected = self._rep.attribute(
-            QNetworkRequest.RedirectionTargetAttribute,
-        )
+        redirected = self._rep.attribute(QNetworkRequest.Attribute.RedirectionTargetAttribute)
         if redirected is not None:
             self._logger.debug('redirected to {}'.format(redirected))
             os.remove(self._tmp.name)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import TYPE_CHECKING
 
 from PyQt6 import QtCore
@@ -15,6 +16,7 @@ from src.games.gamemodel import GameModel
 from src.games.mapgenoptionsdialog import MapGenDialog
 from src.model.game import Game
 from src.model.game import GameState
+from src.model.game import GameType
 from src.model.game import GameVisibility
 from src.model.playerset import Playerset
 from src.vaults.modvault.utils import getActiveMods
@@ -70,6 +72,8 @@ class GameLauncher:
                 if friends_only
                 else GameVisibility.PUBLIC
             ),
+            hosted_at=str(time.time()),
+            game_type=GameType.CUSTOM.value,
         )
 
     def host_game(self, title, main_mod, mapname=None):

@@ -7,8 +7,8 @@ from src import util
 from src.api.models.LeaderboardRating import LeaderboardRating
 from src.api.models.LeagueSeasonScore import LeagueSeasonScore
 from src.api.stats_api import LeagueSeasonScoreApiConnector
+from src.downloadManager import CachedImageDownloader
 from src.downloadManager import DownloadRequest
-from src.downloadManager import ImageDownloader
 
 FormClass, BaseClass = util.THEME.loadUiType("player_card/playerleague.ui")
 
@@ -31,7 +31,7 @@ class LeagueFormatter(FormClass, BaseClass):
         self.league_score_api = league_score_api
         self.league_score_api.score_ready.connect(self.on_league_score_ready)
 
-        self._downloader = ImageDownloader(util.DIVISIONS_CACHE_DIR, QSize(160, 80))
+        self._downloader = CachedImageDownloader(util.DIVISIONS_CACHE_DIR, QSize(160, 80))
         self._images_dl_request = DownloadRequest()
         self._images_dl_request.done.connect(self.on_image_downloaded)
 

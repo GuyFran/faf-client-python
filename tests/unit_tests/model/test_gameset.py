@@ -23,6 +23,8 @@ DEFAULT_DICT = {
     "sim_mods": {},
     "password_protected": False,
     "visibility": game.GameVisibility.PUBLIC,
+    "hosted_at": 345,
+    "game_type": "coop",
 }
 
 

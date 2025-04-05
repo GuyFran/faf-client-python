@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING
+from typing import Any
 from typing import Self
 
 from PyQt6 import QtWidgets
@@ -30,6 +31,8 @@ if TYPE_CHECKING:
     from src.client._clientwindow import ClientWindow
 
 logger = logging.getLogger(__name__)
+
+ServerMessage = dict[str, Any]
 
 FormClass, BaseClass = util.THEME.loadUiType("games/games.ui")
 
@@ -84,6 +87,7 @@ class GamesWidget(FormClass, BaseClass):
         self._game_filter_controller = GamesSortFilterController(
             self._game_filter_model,
             self.gamesShownCountLabel,
+            self.applyFilters,
             self.hideGamesWithPw,
             self.hideGamesWithMods,
             self.manageGameFiltersButton,
@@ -101,10 +105,10 @@ class GamesWidget(FormClass, BaseClass):
         self.ispassworded = False
         self.party = None
 
-        self.client.matchmaker_info.connect(self.handleMatchmakerInfo)
+        self.client.matchmaker_info.connect(self.handle_matchmaker_info)
         self.client.game_enter.connect(self.stopSearch)
         self.client.viewing_replay.connect(self.stopSearch)
-        self.client.authorized.connect(self.onAuthorized)
+        self.client.authorized.connect(self.on_authorized)
 
         self.modList.itemDoubleClicked.connect(self.hostGameClicked)
         self.teamList.itemPressed.connect(self.teamListItemClicked)
@@ -117,20 +121,17 @@ class GamesWidget(FormClass, BaseClass):
         self.searching = {"ladder1v1": False}
         self.matchmakerShortcuts = []
 
-        self.matchmakerFramesInitialized = False
-
     def refreshMods(self):
         self.apiConnector.requestData()
 
-    def onAuthorized(self, me):
+    def on_authorized(self, me: User) -> None:
         if not self.mods:
             self.refreshMods()
         if self.party is None:
             self.party = Party(me.id, PartyMember(me.id))
-        if not self.matchmakerFramesInitialized:
-            self.client.lobby_connection.send(dict(command="matchmaker_info"))
+        self.client.lobby_connection.send({"command": "matchmaker_info"})
 
-    def onLogOut(self):
+    def on_logout(self) -> None:
         self.stopSearch()
         self.party = None
         while self.matchmakerQueues.widget(0) is not None:
@@ -140,7 +141,6 @@ class GamesWidget(FormClass, BaseClass):
             shortcut.setEnabled(False)
             shortcut.deleteLater()
         self.matchmakerShortcuts.clear()
-        self.matchmakerFramesInitialized = False
 
     @pyqtSlot(dict)
     def process_mod_info(self, message: dict) -> None:
@@ -364,31 +364,14 @@ class GamesWidget(FormClass, BaseClass):
         else:
             return True
 
-    def handleMatchmakerInfo(self, message):
-        # there were cases when ladder info came earlier than the answer
-        # to client's matchmaker_info request, so probably it will need to be
-        # fully hardcoded when everything comes out, but for now just
-        # need to be sure that there are at least 2 queues in message
-        if (
-            not self.matchmakerFramesInitialized
-            and len(message.get("queues", {})) > 1
-        ):
-            logger.info("Initializing matchmaker queue frames")
-            queues = message.get("queues", {})
-            queues.sort(key=lambda queue: queue["team_size"])
-            for index, queue in enumerate(queues):
-                self.matchmakerQueues.insertTab(
-                    index,
-                    MatchmakerQueue(
-                        self, self.client,
-                        queue["queue_name"], queue["team_size"],
-                    ),
-                    "&{teamSize} vs {teamSize}".format(
-                        teamSize=queue["team_size"],
-                    ),
-                )
-            for index in range(self.matchmakerQueues.tabBar().count()):
-                self.matchmakerQueues.tabBar().setTabTextColor(
-                    index, QColor("silver"),
-                )
-            self.matchmakerFramesInitialized = True
+    def handle_matchmaker_info(self, message: ServerMessage) -> None:
+        for queue in message.get("queues", {}):
+            insert_to = queue["team_size"] - 1
+            existing_queue = self.matchmakerQueues.widget(insert_to)
+            if existing_queue is None or existing_queue.teamSize != queue["team_size"]:
+                logger.info(f"Adding matchmaker queue {queue['queue_name']}...")
+                mqueue = MatchmakerQueue(self, self.client, queue["queue_name"], queue["team_size"])
+                mqueue.handleQueueInfo(message)
+                tab_name = "&{teamSize} vs {teamSize}".format(teamSize=queue["team_size"])
+                self.matchmakerQueues.insertTab(insert_to, mqueue, tab_name)
+                self.matchmakerQueues.tabBar().setTabTextColor(insert_to, QColor("silver"))

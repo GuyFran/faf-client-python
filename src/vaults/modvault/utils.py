@@ -442,13 +442,17 @@ def downloadMod(link: str, name: str) -> bool:
         removeMod(oldmod)
         return True
 
-    return downloadVaultAsset(link, MODFOLDER, handle_exist, name, "mod", silent=False)
+    if downloadVaultAsset(link, MODFOLDER, handle_exist, name, "mod", silent=False):
+        mod = getModInfoFromFolder(name)
+        installedMods.append(mod)
+        return True
+    return False
 
 
 def removeMod(mod):
     logger.debug("removing mod {}".format(mod.name))
     real = None
-    for m in getInstalledMods():
+    for m in installedMods:
         if m.uid == mod.uid:
             real = m
             break

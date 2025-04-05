@@ -11,6 +11,7 @@ from src.games.gamemodel import GameModel
 from src.games.moditem import mod_invisible
 from src.model.game import Game
 from src.model.game import GameState
+from src.model.game import GameType
 
 
 class GameSortModel(QSortFilterProxyModel):
@@ -89,7 +90,7 @@ class GameSortModel(QSortFilterProxyModel):
 
     def total_games(self) -> int:
         return sum(
-            game.state == GameState.OPEN and game.featured_mod != "coop"
+            game.state == GameState.OPEN and game.game_type == GameType.CUSTOM
             for game in self.sourceModel().games()
         )
 
@@ -97,24 +98,36 @@ class GameSortModel(QSortFilterProxyModel):
 class CustomGameFilterModel(GameSortModel):
     def __init__(self, relations: UserRelations, model: GameModel) -> None:
         GameSortModel.__init__(self, relations, model)
+        self._apply_custom_filters = False
         self._hide_private_games = False
         self._hide_modded_games = False
         self.filter_manager = GameFilterManager()
 
     def filter_accepts_game(self, game: Game) -> bool:
-        if game.state != GameState.OPEN:
+        if (
+            game.state != GameState.OPEN
+            or game.game_type != GameType.CUSTOM
+            or (self.hide_private_games and game.password_protected)
+            or (self.hide_modded_games and game.sim_mods)
+            or game.featured_mod in mod_invisible
+        ):
             return False
-        if game.featured_mod in mod_invisible or game.featured_mod == "coop":
-            return False
-        if self.hide_private_games and game.password_protected:
-            return False
-        if self.hide_modded_games and game.sim_mods:
-            return False
-        for game_filter in self.filter_manager.filters:
-            if game_filter.rejects(game):
-                return False
+
+        if self.apply_custom_filters:
+            for game_filter in self.filter_manager.filters:
+                if game_filter.rejects(game):
+                    return False
 
         return True
+
+    @property
+    def apply_custom_filters(self) -> bool:
+        return self._apply_custom_filters
+
+    @apply_custom_filters.setter
+    def apply_custom_filters(self, value: bool) -> None:
+        self._apply_custom_filters = value
+        self.invalidateFilter()
 
     @property
     def hide_private_games(self):

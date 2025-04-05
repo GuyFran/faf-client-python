@@ -1,5 +1,6 @@
 import html
 import os
+from datetime import timedelta
 
 import jinja2
 from PyQt6 import QtCore
@@ -8,6 +9,11 @@ from PyQt6 import QtWidgets
 
 from src import util
 from src.fa import maps
+from src.fa.maps_.preview import create_largest_preview
+from src.fa.maps_.previewdialog import MapPreviewDialog
+from src.games.gamemodelitem import GameModelItem
+from src.mapGenerator.mapgenManager import MapGeneratorManager
+from src.model.game import Game
 from src.qt.itemviews.styleditemdelegate import StyledItemDelegate
 
 
@@ -27,7 +33,9 @@ class GameView(QtCore.QObject):
         self._view.setModel(self._model)
         self._view.setItemDelegate(self._delegate)
         self._view.doubleClicked.connect(self._game_double_clicked)
+        self._view.pressed.connect(self._game_clicked)
         self._view.viewport().installEventFilter(self._delegate.tooltip_filter)
+        self._mapgen_manager = MapGeneratorManager()
 
     # TODO make it a utility function?
     def _model_items(self):
@@ -37,6 +45,52 @@ class GameView(QtCore.QObject):
 
     def _game_double_clicked(self, idx):
         self.game_double_clicked.emit(idx.data().game)
+
+    def _game_clicked(self, index: QtCore.QModelIndex) -> None:
+        if QtWidgets.QApplication.mouseButtons() & QtCore.Qt.MouseButton.RightButton:
+            self._game_context_menu(index)
+            return
+
+        item_rect = self._view.rectForIndex(index)
+        delegate = self._view.itemDelegateForIndex(index)
+        local_pos = self._view.mapFromGlobal(QtGui.QCursor.pos())
+        icon_clicked = local_pos.x() - item_rect.x() < delegate.ICON_SIZE
+        if icon_clicked:
+            gamemodelitem = index.data(QtCore.Qt.ItemDataRole.DisplayRole)
+            self._show_map_preview(gamemodelitem.game.mapname)
+
+    def _game_context_menu(self, index: QtCore.QModelIndex) -> None:
+        gamemodelitem = index.data()
+        if gamemodelitem is None or gamemodelitem.game.host == gamemodelitem._me.player.login:
+            return
+
+        mapname = gamemodelitem.game.mapname
+
+        menu = QtWidgets.QMenu(self._view)
+        menu.addAction("Join game", lambda: self.game_double_clicked.emit(gamemodelitem.game))
+        menu.addSeparator()
+        menu.addAction("Preview map", lambda: self._get_map_and_show_preview(mapname))
+        menu.popup(QtGui.QCursor.pos())
+
+    def _get_map_and_show_preview(self, mapname: str) -> None:
+        if not maps.isMapAvailable(mapname):
+            self._download_map(mapname)
+        self._show_map_preview(mapname)
+
+    def _download_map(self, mapname: str) -> None:
+        if maps.isGeneratedMap(mapname):
+            self._mapgen_manager.generateMap(mapname)
+        else:
+            maps.downloadMap(mapname)
+
+    def _show_map_preview(self, mapname: str) -> None:
+        if (mapfolder := maps.folderForMap(mapname)) is None:
+            return
+
+        pixmap = create_largest_preview(self._view.screen(), mapfolder)
+        preview_dialog = MapPreviewDialog(pixmap)
+        preview_dialog.exec()
+        preview_dialog.deleteLater()
 
 
 class GameItemDelegate(StyledItemDelegate):
@@ -155,7 +209,7 @@ class GameTooltipFilter(QtCore.QObject):
 
 
 class GameItemFormatter:
-    FORMATTER_FAF = str(util.THEME.readfile("games/formatters/faf.qthtml"))
+    FORMATTER_FAF = str(util.THEME.readfile("games/formatters/faf.html"))
     FORMATTER_MOD = str(util.THEME.readfile("games/formatters/mod.qthtml"))
 
     def __init__(self, playercolors, me):
@@ -170,7 +224,12 @@ class GameItemFormatter:
         hostid = game.host_player.id if game.host_player is not None else -1
         return self._colors.get_user_color(hostid)
 
-    def text(self, data):
+    def _age(self, game: Game) -> timedelta:
+        hosted = QtCore.QDateTime.fromString(game.hosted_at, QtCore.Qt.DateFormat.ISODate)
+        delta = hosted.secsTo(QtCore.QDateTime.currentDateTime())
+        return timedelta(seconds=delta)
+
+    def text(self, data: GameModelItem) -> str:
         game = data.game
         players = game.num_players - len(game.observers)
         formatting = {
@@ -182,6 +241,15 @@ class GameItemFormatter:
             "players": players,
             "playerstring": "player" if players == 1 else "players",
             "avgrating": int(game.average_rating),
+            # HACK/FIXME: we don't use separate timer to update items periodically, because
+            # gameswidget has automatch frames, each of which has timer to update its 'Matching In'
+            # label and label updates trigger repaint for all of the items in the gameList listview.
+            # This weird coupling could be eliminated if labels' layout size constraint were fixed,
+            # but it implies reworking even more of the games.ui and would require new timer.
+            # It can happen when/if ladder will eventually get its own tab as suggested in
+            # https://github.com/FAForever/client/issues/754#issuecomment-308861910
+            # but for now we will exploit this
+            "age": self._age(game),
         }
         if self._featured_mod(game):
             return self.FORMATTER_FAF.format(**formatting)

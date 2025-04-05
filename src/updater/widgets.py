@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QLayout
 
 from src import util
 from src.decorators import with_logger
+from src.qt.utils import block_signals
 from src.updater.base import ReleaseType
 from src.updater.base import UpdateChannel
 from src.updater.process import ClientUpdater
@@ -61,17 +62,16 @@ class UpdateDialog(FormClass, BaseClass):
             ReleaseType.UNSTABLE: 'Unstable',
         }
 
-        self.cbReleases.blockSignals(True)
-        self.cbReleases.clear()
-        for rel in versions:
-            new = ' [New!]' if rel.version > self._current_version else ''
-            name = '{} {}{}'.format(labels[rel.branch], rel.version, new)
-            self.cbReleases.addItem(name, rel)
-        preferred_idx = self.cbReleases.findData(newest_version)
-        if preferred_idx != -1:
-            self.cbReleases.setCurrentIndex(preferred_idx)
-            self.indexChanged(preferred_idx)
-        self.cbReleases.blockSignals(False)
+        with block_signals(self.cbReleases):
+            self.cbReleases.clear()
+            for rel in versions:
+                new = ' [New!]' if rel.version > self._current_version else ''
+                name = '{} {}{}'.format(labels[rel.branch], rel.version, new)
+                self.cbReleases.addItem(name, rel)
+            preferred_idx = self.cbReleases.findData(newest_version)
+            if preferred_idx != -1:
+                self.cbReleases.setCurrentIndex(preferred_idx)
+                self.indexChanged(preferred_idx)
 
         if len(versions) > 0:
             self.btnStart.setEnabled(True)

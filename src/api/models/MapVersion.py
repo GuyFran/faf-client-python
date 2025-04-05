@@ -47,3 +47,7 @@ class MapVersion(AbstractEntity):
     @property
     def size(self) -> MapSize:
         return MapSize(self.height, self.width)
+
+    @property
+    def thumbnail_url(self) -> str:
+        return self.thumbnail_url_small

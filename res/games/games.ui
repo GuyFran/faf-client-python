@@ -403,6 +403,13 @@
           </widget>
          </item>
          <item>
+          <widget class="QCheckBox" name="applyFilters">
+           <property name="text">
+            <string>Apply Filters</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QPushButton" name="manageGameFiltersButton">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">

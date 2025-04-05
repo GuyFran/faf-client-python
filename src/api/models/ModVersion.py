@@ -18,3 +18,7 @@ class ModVersion(AbstractEntity):
     @property
     def modtype(self) -> ModType:
         return ModType.from_string(self.typ)
+
+    @property
+    def thumbnail_url_large(self) -> str:
+        return self.thumbnail_url

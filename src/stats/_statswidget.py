@@ -7,6 +7,7 @@ from PyQt6 import QtWidgets
 from src import util
 from src.api.models.Leaderboard import Leaderboard
 from src.api.stats_api import LeaderboardApiConnector
+from src.qt.utils import block_signals
 from src.ui.busy_widget import BusyWidget
 
 from .leaderboard_widget import LeaderboardWidget
@@ -71,12 +72,11 @@ class StatsWidget(BaseClass, FormClass, BusyWidget):
             self.refreshLeaderboards()
 
     def refreshLeaderboards(self):
-        self.leaderboards.blockSignals(True)
-        while self.leaderboards.widget(0) is not None:
-            self.leaderboards.widget(0).deleteLater()
-            self.leaderboards.removeTab(0)
-        self.apiConnector.requestData(dict(sort="id"))
-        self.leaderboards.blockSignals(False)
+        with block_signals(self.leaderboards):
+            while self.leaderboards.widget(0) is not None:
+                self.leaderboards.widget(0).deleteLater()
+                self.leaderboards.removeTab(0)
+            self.apiConnector.requestData(dict(sort="id"))
 
     def load_stylesheet(self):
         self.setStyleSheet(

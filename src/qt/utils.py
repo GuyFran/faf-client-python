@@ -3,7 +3,9 @@ from contextlib import contextmanager
 from typing import Generator
 
 from PyQt6.QtCore import QFile
+from PyQt6.QtCore import QObject
 from PyQt6.QtGui import QPainter
+from PyQt6.QtWidgets import QWidget
 
 
 def monkeypatch_method(obj, name, fn):
@@ -31,3 +33,20 @@ def qpainter(painter: QPainter) -> Generator[QPainter, None, None]:
         yield painter
     finally:
         painter.restore()
+
+
+@contextmanager
+def block_signals(obj: QObject, /) -> Generator[QObject, None, None]:
+    try:
+        obj.blockSignals(True)
+        yield obj
+    finally:
+        obj.blockSignals(False)
+
+
+def center_widget_on_screen(widget: QWidget) -> None:
+    rect = widget.rect()
+    screen = widget.screen()
+    assert screen is not None
+    rect.moveCenter(screen.availableGeometry().center())
+    widget.move(rect.topLeft())

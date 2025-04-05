@@ -23,6 +23,7 @@ from src.downloadManager import DownloadRequest
 from src.fa.replay import replay
 from src.model.game import GameState
 from src.replays.models import MetadataModel
+from src.replays.replaydetails.replaycard import ReplayDetailsCard
 from src.replays.replayitem import ReplayItem
 from src.replays.replayitem import ReplayItemDelegate
 from src.replays.replayToolbox import ReplayToolboxHandler
@@ -65,12 +66,10 @@ class LiveReplayItem(QtWidgets.QTreeWidgetItem):
     def _show_item(self):
         self.setHidden(False)
 
-    def _map_preview_downloaded(self, mapname, result):
-        if mapname != self._game.mapname:
+    def _map_preview_downloaded(self, preview_file: str, pixmap: QtGui.QPixmap) -> None:
+        if util.pretty_decoded_basename(preview_file) != self._game.mapname:
             return
-        path, is_local = result
-        icon = util.THEME.icon(path, is_local)
-        self.setIcon(0, icon)
+        self.setIcon(0, QtGui.QIcon(pixmap))
 
     def _update_game(self, game):
         if game.state == GameState.CLOSED:
@@ -665,7 +664,7 @@ class ReplayVaultWidgetHandler(object):
 
         self.showLatest = True
         self.searching = False
-        self.searchInfo = "<font color='gold'><b>Searching...</b></font>"
+        self.searchInfo = "Searching..."
         self.defaultSearchParams = {
             "page[number]": 1,
             "page[size]": 100,
@@ -700,9 +699,19 @@ class ReplayVaultWidgetHandler(object):
         _w.automaticCheckbox.setChecked(self.automatic)
         _w.spoilerCheckbox.setChecked(self.spoiler_free)
         _w.hideUnrCheckbox.setChecked(self.hide_unranked)
+        _w.detailsButton.clicked.connect(self.show_replay_details)
+        _w.detailsButton.setVisible(False)
 
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.stopSearchVault)
+
+    def show_replay_details(self) -> None:
+        item = self._w.onlineTree.currentItem()
+        if item is not None and hasattr(item, "url"):
+            replay_details = ReplayDetailsCard()
+            replay_details.download_by_url(QtCore.QUrl(item.url))
+            replay_details.exec()
+            replay_details.deleteLater()
 
     def on_authorized(self) -> None:
         if self._w.leaderboardList.count() == 1:
@@ -804,7 +813,7 @@ class ReplayVaultWidgetHandler(object):
         if filters:
             parameters["filter"] = filters
 
-        self.apiConnector.requestData(parameters)
+        self.apiConnector.requestData(parameters, self.on_api_request_error)
         self.timer.start(90000)
 
     def prepareFilters(
@@ -891,6 +900,7 @@ class ReplayVaultWidgetHandler(object):
             scoreboard = layout_item.widget()
             scoreboard.setParent(None)
             self._w.replayScoreLayout.removeWidget(scoreboard)
+            self._w.detailsButton.setVisible(False)
             scoreboard.deleteLater()
 
     def adjust_scoreboard_size(self, width: int, height: int) -> None:
@@ -902,6 +912,9 @@ class ReplayVaultWidgetHandler(object):
         scoreboard = item.generate_scoreboard()
         self._w.replayScoreLayout.addWidget(scoreboard)
         self.adjust_scoreboard_size(scoreboard.width(), scoreboard.height())
+        game_finished = hasattr(item, "duration") and "playing" not in item.duration
+        available = item.game and item.game.replay_available
+        self._w.detailsButton.setVisible(game_finished and available)
 
     def online_tree_clicked(self, item: ReplayItem | QTreeWidgetItem) -> None:
         if not isinstance(item, ReplayItem):
@@ -1029,6 +1042,10 @@ class ReplayVaultWidgetHandler(object):
             faf_replay.close()
             replay(os.path.join(util.CACHE_DIR, "temp.fafreplay"))
 
+    def on_api_request_error(self, reply: QNetworkReply) -> None:
+        self.stopSearchVault()
+        self._w.searchInfoLabel.setText(reply.errorString())
+
     def process_replays_data(self, message: dict) -> None:
         self.stopSearchVault()
         self.clear_scoreboard()
@@ -1042,12 +1059,8 @@ class ReplayVaultWidgetHandler(object):
         self.update_online_tree()
 
         if len(message["data"]) == 0:
-            self._w.searchInfoLabel.setText(
-                "<font color='gold'><b>No replays found</b></font>",
-            )
-            self._w.advSearchInfoLabel.setText(
-                "<font color='gold'><b>No replays found</b></font>",
-            )
+            self._w.searchInfoLabel.setText("No replays found")
+            self._w.advSearchInfoLabel.setText("No replays found")
 
     def process_leaderboards(self, message: dict[str, list[Leaderboard]]) -> None:
         for leaderboard in message["values"]:
@@ -1078,7 +1091,7 @@ class ReplayVaultWidgetHandler(object):
             for replay_item in buckets[bucket]:
                 bucket_item.addChild(replay_item)
                 replay_item.setFirstColumnSpanned(True)
-                replay_item.setIcon(0, replay_item.icon)
+                replay_item.setIcon(0, replay_item.thumbnail)
 
             bucket_item.setExpanded(True)
 

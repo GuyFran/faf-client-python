@@ -1,5 +1,4 @@
 import os
-import sys
 
 from PyQt6.QtCore import QProcess
 from PyQt6.QtCore import QProcessEnvironment
@@ -23,14 +22,10 @@ class IceAdapterProcess(object):
         self._rpc_server_port = s.serverPort()
         s.close()
 
-        if sys.platform == 'win32':
-            exe_path = fafpath.get_java_path()
-            args = [
-                "-jar", os.path.join(fafpath.get_libdir(), "ice-adapter", "faf-ice-adapter.jar"),
-            ]
-        else:  # Expect it to be in PATH already
-            exe_path = "faf-ice-adapter"
-            args = []
+        exe_path = fafpath.get_java_path()
+        args = [
+            "-jar", os.path.join(fafpath.get_libdir(), "ice-adapter", "faf-ice-adapter.jar"),
+        ]
         show_adapter_window = Settings.get(
             "iceadapter/info_window", default=False, type=bool,
         )

@@ -22,6 +22,8 @@ DEFAULT_DICT = {
     "sim_mods": {},
     "password_protected": False,
     "visibility": game.GameVisibility.PUBLIC,
+    "hosted_at": 123,
+    "game_type": "custom",
 }
 
 

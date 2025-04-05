@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 from datetime import datetime
 from datetime import timezone
+from typing import TYPE_CHECKING
 
 from PyQt6 import QtCore
 from PyQt6 import QtGui
@@ -10,11 +11,15 @@ from PyQt6 import QtWidgets
 from PyQt6.QtGui import QAction
 
 from src import util
+from src.api.models.Game import Game
 from src.config import Settings
 from src.downloadManager import DownloadRequest
 from src.fa import maps
 from src.games.moditem import mods
 from src.replays.scoreboard import Scoreboard
+
+if TYPE_CHECKING:
+    from src.client._clientwindow import ClientWindow
 
 
 class ReplayItemDelegate(QtWidgets.QStyledItemDelegate):
@@ -89,7 +94,7 @@ class ReplayItemDelegate(QtWidgets.QStyledItemDelegate):
 
 
 class ReplayItem(QtWidgets.QTreeWidgetItem):
-    REPLAY_TREE_ITEM_FORMATTER = str(util.THEME.readfile("replays/formatters/replay.qthtml"))
+    REPLAY_TREE_ITEM_FORMATTER = str(util.THEME.readfile("replays/formatters/replay.html"))
 
     def __init__(self, uid, parent, *args, **kwargs):
         QtWidgets.QTreeWidgetItem.__init__(self, *args, **kwargs)
@@ -101,6 +106,7 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
         self.mapname = None
         self.mapdisplayname = None
         self.client = None
+        self.game = None
 
         self.startDate = None
         self.duration = None
@@ -125,8 +131,9 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
         self._map_dl_request = DownloadRequest()
         self._map_dl_request.done.connect(self._on_map_preview_downloaded)
 
-    def update(self, replay, client):
+    def update(self, replay: dict, client: ClientWindow) -> None:
         """ Updates this item from the message dictionary supplied """
+        self.game = Game(**replay)
         self.replay = replay
 
         self.client = client
@@ -136,6 +143,8 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
             self.mapid = replay["mapVersion"]["id"]
             self.mapname = replay["mapVersion"]["folderName"]
             self.previewUrlLarge = replay["mapVersion"]["thumbnailUrlLarge"]
+        elif replay["featuredMod"]["technicalName"].lower() != "coop":
+            self.mapname = "Neroxis Map Generator"
         else:
             self.mapname = "unknown"
 
@@ -183,9 +192,12 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
         # Map preview code
         self.mapdisplayname = maps.getDisplayName(self.mapname)
 
-        self.icon = maps.preview(self.mapname)
-        if not self.icon:
-            self.icon = util.THEME.icon("games/unknown_map.png")
+        if self.mapname == "Neroxis Map Generator":
+            self.thumbnail = maps.get_preview_for_generated_map(self.mapname)
+        else:
+            self.thumbnail = maps.preview(self.mapname)
+        if not self.thumbnail:
+            self.thumbnail = util.THEME.icon("games/unknown_map.png")
             if self.mapname != "unknown":
                 self.client.map_preview_downloader.download_preview(
                     self.mapname, self._map_dl_request,
@@ -196,15 +208,15 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
         else:
             self.moddisplayname = self.mod
 
+        availability = "" if self.game.replay_available else "ⓘ Unavailable"
         self.viewtext = self.REPLAY_TREE_ITEM_FORMATTER.format(
             time=self.startHour, name=self.name, map=self.mapdisplayname,
-            duration=self.duration, mod=self.moddisplayname,
+            duration=self.duration, mod=self.moddisplayname, availability=availability,
         )
 
-    def _on_map_preview_downloaded(self, mapname, result):
-        path, is_local = result
-        self.icon = util.THEME.icon(path, is_local)
-        self.setIcon(0, self.icon)
+    def _on_map_preview_downloaded(self, mapname: str, pixmap: QtGui.QPixmap) -> None:
+        self.thumbnail = QtGui.QIcon(pixmap)
+        self.setIcon(0, self.thumbnail)
 
     def load_extra_info(self) -> None:
         """
@@ -272,10 +284,11 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
             self.load_extra_info()
         self.spoiled = not self.parent.spoilerCheckbox.isChecked()
         assert self.client is not None
+        assert self.game is not None
         scoreboard = Scoreboard(
             self.mod, self.winner, self.spoiled,
             self.duration, self.teamWin, self.uid, self.teams,
-            self.client.player_ctx_menu,
+            self.client.player_ctx_menu, self.game,
         )
         scoreboard.setup()
         return scoreboard

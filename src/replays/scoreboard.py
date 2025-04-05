@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import QListView
 from PyQt6.QtWidgets import QVBoxLayout
 from PyQt6.QtWidgets import QWidget
 
+from src.api.models.Game import Game
 from src.contextmenu.playercontextmenu import PlayerContextMenu
 from src.replays.models import ScoreboardModel
 from src.replays.models import ScoreboardModelItem
@@ -29,6 +30,7 @@ class GameResult(Enum):
 class Scoreboard(QWidget):
     GAME_RESULT_RESERVED_HEIGHT = 30
     TITLE_RESERVED_HEIGHT = 30
+    VALIDITY_RESERVED_HEIGHT = 20
 
     def __init__(
             self,
@@ -40,6 +42,7 @@ class Scoreboard(QWidget):
             uid: str,
             teams: dict,
             player_menu_handler: PlayerContextMenu,
+            game: Game,
     ) -> None:
         super().__init__()
         self.winner = winner
@@ -51,6 +54,7 @@ class Scoreboard(QWidget):
         self.num_teams = len(self.teams)
         self.biggest_team = max(len(team) for team in self.teams.values()) if self.teams else 0
         self.player_menu_handler = player_menu_handler
+        self.game = game
 
         self.main_layout = QVBoxLayout()
         if self.num_teams == 2:
@@ -136,7 +140,7 @@ class Scoreboard(QWidget):
         # there must be a way to dissect all of the layouts and widgets
         # with all of their paddings, spacings, margins etc. to determine
         # scoreboard's precise height, but this works good enough
-        magic = 40
+        magic = 50
         if len(self.teams) == 2:
             return self._height + max(self._team_heights) + magic
         return sum((self._height, *self._team_heights, magic))
@@ -216,8 +220,28 @@ class Scoreboard(QWidget):
     def add_vs_label(self) -> None:
         self.teams_layout.addWidget(self.create_vs_label())
 
+    def add_validity(self) -> None:
+        layout = QHBoxLayout()
+
+        victory_condition = QLabel(f"{self.game.victory_condition}")
+        victory_condition.setProperty("replay_misc_info", "true")
+        victory_condition.setToolTip("Victory Condition")
+
+        validity = QLabel(f"{self.game.validity}")
+        validity.setProperty("replay_misc_info", "true")
+        validity.setToolTip("Validity")
+
+        layout.addStretch()
+        layout.addWidget(victory_condition)
+        layout.addWidget(validity)
+        layout.addStretch()
+
+        self.main_layout.addLayout(layout)
+        self._height += self.VALIDITY_RESERVED_HEIGHT
+
     def setup(self) -> None:
         self.add_title_label()
+        self.add_validity()
 
         if self.num_teams == 1:
             self.one_team_layout()

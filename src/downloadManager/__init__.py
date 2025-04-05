@@ -21,6 +21,8 @@ from PyQt6.QtNetwork import QNetworkRequest
 
 from src.config import Settings
 from src.util import AVATARS_CACHE_DIR
+from src.util import MAP_PREVIEW_LARGE_DIR
+from src.util import MAP_PREVIEW_SMALL_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -365,28 +367,6 @@ class Downloader(QObject):
             req.finished(download.name, (download_path, download.failed()))
 
 
-class MapPreviewDownloader(Downloader):
-    def __init__(self, target_dir: str, size: str) -> None:
-        super().__init__(target_dir)
-        self.size = size
-
-    def download_preview(self, name: str, req: DownloadRequest) -> None:
-        self._add_request(f"{name}.png", req, self._target_url(name))
-
-    def _target_url(self, name: str) -> str:
-        return Settings.get("vault/map_preview_url").format(size=self.size, name=name)
-
-
-class MapSmallPreviewDownloader(MapPreviewDownloader):
-    def __init__(self, target_dir: str) -> None:
-        super().__init__(target_dir, "small")
-
-
-class MapLargePreviewDownloader(MapPreviewDownloader):
-    def __init__(self, target_dir: str) -> None:
-        super().__init__(target_dir, "large")
-
-
 class DownloadTimeouts:
     def __init__(self, timeout_interval, fail_count_to_timeout):
         self._fail_count_to_timeout = fail_count_to_timeout
@@ -418,34 +398,24 @@ class DownloadTimeouts:
 
 
 class ImageDownloader:
-    def __init__(self, cache_dir: str = AVATARS_CACHE_DIR, size: QSize | None = None) -> None:
+    def __init__(self, save_dir: str = AVATARS_CACHE_DIR, size: QSize | None = None) -> None:
         self._size = size
         self._nam = QNetworkAccessManager()
         self._requests = {}
-        self.images = {}
         self._nam.finished.connect(self._image_download_finished)
-        self.cache_dir = cache_dir
-        self.load_cache()
+        self.save_dir = save_dir
 
-    def load_cache(self) -> None:
-        for filename in os.listdir(self.cache_dir):
-            filepath = os.path.join(self.cache_dir, filename)
-            pix = QPixmap(filepath)
-            self.images[filename] = pix if self._size is None else pix.scaled(self._size)
+    def image_path(self, url: QUrl | str) -> str:
+        return os.path.join(self.save_dir, self.image_name(url))
+
+    def image_exists(self, url: QUrl | str) -> bool:
+        return os.path.isfile(self.image_path(url))
+
+    def set_save_dir(self, save_dir: str) -> None:
+        self.save_dir = save_dir
 
     def image_name(self, url: QUrl | str) -> str:
         return QUrl(url).fileName(QUrl.ComponentFormattingOption.EncodeSpaces)
-
-    def has_image(self, name_or_url: QUrl | str) -> bool:
-        return self.get_image(name_or_url) is not None
-
-    def get_image(self, name_or_url: QUrl | str) -> QPixmap | None:
-        return self.images.get(self.image_name(name_or_url))
-
-    def download_if_needed(self, url: str | None, req: DownloadRequest) -> None:
-        if url is None or self.has_image(url):
-            return
-        self.download_image(url, req)
 
     def download_image(self, url: str, req: DownloadRequest) -> None:
         self._add_request(url, req)
@@ -461,15 +431,12 @@ class ImageDownloader:
         avatar_name = self.image_name(reply.url())
         avatar_path = self._save_image_to_cache(avatar_name, reply.readAll())
 
-        if avatar_name not in self.images:
-            self.images[avatar_name] = QPixmap(avatar_path)
-
         reqs = self._requests.pop(url_str, [])
         for req in reqs:
-            req.finished(url_str, self.images[avatar_name])
+            req.finished(url_str, QPixmap(avatar_path))
 
     def _save_image_to_cache(self, name: str, qbytes: QByteArray) -> str:
-        filepath = os.path.join(self.cache_dir, name)
+        filepath = os.path.join(self.save_dir, name)
         pixmap = QPixmap()
         pixmap.loadFromData(qbytes)
         if self._size is not None:
@@ -477,3 +444,55 @@ class ImageDownloader:
         else:
             pixmap.save(filepath)
         return filepath
+
+
+class CachedImageDownloader(ImageDownloader):
+    def __init__(self, save_dir: str = AVATARS_CACHE_DIR, size: QSize | None = None) -> None:
+        ImageDownloader.__init__(self, save_dir, size)
+        self.images = {}
+        self.load_cache()
+
+    def load_cache(self) -> None:
+        for filename in os.listdir(self.save_dir):
+            filepath = os.path.join(self.save_dir, filename)
+            pix = QPixmap(filepath)
+            self.images[filename] = pix if self._size is None else pix.scaled(self._size)
+
+    def has_image(self, name_or_url: QUrl | str) -> bool:
+        return self.get_image(name_or_url) is not None
+
+    def get_image(self, name_or_url: QUrl | str) -> QPixmap | None:
+        return self.images.get(self.image_name(name_or_url))
+
+    def download_if_needed(self, url: str | None, req: DownloadRequest) -> None:
+        if url is None or self.has_image(url):
+            return
+        self.download_image(url, req)
+
+    def _save_image_to_cache(self, name: str, qbytes: QByteArray) -> str:
+        filepath = ImageDownloader._save_image_to_cache(self, name, qbytes)
+        if name not in self.images:
+            self.images[name] = QPixmap(filepath)
+        return filepath
+
+
+class MapPreviewDownloader(ImageDownloader):
+    def __init__(self, target_dir: str, size_str: str, size: QSize | None = None) -> None:
+        super().__init__(target_dir, size)
+        self.size_str = size_str
+
+    def download_preview(self, name: str, req: DownloadRequest) -> None:
+        self._add_request(self._target_url(name), req)
+
+    def _target_url(self, name: str) -> str:
+        return Settings.get("vault/map_preview_url").format(size=self.size_str, name=name)
+
+
+class MapSmallPreviewDownloader(MapPreviewDownloader):
+    def __init__(self) -> None:
+        super().__init__(MAP_PREVIEW_SMALL_DIR, "small")
+
+
+class MapLargePreviewDownloader(MapPreviewDownloader):
+    def __init__(self) -> None:
+        super().__init__(MAP_PREVIEW_LARGE_DIR, "large")

@@ -44,7 +44,7 @@ from src.client.user import UserRelationTrackers
 from src.connectivity.ConnectivityDialog import ConnectivityDialog
 from src.contextmenu.playercontextmenu import PlayerContextMenu
 from src.coop import CoopWidget
-from src.downloadManager import ImageDownloader
+from src.downloadManager import CachedImageDownloader
 from src.downloadManager import MapSmallPreviewDownloader
 from src.fa.factions import Factions
 from src.fa.game_runner import GameRunner
@@ -237,8 +237,8 @@ class ClientWindow(FormClass, BaseClass):
             relation_model, relation_controller, relation_trackers,
         )
 
-        self.map_preview_downloader = MapSmallPreviewDownloader(util.MAP_PREVIEW_SMALL_DIR)
-        self.avatar_downloader = ImageDownloader()
+        self.map_preview_downloader = MapSmallPreviewDownloader()
+        self.avatar_downloader = CachedImageDownloader()
 
         # Map generator
         self.map_generator = MapGeneratorManager()
@@ -903,14 +903,14 @@ class ClientWindow(FormClass, BaseClass):
         self.lobby_reconnector.enabled = True
         self.try_to_auto_login()
 
-    def disconnect_(self):
+    def disconnect_(self) -> None:
         if self.state != ClientState.DISCONNECTED:
             # Used when the user explicitly demanded to stay offline.
             self._auto_relogin = self.remember
             self.lobby_reconnector.enabled = False
             self.lobby_connection.disconnect_()
             self._chatMVC.connection.disconnect_()
-            self.games.onLogOut()
+            self.games.on_logout()
             self.oauth_flow.stop_checking_expiration()
             config.Settings.set("oauth/token", None, persist=False)
 
