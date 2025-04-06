@@ -74,7 +74,7 @@ build_exe_options = {
     "excludes": ["tkinter", "unittest", "tcl"],
 
     "zip_include_packages": ["*"],
-    "zip_exclude_packages": [],
+    "zip_exclude_packages": ["pyqtgraph"],
 
     "build_exe": "build/faf_python_client",
 }
