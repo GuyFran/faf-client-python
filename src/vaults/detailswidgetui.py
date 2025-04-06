@@ -71,7 +71,7 @@ class DetailsWidgetUI:
         content_layout.addWidget(self.thumbnailLabel, 0, 0, 3, 1)
 
         author_box = QGroupBox("Author")
-        self.authorLayout = QVBoxLayout()
+        self.authorLayout = QFormLayout()
 
         author_box.setLayout(self.authorLayout)
         content_layout.addWidget(author_box, 0, 1)

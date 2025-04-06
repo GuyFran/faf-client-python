@@ -26,12 +26,12 @@ class ModDetailsWidget(DetailsWidget):
     def set_author(self) -> None:
         if self.item_data.author:
             author_label = QLabel(f"{self.item_data.author}")
-            self.ui.authorLayout.addWidget(author_label)
+            self.ui.authorLayout.addRow(QLabel("Author:"), author_label)
         else:
             self.ui.authorLayout.addWidget(QLabel("Unknown Author"))
         if self.item_data.uploader:
             uploader_label = QLabel(f"{self.item_data.uploader.login}")
-            self.ui.authorLayout.addWidget(uploader_label)
+            self.ui.authorLayout.addRow(QLabel("Uploader:"), uploader_label)
 
     def set_type(self) -> None:
         self.ui.typeLabel.setText(f"Type: {self.item_version.typ}")

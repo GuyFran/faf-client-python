@@ -96,8 +96,8 @@ class DetailsWidget(QWidget):
         return [
             (f"{name} created", util.utctolocal(self.item_data.create_time)),
             (f"{name} updated", util.utctolocal(self.item_data.update_time)),
-            (f"{name}Version created", util.utctolocal(self.item_version.create_time)),
-            (f"{name}Version updated", util.utctolocal(self.item_version.update_time)),
+            ("Version created", util.utctolocal(self.item_version.create_time)),
+            ("Version updated", util.utctolocal(self.item_version.update_time)),
         ]
 
     def set_type(self) -> None:

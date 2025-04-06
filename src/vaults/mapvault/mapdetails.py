@@ -41,7 +41,7 @@ class MapDetailsWidget(DetailsWidget):
     def set_author(self) -> None:
         if self.item_data.author:
             author_label = QLabel(f"{self.item_data.author.login}")
-            self.ui.authorLayout.addWidget(author_label)
+            self.ui.authorLayout.addRow(QLabel("Author:"), author_label)
         else:
             self.ui.authorLayout.addWidget(QLabel("Unknown Author"))
 
@@ -71,7 +71,8 @@ class MapDetailsWidget(DetailsWidget):
             ("Height", str(self.item_version.size.height_km)),
             ("Max Players", str(self.item_version.max_players)),
             ("Version", str(self.item_version.version)),
-            ("Games Played", str(self.item_version.games_played)),
+            ("Version Games Played", str(self.item_version.games_played)),
+            ("Map Games Played", str(self.item_data.games_played)),
             ("Ranked", "Yes" if self.item_version.ranked else "No"),
             ("Hidden", "Yes" if self.item_version.hidden else "No"),
             ("Download URL", self.item_version.download_url),
