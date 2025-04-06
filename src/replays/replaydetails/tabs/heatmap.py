@@ -27,7 +27,7 @@ def create_colorbar_hist() -> pg.HistogramLUTWidget:
     cmap_name = Settings.get("replaycard.heatmap/colormap", "preset-gradient:flame")
     if cmap_name.startswith("preset-gradient"):
         hist.item.gradient.loadPreset(cmap_name.split(":")[1])
-    else:
+    elif cmap_name:
         cmap = pg.colormap.get(cmap_name)
         hist.item.gradient.setColorMap(cmap)
         hist.item.gradient.showTicks(False)
