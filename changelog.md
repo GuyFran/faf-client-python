@@ -1,6 +1,9 @@
 0.x.x
 =====
 
+0.22.5
+* Fix crash on choosing heatmap colormap
+
 0.22.4
 * Add replayparser to the client based on [LiveReplayServer](https://github.com/fafafaf/livereplayserver)
 * Add zig library to parse replays faster
