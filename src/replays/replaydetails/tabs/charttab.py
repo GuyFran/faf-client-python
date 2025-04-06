@@ -42,24 +42,21 @@ from src.replays.replaydetails.replayformat import cmdTypeToString
 from src.replays.replaydetails.replayreader import ReplayParser
 from src.replays.replaydetails.utils import ACTION_ICONS
 from src.replays.replaydetails.utils import PLAYER_COLORS
+from src.replays.replaydetails.utils import UNIT_ICONS
 
 
 @lru_cache(1)
-def units_pixmaps(units_dir: str) -> dict[str, QPixmap]:
-    pixmaps = {}
-    pixmap = QPixmap()
-    for file in os.listdir(units_dir):
-        icon = os.path.join(units_dir, file)
-        pixmap.load(icon)
-        unit, *_ = file.lower().partition(".")
-        pixmaps[unit] = pixmap.scaled(48, 48)
-    return pixmaps
+def units_pixmaps(file: str) -> dict[str, QPixmap]:
+    pixmap = QPixmap(file)
+    return {
+        name.lower(): pixmap.copy(0, i * 64, 64, 64)
+        for i, name in enumerate(UNIT_ICONS)
+    }
 
 
 @lru_cache(1)
 def action_pixmaps(file: str) -> dict[str, QPixmap]:
-    pixmap = QPixmap()
-    pixmap.load(file)
+    pixmap = QPixmap(file)
     return {
         name: pixmap.copy(0, i * 48, 48, 48)
         for i, name in enumerate(ACTION_ICONS)
@@ -95,7 +92,7 @@ class ChartsTab(QWidget):
         self.ui.setupUi(self)
         self.show_player_actions = {"all": self.ui.showAllPlayers}
         self.action_icons = os.path.join(util.COMMON_DIR, "replays", "actions48.png")
-        self.units_icons = os.path.join(util.COMMON_DIR, "unitdb", "units")
+        self.units_icons = os.path.join(util.COMMON_DIR, "unitdb", "units.png")
         db_path = os.path.join(util.COMMON_DIR, "unitdb", "unitdb.json")
         with open(db_path) as file:
             self.unitsdb = json.loads(file.read())
