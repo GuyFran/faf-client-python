@@ -1,6 +1,32 @@
 0.x.x
 =====
 
+0.23.0
+* Features:
+  - Rework HostGameWidget (maps/mods filters, add game rating enforcement option)
+  - Add map count option to MapGenerator
+  - Allow adding, editing, and removing map/mod comments
+  - Add map foreground, command filters, and player selection to heatmap
+  - Display clan information in player profiles
+  - Add splash screen
+  - Add log level controls with configurable file size and backup count
+  - Add "Details" action to local replays
+
+* Fixes:
+  - Fix heatmap's math and debounce setting
+  - Fix "friends only" host option
+  - Fix UI mod manager's uselessness -- remember selected mods
+  - Fix possible memory leak caused by playercard
+
+* Other:
+  - Upgrade to python3.13 and migrate installer to Inno Setup
+  - Bump ICE Adapter to version 3.3.12 with proper GPG port handling
+  - Unify checkbox stylesheets, remove gradients, update some icons
+  - Mask userprofile in logs
+  - Improve replay details tab performance and remove unnecessary OpenGL context sharing
+  - Switch to scipy's gaussian filter for faster processing
+  - Cache installed maps metadata
+
 0.22.5
 * Fix crash on choosing heatmap colormap
 
