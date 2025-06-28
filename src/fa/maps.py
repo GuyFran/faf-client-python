@@ -495,7 +495,7 @@ class InstalledMapsCache(QtCore.QObject):
 
     def sanitize(self) -> None:
         current = getUserMaps() + list(maps)
-        for folder in self.installed_maps:
+        for folder in tuple(self.installed_maps):
             if folder not in current:
                 logger.debug("Removing %s from cached maps metadata...", folder)
                 self.installed_maps.pop(folder, None)
