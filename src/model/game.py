@@ -172,9 +172,9 @@ class Game(ModelItem):
     def to_dict(self) -> dict[str, Any]:
         data = self.field_dict
         data["uid"] = self.uid
-        data["state"] = data["state"].name
-        data["visibility"] = data["visibility"].name
-        data["game_type"] = data["game_type"].name
+        data["state"] = data["state"].value
+        data["visibility"] = data["visibility"].value
+        data["game_type"] = data["game_type"].value
         data["command"] = "game_info"   # For compatibility
         return data
 
