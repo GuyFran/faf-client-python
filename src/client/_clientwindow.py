@@ -109,6 +109,7 @@ class ClientWindow(FormClass, BaseClass):
     game_enter = QtCore.pyqtSignal()
     game_exit = QtCore.pyqtSignal()
     game_full = QtCore.pyqtSignal()
+    game_launched = QtCore.pyqtSignal()
 
     # These signals propagate important client state changes to other modules
     local_broadcast = QtCore.pyqtSignal(str, str)
@@ -1802,7 +1803,8 @@ class ClientWindow(FormClass, BaseClass):
                 'game_id': self.game_session.game_uid,
             })
 
-        self.game_session.gameFullSignal.connect(self.emit_game_full)
+        self.game_session.gameFullSignal.connect(self.game_full.emit)
+        self.game_session.game_launched.connect(self.game_launched.emit)
 
     def handle_irc_password(self, message: dict) -> None:
         # DEPRECATED: this command is meaningless and can be removed at any time
@@ -2094,9 +2096,6 @@ class ClientWindow(FormClass, BaseClass):
         # reconnect and potentially cause the same error again and again
         self.lobby_reconnector.enabled = False
         raise Exception(message)
-
-    def emit_game_full(self):
-        self.game_full.emit()
 
     def invite_to_party(self, recipient_id):
         self.games.stopSearch()

@@ -2,6 +2,8 @@
 The Notification Systems reacts on events and displays a popup.
 Each event_type has a NsHook to customize it.
 """
+from typing import Any
+
 from PyQt6 import QtCore
 
 from src import util
@@ -18,6 +20,7 @@ class Notifications:
     USER_ONLINE = 'user_online'
     NEW_GAME = 'new_game'
     GAME_FULL = 'game_full'
+    GAME_LAUNCHED = "game_launched"
     UNOFFICIAL_CLIENT = 'unofficial_client'
     PARTY_INVITE = 'party_invite'
 
@@ -27,7 +30,7 @@ class Notifications:
 
         self.settings = NsSettingsDialog(self.client)
         self.dialog = NotificationDialog(self.client, self.settings)
-        self.events = []
+        self.events: list[tuple[str, Any]] = []
         self.disabledStartup = True
         self.game_running = False
         self.unofficialClientDate = Settings.get(
@@ -37,6 +40,7 @@ class Notifications:
         client.game_enter.connect(self.gameEnter)
         client.game_exit.connect(self.gameExit)
         client.game_full.connect(self._gamefull)
+        client.game_launched.connect(self.game_launched)
         client.unofficial_client.connect(self.unofficialClient)
         client.party_invite.connect(self.partyInvite)
         gameset.newLobby.connect(self._newLobby)
@@ -79,6 +83,13 @@ class Notifications:
             return
         if (self.GAME_FULL, None) not in self.events:
             self.events.append((self.GAME_FULL, None))
+        self.checkEvent()
+
+    def game_launched(self) -> None:
+        if self.is_disabled(self.GAME_LAUNCHED):
+            return
+        if (self.GAME_LAUNCHED, None) not in self.events:
+            self.events.append((self.GAME_LAUNCHED, None))
         self.checkEvent()
 
     def unofficialClient(self, msg):
@@ -210,6 +221,8 @@ class Notifications:
                 '<html><br><font color="silver" size="-2">Game is full.'
                 '</font></html>'
             )
+        elif eventType == self.GAME_LAUNCHED:
+            text = "Game Launched"
         elif eventType == self.UNOFFICIAL_CLIENT:
             pixmap = self.user
             text = (

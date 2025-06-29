@@ -33,6 +33,7 @@ class GameSessionState(IntEnum):
 class GameSession(QObject):
     ready = pyqtSignal()
     gameFullSignal = pyqtSignal()
+    game_launched = pyqtSignal()
 
     def __init__(self, player_id, player_login):
         QObject.__init__(self)
@@ -163,12 +164,15 @@ class GameSession(QObject):
         self.state = GameSessionState.RUNNING
         self.ready.emit()
 
-    def _on_game_message(self, command, args):
+    def _on_game_message(self, command: str, args: list[str]) -> None:
         logger.info("Incoming GPGNet: %s %s", command, args)
         if command == 'Rehost':
             self._rehost = True
         elif command == 'GameFull':
             self.gameFullSignal.emit()
+        elif command == "GameState" and len(args) > 0:
+            if args[0] == "Launching":
+                self.game_launched.emit()
         self.send(command, args)
 
     def _launched(self):
