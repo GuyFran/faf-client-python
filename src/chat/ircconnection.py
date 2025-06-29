@@ -10,7 +10,9 @@ from irc.client import ServerConnectionError
 from irc.client import SimpleIRCClient
 from irc.client import is_channel
 from irc.client import log
+from PyQt6.QtCore import QDateTime
 from PyQt6.QtCore import QObject
+from PyQt6.QtCore import Qt
 from PyQt6.QtCore import QTimer
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtNetwork import QNetworkReply
@@ -181,6 +183,9 @@ class IrcConnection(SimpleIRCClient, IrcSignals):
         else:
             self.reconnector.reconnect()
 
+    def _enable_server_time_cap(self) -> None:
+        self.connection.send_items("CAP", "REQ", ":server-time")
+
     def connect_(self, nick: str, username: str, password: str) -> bool:
         logger.info("Connecting to IRC at: %s:%d", self.host, self.port)
 
@@ -230,6 +235,9 @@ class IrcConnection(SimpleIRCClient, IrcSignals):
     @_only_if_connected
     def join(self, channel):
         self.connection.join(channel)
+        # 500 is the current maximum for faforever server, and most of the messages
+        # are joins/parts, which we don't display
+        self.connection.send_items("CHATHISTORY", "LATEST", channel, "*", "500")
 
     @_only_if_connected
     def part(self, channel, reason=""):
@@ -249,6 +257,7 @@ class IrcConnection(SimpleIRCClient, IrcSignals):
         self.new_server_message.emit(text)
 
     def on_welcome(self, c, e):
+        self._enable_server_time_cap()
         self._log_event(e)
         if not self._connected:
             self._connected = True
@@ -395,21 +404,36 @@ class IrcConnection(SimpleIRCClient, IrcSignals):
         self._log_event(e)
 
     def _emit_line(
-        self, chatter, target, channel_type, text, type_=ChatLineType.MESSAGE,
-    ):
+        self,
+        chatter: ChatterInfo,
+        target: str,
+        channel_type: ChannelType,
+        text: str,
+        type_: ChatLineType = ChatLineType.MESSAGE,
+        timestamp: float | None = None,
+    ) -> None:
         if channel_type == ChannelType.PUBLIC:
             channel_name = target
         else:
             channel_name = chatter.name
         chid = ChannelID(channel_type, channel_name)
-        line = ChatLine(chatter.name, text, type_)
+        line = ChatLine(chatter.name, text, type_, timestamp)
         self.new_line.emit(chid, chatter, line)
 
-    def on_pubmsg(self, c, e):
+    def on_pubmsg(self, c: ServerConnection, e: Event) -> None:
         chatter = self._event_to_chatter(e)
+        if chatter.name.startswith("HistServ"):
+            return
         target = e.target
         text = "\n".join(e.arguments)
-        self._emit_line(chatter, target, ChannelType.PUBLIC, text)
+
+        if len(e.tags) > 0 and e.tags[0]["key"] == "time":
+            date = QDateTime.fromString(e.tags[0]["value"], Qt.DateFormat.ISODate)
+            timestamp = date.toSecsSinceEpoch()
+        else:
+            timestamp = None
+
+        self._emit_line(chatter, target, ChannelType.PUBLIC, text, timestamp=timestamp)
 
     def on_privnotice(self, c, e):
         if e.source == self.host:
