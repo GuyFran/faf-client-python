@@ -73,6 +73,7 @@ from src.oauth.oauth_flow import OAuth2FlowInstance
 from src.power import PowerTools
 from src.protocol.lobbyprotocol import GameJoinFailedCommand
 from src.protocol.lobbyprotocol import GameLaunchCommand
+from src.protocol.lobbyprotocol import MatchFoundCommand
 from src.protocol.lobbyprotocol import ServerMessage
 from src.replays import ReplaysWidget
 from src.secondaryServer import SecondaryServer
@@ -1846,12 +1847,13 @@ class ClientWindow(FormClass, BaseClass):
         }
         self.lobby_connection.send(msg)
 
-    def handle_match_found_message(self, message: ServerMessage) -> None:
+    def handle_match_found_message(self, message: MatchFoundCommand) -> None:
         logger.info("Handling match_found via JSON %s", message)
         self.warningHide()
-        self.labelAutomatchInfo.setText("Match found! Pending game launch...")
+        match_found_text = f"Match found! Pending game launch... [{message['queue_name']}]"
+        self.labelAutomatchInfo.setText(match_found_text)
         self.labelAutomatchInfo.show()
-        self.games.handleMatchFound(message)
+        self.games.handle_match_found(message)
         self.lobby_connection.send(dict(command="match_ready"))
 
     def handle_match_cancelled(self, message: ServerMessage) -> None:
@@ -1911,9 +1913,10 @@ class ClientWindow(FormClass, BaseClass):
         arguments = []
         if message["game_type"] == GameType.MATCHMAKER.value:
             self.labelAutomatchInfo.setText("Launching the game...")
-            ratingType = message.get("rating_type", RatingType.GLOBAL.value)
+            rating_type = message.get("rating_type", RatingType.GLOBAL.value)
+            queue_name = MatchmakerQueueType.from_rating_type(rating_type)
             factionSubset = config.Settings.get(
-                f"play/{self.games.matchFoundQueueName}Factions",
+                f"play/{queue_name}Factions",
                 default=[False] * 4,
                 type=bool,
             )
@@ -1921,13 +1924,9 @@ class ClientWindow(FormClass, BaseClass):
             arguments.append('/' + Factions.to_name(faction))
             # Player rating
             arguments.append('/mean')
-            arguments.append(
-                str(self.me.player.rating_mean(ratingType)),
-            )
+            arguments.append(str(self.me.player.rating_mean(rating_type)))
             arguments.append('/deviation')
-            arguments.append(
-                str(self.me.player.rating_deviation(ratingType)),
-            )
+            arguments.append(str(self.me.player.rating_deviation(rating_type)))
 
             arguments.append('/players')
             arguments.append(str(message["expected_players"]))
@@ -2017,7 +2016,7 @@ class ClientWindow(FormClass, BaseClass):
             ):
                 return
             if show is not None:
-                if show and not self.games.matchFoundQueueName:
+                if show and not self.labelAutomatchInfo.isVisible():
                     self.warningShow()
                 else:
                     self.warningHide()

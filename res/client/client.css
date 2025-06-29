@@ -129,7 +129,7 @@ QTabWidget#matchmakerQueues > QTabBar::tab
     min-width: 60px;
     min-height: 25px;
     background-color:#383838;
-    /* color: silver; */
+    color: none;
     border-bottom-left-radius: 2px;
     border-bottom-right-radius: 2px;
 }

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from operator import itemgetter
 from typing import TYPE_CHECKING
 from typing import Self
 
@@ -25,6 +26,7 @@ from src.games.hostgamewidget import GameLauncher
 from src.games.moditem import ModItem
 from src.games.moditem import mod_invisible
 from src.model.chat.channel import PARTY_CHANNEL_SUFFIX
+from src.protocol.lobbyprotocol import MatchFoundCommand
 from src.protocol.lobbyprotocol import ServerMessage
 
 if TYPE_CHECKING:
@@ -100,7 +102,6 @@ class GamesWidget(FormClass, BaseClass):
         self.gameview = gameview_builder(self._game_filter_model, self.gameList)
         self.gameview.game_double_clicked.connect(self.gameDoubleClicked)
 
-        self.matchFoundQueueName = ""
         self.ispassworded = False
         self.party = None
 
@@ -172,8 +173,6 @@ class GamesWidget(FormClass, BaseClass):
         self.searching = {"ladder1v1": False}
         self.client.labelAutomatchInfo.setText("")
         self.client.labelAutomatchInfo.hide()
-        if self.matchFoundQueueName:
-            self.matchFoundQueueName = ""
         self.stop_search_ranked_game.emit()
 
     def gameDoubleClicked(self, game):
@@ -353,8 +352,7 @@ class GamesWidget(FormClass, BaseClass):
     def handleMatchmakerSearchInfo(self, message):
         self.matchmaker_search_info.emit(message)
 
-    def handleMatchFound(self, message):
-        self.matchFoundQueueName = message.get("queue_name", "")
+    def handle_match_found(self, message: MatchFoundCommand):
         self.match_found_message.emit(message)
 
     def isInGame(self, player_id):
@@ -364,7 +362,7 @@ class GamesWidget(FormClass, BaseClass):
             return True
 
     def handle_matchmaker_info(self, message: ServerMessage) -> None:
-        for queue in message.get("queues", {}):
+        for queue in sorted(message.get("queues", {}), key=itemgetter("team_size")):
             insert_to = queue["team_size"] - 1
             existing_queue = self.matchmakerQueues.widget(insert_to)
             if existing_queue is None or existing_queue.teamSize != queue["team_size"]:

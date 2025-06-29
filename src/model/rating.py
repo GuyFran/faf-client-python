@@ -35,10 +35,10 @@ class MatchmakerQueueType(Enum):
     TMM_4v4 = "tmm4v4"
 
     @staticmethod
-    def fromRatingType(ratingTypeName):
-        for matchmakerQueue in list(MatchmakerQueueType):
-            if ratingTypeName.replace("_", "") == matchmakerQueue.value:
-                return matchmakerQueue.value
+    def from_rating_type(rating_type: str) -> str:
+        for matchmaker_queue in list(MatchmakerQueueType):
+            if rating_type.replace("_", "") == matchmaker_queue.value:
+                return matchmaker_queue.value
         return MatchmakerQueueType.LADDER.value
 
 

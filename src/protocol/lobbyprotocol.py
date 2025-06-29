@@ -28,3 +28,8 @@ class GameLaunchCommand(TypedDict):
     expected_players: NotRequired[int]
     map_position: NotRequired[int]
     game_options: NotRequired[dict[str, Any]]
+
+
+class MatchFoundCommand(TypedDict):
+    command: Literal["match_found"]
+    queue_name: str
