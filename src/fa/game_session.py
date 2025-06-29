@@ -1,4 +1,5 @@
 import logging
+from enum import Enum
 from enum import IntEnum
 
 from PyQt6.QtCore import QObject
@@ -30,12 +31,17 @@ class GameSessionState(IntEnum):
     RUNNING = 4
 
 
+class LobbyInitMode(Enum):
+    NORMAL = "normal"
+    AUTO = "auto"
+
+
 class GameSession(QObject):
     ready = pyqtSignal()
     gameFullSignal = pyqtSignal()
     game_launched = pyqtSignal()
 
-    def __init__(self, player_id, player_login):
+    def __init__(self, player_id: int, player_login: str) -> None:
         QObject.__init__(self)
         self._state = GameSessionState.OFF
         self._rehost = False
@@ -65,7 +71,10 @@ class GameSession(QObject):
         self.ice_adapter_client = None
         self.ice_servers_poller = None
 
-    def startIceAdapter(self):
+        self.lobby_mode = LobbyInitMode.NORMAL
+
+    def start_ice_adapter(self, init_mode: LobbyInitMode = LobbyInitMode.NORMAL) -> None:
+        self.lobby_mode = init_mode
         self.ice_adapter_process = IceAdapterProcess(
             player_id=self.player_id,
             player_login=self.player_login,
@@ -83,6 +92,7 @@ class GameSession(QObject):
         )
         self.ice_adapter_client.statusChanged.disconnect(self.onIceAdapterStarted)
         self.ice_servers_poller = IceServersPoller(self.ice_adapter_client, self.game_uid)
+        self.set_lobby_init_mode()
 
     def closeIceAdapter(self):
         if self.ice_adapter_client:
@@ -144,10 +154,7 @@ class GameSession(QObject):
             'args': args or [],
         })
 
-    def setLobbyInitMode(self, lobby_init_mode):
-        # to do: make this call synchronous/blocking, because init_mode must be
-        # set before game_launch.
-        # See ClientWindow.handle_game_launch()
+    def set_lobby_init_mode(self) -> None:
         if (
             not self.ice_adapter_client
             or not self.ice_adapter_client.connected
@@ -157,7 +164,7 @@ class GameSession(QObject):
                 "setLobbyInitMode",
             )
             return
-        self.ice_adapter_client.call("setLobbyInitMode", [lobby_init_mode])
+        self.ice_adapter_client.call("setLobbyInitMode", [self.lobby_mode.value])
 
     def _new_game_connection(self):
         logger.info("Game connected through GPGNet")
@@ -171,7 +178,7 @@ class GameSession(QObject):
         elif command == 'GameFull':
             self.gameFullSignal.emit()
         elif command == "GameState" and len(args) > 0:
-            if args[0] == "Launching":
+            if args[0] == "Launching" and self.lobby_mode is LobbyInitMode.NORMAL:
                 self.game_launched.emit()
         self.send(command, args)
 

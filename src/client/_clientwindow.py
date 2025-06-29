@@ -49,6 +49,7 @@ from src.downloadManager import MapSmallPreviewDownloader
 from src.fa.factions import Factions
 from src.fa.game_runner import GameRunner
 from src.fa.game_session import GameSession
+from src.fa.game_session import LobbyInitMode
 from src.fa.maps import CachedMapsMetadata
 from src.fa.maps import getUserMapsFolder
 from src.games import GamesWidget
@@ -60,6 +61,7 @@ from src.model.chat.channel import ChannelID
 from src.model.chat.channel import ChannelType
 from src.model.chat.chat import Chat
 from src.model.chat.chatline import ChatLineMetadataBuilder
+from src.model.game import GameType
 from src.model.gameset import Gameset
 from src.model.gameset import PlayerGameIndex
 from src.model.player import Player
@@ -70,6 +72,7 @@ from src.news import NewsWidget
 from src.oauth.oauth_flow import OAuth2FlowInstance
 from src.power import PowerTools
 from src.protocol.lobbyprotocol import GameJoinFailedCommand
+from src.protocol.lobbyprotocol import GameLaunchCommand
 from src.protocol.lobbyprotocol import ServerMessage
 from src.replays import ReplaysWidget
 from src.secondaryServer import SecondaryServer
@@ -1899,19 +1902,14 @@ class ClientWindow(FormClass, BaseClass):
             msg['password'] = password
         self.lobby_connection.send(msg)
 
-    def handle_game_launch(self, message):
-        self.game_session.game_uid = message['uid']
-        self.game_session.startIceAdapter()
-
+    def handle_game_launch(self, message: GameLaunchCommand) -> None:
         logger.info("Handling game_launch via JSON %s", message)
 
         silent = False
         # Do some special things depending of the reason of the game launch.
 
-        # HACK: Ideally, this comes from the server, too.
-        # LATER: search_ranked message
         arguments = []
-        if self.games.matchFoundQueueName:
+        if message["game_type"] == GameType.MATCHMAKER.value:
             self.labelAutomatchInfo.setText("Launching the game...")
             ratingType = message.get("rating_type", RatingType.GLOBAL.value)
             factionSubset = config.Settings.get(
@@ -1943,7 +1941,7 @@ class ClientWindow(FormClass, BaseClass):
                     arguments.append(f'{key}:{value}')
 
             # Launch the auto lobby
-            self.game_session.setLobbyInitMode("auto")
+            lobby_mode = LobbyInitMode.AUTO
         else:
             # Player global rating
             arguments.append('/mean')
@@ -1955,7 +1953,10 @@ class ClientWindow(FormClass, BaseClass):
                 arguments.append(self.me.player.country)
 
             # Launch the normal lobby
-            self.game_session.setLobbyInitMode("normal")
+            lobby_mode = LobbyInitMode.NORMAL
+
+        self.game_session.game_uid = message["uid"]
+        self.game_session.start_ice_adapter(lobby_mode)
 
         arguments.append('/numgames')
         arguments.append(str(message["args"][1]))
