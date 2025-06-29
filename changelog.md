@@ -1,6 +1,12 @@
 0.x.x
 =====
 
+0.23.1
+* Fix error on shutdown
+* Fix active ladder search tab color
+* Add "Game Launched" notification
+* Show chat chennel's message history on join
+
 0.23.0
 * Features:
   - Rework HostGameWidget (maps/mods filters, add game rating enforcement option)
