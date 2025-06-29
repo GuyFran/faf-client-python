@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import shutil
 import stat
 import string
@@ -8,6 +9,8 @@ import sys
 import tempfile
 import zipfile
 from collections.abc import Callable
+from typing import TypedDict
+from typing import cast
 
 from PyQt6 import QtCore
 from PyQt6 import QtGui
@@ -437,6 +440,17 @@ def processMapFolderForUpload(mapDir: str) -> None:
     return temp
 
 
+class CachedMapInfo(TypedDict):
+    name: str
+    version: str
+    map_size: dict[str, str]
+    description: str
+    max_players: int
+    map_type: str
+    battle_type: str
+    folder_name: str
+
+
 class InstalledMapsCache(QtCore.QObject):
     maps_parsed = QtCore.pyqtSignal()
 
@@ -445,38 +459,48 @@ class InstalledMapsCache(QtCore.QObject):
         self.path = path
         self.installed_maps = self.load()
 
-    def parse_metadata(self, folder: str) -> dict[str, str]:
+    def parse_metadata(self, folder: str) -> CachedMapInfo | None:
         for file in os.listdir(folder):
             if file.endswith("scenario.lua"):
                 parser = luaParser(os.path.join(folder, file))
-                return parser.parse(
-                    {
-                        "scenarioinfo>name": "name",
-                        "size": "map_size",
-                        "description": "description",
-                        "count:armies": "max_players",
-                        "map_version": "version",
-                        "type": "map_type",
-                        "teams>0>name": "battle_type",
-                    },
-                    {
-                        "name": "",
-                        "map_size": {"0": "-", "1": "-"},
-                        "description": "-",
-                        "max_players": 0,
-                        "version": "-",
-                        "map_type": "-",
-                        "battle_type": "-",
-                    },
+                return cast(
+                    CachedMapInfo, parser.parse(
+                        {
+                            "scenarioinfo>name": "name",
+                            "size": "map_size",
+                            "description": "description",
+                            "count:armies": "max_players",
+                            "map_version": "version",
+                            "type": "map_type",
+                            "teams>0>name": "battle_type",
+                        },
+                        {
+                            "name": "",
+                            "map_size": {"0": "-", "1": "-"},
+                            "description": "-",
+                            "max_players": 0,
+                            "version": "-",
+                            "map_type": "-",
+                            "battle_type": "-",
+                            "folder_name": "-",
+                        },
+                    ),
                 )
         logger.warning("Could not extract map info from %s", folder)
-        return {}
+        return None
 
     def initial_parse(self) -> None:
         self.get_installed_maps()
         self.maps_parsed.emit()
 
-    def get_installed_maps(self) -> dict[str, dict[str, str]]:
+    def adjust_generated_map_size(self, map_info: CachedMapInfo) -> None:
+        desc = re.sub(r"(\\r)?\\n", "\n", map_info["description"])
+        for line in desc.splitlines():
+            if "Map Size" in line:
+                effective_size = line.split(":")[-1]
+                map_info["map_size"] = {"0": effective_size, "1": effective_size}
+
+    def get_installed_maps(self) -> dict[str, CachedMapInfo]:
         user_folder = getUserMapsFolder()
         base_folder = getBaseMapsFolder()
         for root in (user_folder, base_folder):
@@ -488,6 +512,13 @@ class InstalledMapsCache(QtCore.QObject):
                     continue
                 map_path = os.path.join(root, dr)
                 map_info = self.parse_metadata(map_path)
+
+                if map_info is None:
+                    continue
+
+                if isGeneratedMap(map_info["name"]):
+                    self.adjust_generated_map_size(map_info)
+
                 map_info["folder_name"] = dr.lower()
                 self.installed_maps[dr.lower()] = map_info
                 logger.debug("Loaded %s into maps cached metadata", map_path)
@@ -500,7 +531,7 @@ class InstalledMapsCache(QtCore.QObject):
                 logger.debug("Removing %s from cached maps metadata...", folder)
                 self.installed_maps.pop(folder, None)
 
-    def load(self) -> dict[str, dict[str, str]]:
+    def load(self) -> dict[str, CachedMapInfo]:
         if not os.path.exists(self.path):
             return {}
 

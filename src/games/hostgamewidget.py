@@ -5,6 +5,7 @@ import re
 import time
 from functools import partial
 from typing import TYPE_CHECKING
+from typing import cast
 
 from PyQt6 import QtCore
 from PyQt6.QtCore import QThread
@@ -525,7 +526,7 @@ class HostGameWidget(QDialog):
         self.set_map(mapname)
 
     def update_map_preview(self, item: QListWidgetItem) -> None:
-        map_info = item.data(QtCore.Qt.ItemDataRole.UserRole)
+        map_info = cast(maps.CachedMapInfo, item.data(QtCore.Qt.ItemDataRole.UserRole))
         self.ui.mapNameLabel.setText(item.text())
 
         w, h = map(int, map_info["map_size"].values())
