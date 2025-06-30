@@ -1,6 +1,9 @@
+import logging
 import os
 import subprocess
 import tempfile
+from typing import IO
+from typing import ClassVar
 
 from PyQt6.QtCore import QObject
 from PyQt6.QtCore import QUrl
@@ -14,6 +17,7 @@ from src.decorators import with_logger
 
 @with_logger
 class ClientUpdater(QObject):
+    _logger: ClassVar[logging.Logger]
 
     finished = pyqtSignal()
 
@@ -23,7 +27,7 @@ class ClientUpdater(QObject):
         self._network_manager = network_manager
         self._progress_bar = progress_bar
         self._cancel_btn = cancel_btn
-        self._tmp = None
+        self._tmp: IO[bytes] | None = None
         self._req = None
         self._rep = None
 
@@ -38,11 +42,11 @@ class ClientUpdater(QObject):
         self._setup_progress()
         self._prepare_download(url)
 
-    def _prepare_download(self, url):
+    def _prepare_download(self, url: str) -> None:
         self._logger.debug('_prepare_download')
         self._tmp = tempfile.NamedTemporaryFile(
             mode='w+b',
-            suffix=".msi",
+            suffix=".exe",
             delete=False,
         )
         self._req = QNetworkRequest(QUrl(url))
@@ -87,11 +91,10 @@ class ClientUpdater(QObject):
         else:
             self._run_installer()
 
-    def _run_installer(self):
-        command = 'msiexec /i "{msiname}" & del "{msiname}"'.format(
-            msiname=self._tmp.name,
-        )
-        self._logger.debug(r'Running msi installation command: ' + command)
+    def _run_installer(self) -> None:
+        assert self._tmp is not None
+        command = fr"start /wait {self._tmp.name} & del {self._tmp.name}"
+        self._logger.debug("Running installation command: %s",  command)
         subprocess.Popen(command, shell=True)
         client.instance.close()
 

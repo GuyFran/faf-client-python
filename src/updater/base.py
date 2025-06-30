@@ -1,5 +1,7 @@
 import json
+from collections.abc import Generator
 from enum import Enum
+from typing import Any
 
 from PyQt6.QtCore import QObject
 from PyQt6.QtCore import QUrl
@@ -201,14 +203,13 @@ class GithubUpdateChecker(QObject):
             return None
         return list(self._parse_releases(releases))
 
-    def _parse_releases(self, releases):
-        if not isinstance(releases, list):
-            releases = [releases]
+    def _parse_releases(self, releases: list[dict[str, Any]]) -> Generator[Release]:
         for release_dict in releases:
-            for asset in release_dict['assets']:
-                if '.msi' in asset['browser_download_url']:
-                    download_url = asset['browser_download_url']
-                    version = Version(release_dict['tag_name'])
+            for asset in release_dict["assets"]:
+                url = asset["browser_download_url"]
+                if ".exe" in url:
+                    download_url = asset["browser_download_url"]
+                    version = Version(release_dict["tag_name"])
                     yield Release(version, download_url)
 
 

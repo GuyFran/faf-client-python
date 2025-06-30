@@ -1,3 +1,5 @@
+import sys
+
 from PyQt6.QtWidgets import QLayout
 
 from src import util
@@ -21,6 +23,11 @@ class UpdateDialog(FormClass, BaseClass):
         self._updater_builder = updater_builder
         self.setModal(True)
         self.setupUi(self)
+
+        # FIXME: make it work on linux too?
+        if sys.platform != "win32":
+            self.btnStart.hide()
+
         self.btnStart.clicked.connect(self.startUpdate)
         self.btnAbort.clicked.connect(self.abort)
         self.btnSettings.clicked.connect(self.showSettings)
@@ -66,7 +73,7 @@ class UpdateDialog(FormClass, BaseClass):
             self.cbReleases.clear()
             for rel in versions:
                 new = ' [New!]' if rel.version > self._current_version else ''
-                name = '{} {}{}'.format(labels[rel.branch], rel.version, new)
+                name = f'{labels[rel.branch]} {rel.version}{new}'
                 self.cbReleases.addItem(name, rel)
             preferred_idx = self.cbReleases.findData(newest_version)
             if preferred_idx != -1:
