@@ -1,6 +1,10 @@
 0.x.x
 =====
 
+0.23.2
+* Adapt client updater to .exe installer
+* Temporary add dummy .msi file to trigger update notification in older client version
+
 0.23.1
 * Fix error on shutdown
 * Fix active ladder search tab color
