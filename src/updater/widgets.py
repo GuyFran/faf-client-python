@@ -25,8 +25,7 @@ class UpdateDialog(FormClass, BaseClass):
         self.setupUi(self)
 
         # FIXME: make it work on linux too?
-        if sys.platform != "win32":
-            self.btnStart.hide()
+        self.btnStart.setVisible(sys.platform == "win32")
 
         self.btnStart.clicked.connect(self.startUpdate)
         self.btnAbort.clicked.connect(self.abort)

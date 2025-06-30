@@ -206,9 +206,8 @@ class GithubUpdateChecker(QObject):
     def _parse_releases(self, releases: list[dict[str, Any]]) -> Generator[Release]:
         for release_dict in releases:
             for asset in release_dict["assets"]:
-                url = asset["browser_download_url"]
-                if ".exe" in url:
-                    download_url = asset["browser_download_url"]
+                download_url = asset["browser_download_url"]
+                if ".exe" in download_url:
                     version = Version(release_dict["tag_name"])
                     yield Release(version, download_url)
 
