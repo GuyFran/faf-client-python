@@ -80,6 +80,11 @@ jobs:
         run: |
           ISCC /DWORKING_DIR="build" /DBUILD_VERSION="$env:BUILD_VERSION" win-installer.iss
 
+      - name: Create dummy msi
+        # temporary, to trigger update notifications in older client versions
+        run: |
+          New-Item dist/not_an_installer.msi -type file -Value "Use .exe installer. This file is for triggering client notification"
+
       - name: Calculate checksum
         id: checksum
         run: |
@@ -209,7 +214,7 @@ jobs:
 
       - name: Create draft release
         id: create_release
-        uses: ncipollo/release-action@v1.14.0
+        uses: ncipollo/release-action@v1.18.0
         with:
           commit: ${{ github.sha }}
           tag: ${{ github.event.inputs.version }}
