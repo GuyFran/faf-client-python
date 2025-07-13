@@ -1,6 +1,20 @@
 0.x.x
 =====
 
+0.24.0
+* Support [faf-pioneer](https://github.com/faforever/faf-pioneer)].
+  Add feature switch between `java-ice-adapter` nad `faf-pioneer`
+  and allow to select specific tool versions.
+  Also, don't include java ICE adapter into installer and download
+  it separately as it is done with new `faf-pioneer`
+* Don't duplicate chat history on reconnect
+* Fix downloading avatars in chat
+* Fix chatter tooltip
+* Don't crash on non-existent map foder when trying to parse maps metadata
+* Correctly handle map generator version on options extraction
+* Remember selected environment (main, test) on login
+* Log irc into a dediciated file
+
 0.23.2
 * Adapt client updater to .exe installer
 * Temporary add dummy .msi file to trigger update notification in older client version
