@@ -1846,15 +1846,14 @@ class ClientWindow(FormClass, BaseClass):
                 player_id=self.id,
                 player_login=self.login,
             )
+            self.game_session.gameFullSignal.connect(self.game_full.emit)
+            self.game_session.game_launched.connect(self.game_launched.emit)
+            self.game_session.ready.connect(self.launch_game)
         elif self.game_session.game_uid is not None:
             self.lobby_connection.send({
                 'command': 'restore_game_session',
                 'game_id': self.game_session.game_uid,
             })
-
-        self.game_session.gameFullSignal.connect(self.game_full.emit)
-        self.game_session.game_launched.connect(self.game_launched.emit)
-        self.game_session.ready.connect(self.launch_game)
 
     def handle_irc_password(self, message: ServerMessage) -> None:
         # DEPRECATED: this command is meaningless and can be removed at any time
