@@ -23,7 +23,7 @@ class Player(AbstractEntity):
 # shits itself with circular imports and partial initialization
 # (no, you can't throw TYPE_CHECKING at it)
 class Clan(AbstractEntity):
-    description:         str
+    description:         str | None
     name:                str
     requires_invitation: bool                        = Field(alias="requiresInvitation")
     tag:                 str
