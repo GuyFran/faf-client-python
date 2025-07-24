@@ -207,7 +207,7 @@ class ApiBase(QObject):
     def onRequestFinished(self, reply: QNetworkReply) -> None:
         self._running = False
         if reply.error() != QNetworkReply.NetworkError.NoError:
-            logger.error("API request error: %s", reply.error())
+            logger.error("API request error. URL: %s. Error: %s", reply.url().url(), reply.error())
             self.error_handlers[reply](reply)
         elif (
                 reply.operation() in (
