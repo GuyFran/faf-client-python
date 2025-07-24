@@ -1,6 +1,13 @@
 0.x.x
 =====
 
+0.24.1
+* Add separate 'Game Launched' notification for ladder
+* Handle null clan descriptions
+* Send `division` and `subdivision` as game arguments to ladder games
+* Fix connecting game session's signals multiple times
+* Fix 4v4 faction selection not working properly
+
 0.24.0
 * Support [faf-pioneer](https://github.com/faforever/faf-pioneer)].
   Add feature switch between `java-ice-adapter` nad `faf-pioneer`
