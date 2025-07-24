@@ -13,12 +13,12 @@ class RatingType(Enum):
     LADDER = "ladder_1v1"
     TMM_2v2 = "tmm_2v2"
     TMM_3v3 = "tmm_3v3"
-    TMM_4v4 = "tmm_4v4"
+    TMM_4v4 = "tmm_4v4_full_share"
 
     @staticmethod
-    def fromMatchmakerQueue(matchmakerQueueName):
+    def fromMatchmakerQueue(name: str) -> str:
         for ratingType in list(RatingType):
-            if ratingType.value.replace("_", "") == matchmakerQueueName:
+            if ratingType.value.replace("tmm_", "tmm") == name:
                 return ratingType.value
         return RatingType.GLOBAL.value
 
@@ -32,12 +32,12 @@ class MatchmakerQueueType(Enum):
     LADDER = "ladder1v1"
     TMM_2v2 = "tmm2v2"
     TMM_3v3 = "tmm3v3"
-    TMM_4v4 = "tmm4v4"
+    TMM_4v4 = "tmm4v4_full_share"
 
     @staticmethod
     def from_rating_type(rating_type: str) -> str:
         for matchmaker_queue in list(MatchmakerQueueType):
-            if rating_type.replace("_", "") == matchmaker_queue.value:
+            if rating_type.replace("tmm_", "tmm") == matchmaker_queue.value:
                 return matchmaker_queue.value
         return MatchmakerQueueType.LADDER.value
 
