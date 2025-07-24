@@ -1,5 +1,6 @@
 import logging
-from typing import Iterator
+from collections.abc import Iterator
+from typing import cast
 
 from PyQt6.QtCore import QDateTime
 from PyQt6.QtCore import Qt
@@ -7,6 +8,8 @@ from PyQt6.QtCore import pyqtSignal
 
 from src.api.ApiAccessors import ApiAccessor
 from src.api.ApiAccessors import DataApiAccessor
+from src.api.ApiBase import PreParsedApiResponse
+from src.api.ApiBase import QueryOptions
 from src.api.models.Achievement import Achievement
 from src.api.models.Leaderboard import Leaderboard
 from src.api.models.LeagueSeasonScore import LeagueSeasonScore
@@ -81,9 +84,24 @@ class LeaderboardRatingJournalApiConnector(ApiAccessor):
 
 class LeagueSeasonScoreApiConnector(DataApiAccessor):
     score_ready = pyqtSignal(LeagueSeasonScore)
+    scores_ready = pyqtSignal(list)
 
     def __init__(self) -> None:
         super().__init__("/data/leagueSeasonScore")
+        self.include = (
+            "leagueSeasonDivisionSubdivision",
+            "leagueSeasonDivisionSubdivision.leagueSeasonDivision",
+            "leagueSeason",
+            "leagueSeason.leaderboard",
+        )
+
+    def filters(self, player_id: str) -> tuple[str, str, str]:
+        utc_str = QDateTime.currentDateTime().toUTC().toString(Qt.DateFormat.ISODate)
+        return (
+            f"loginId=={player_id!r}",
+            f"leagueSeason.startDate=le={utc_str}",
+            f"leagueSeason.endDate=ge={utc_str}",
+        )
 
     def prepare_data(self,  message: dict) -> dict[str, list[LeagueSeasonScore]]:
         return {"values": [LeagueSeasonScore(**entry) for entry in message["data"]]}
@@ -93,21 +111,25 @@ class LeagueSeasonScoreApiConnector(DataApiAccessor):
             self.score_ready.emit(LeagueSeasonScore(**message["data"][0]))
 
     def get_player_score_in_leaderboard(self, player_id: str, leaderboard: str) -> None:
-        include = (
-            "leagueSeasonDivisionSubdivision",
-            "leagueSeasonDivisionSubdivision.leagueSeasonDivision",
-            "leagueSeason",
-            "leagueSeason.leaderboard",
-        )
-        utc_str = QDateTime.currentDateTime().toUTC().toString(Qt.DateFormat.ISODate)
         filters = (
-            f"loginId=={player_id!r}",
+            *self.filters(player_id),
             f"leagueSeason.leaderboard.technicalName=={leaderboard!r}",
-            f"leagueSeason.startDate=le={utc_str}",
-            f"leagueSeason.endDate=ge={utc_str}",
         )
-        query_params = {"include": ",".join(include), "filter": ";".join(filters)}
+        query_params = {"include": ",".join(self.include), "filter": ";".join(filters)}
         self.get_by_query(query_params, self.handle_score)
+
+    def handle_season_scores(self, message: PreParsedApiResponse) -> None:
+        scores = message["data"]
+        assert isinstance(scores, list)
+        if scores:
+            self.scores_ready.emit([LeagueSeasonScore(**score_data) for score_data in scores])
+
+    def get_player_scores(self, player_id: str) -> None:
+        query_params = {
+            "include": ",".join(self.include),
+            "filter": ";".join(self.filters(player_id)),
+        }
+        self.get_by_query(cast(QueryOptions, query_params), self.handle_season_scores)
 
 
 class PlayerEventApiAccessor(DataApiAccessor):
@@ -142,7 +164,7 @@ class PlayerAchievementApiAccessor(DataApiAccessor):
         self.get_by_query(query, self.handle_achievements)
 
     def handle_achievements(self, message: dict) -> None:
-        self.achievments_ready.emit((PlayerAchievement(**entry) for entry in message["data"]))
+        self.achievments_ready.emit(PlayerAchievement(**entry) for entry in message["data"])
 
 
 class AchievementsApiAccessor(DataApiAccessor):

@@ -11,6 +11,8 @@ from PyQt6.QtCore import QObject
 from PyQt6.QtCore import pyqtBoundSignal
 from PyQt6.QtCore import pyqtSignal
 
+from src.api.models.LeagueSeasonScore import LeagueSeasonScore
+from src.api.stats_api import LeagueSeasonScoreApiConnector
 from src.client.connection import LobbyInfo
 from src.config import Settings
 from src.model.chat.chatterset import Chatterset
@@ -39,6 +41,10 @@ class User(QtCore.QObject):
         self._players.added.connect(self._on_player_change)
         self._players.removed.connect(self._on_player_change)
 
+        self.league_api = LeagueSeasonScoreApiConnector()
+        self.league_api.scores_ready.connect(self.on_league_scores)
+        self._leagues: dict[str, LeagueSeasonScore] = {}
+
     @property
     def player(self) -> Player | None:
         return self._player
@@ -64,10 +70,11 @@ class User(QtCore.QObject):
             return None if p is None else p.clan
         self.clan_changed.emit(pclan(new_player), pclan(old_player))
 
-    def onLogin(self, login, id_):
+    def on_login(self, login: str, id_: int) -> None:
         self.login = login
         self.id = id_
         self._update_player()
+        self.league_api.get_player_scores(str(id_))
 
     def _update_player(self):
         new_player = self._players.get(self.id, None)
@@ -95,6 +102,19 @@ class User(QtCore.QObject):
 
     def player_clan(self):
         return None if self.player is None else self.player.clan
+
+    def on_league_scores(self, scores: list[LeagueSeasonScore]) -> None:
+        for score in scores:
+            assert score.season is not None
+            leaderboard = score.season.leaderboard
+            assert leaderboard is not None
+            self._leagues[leaderboard.technical_name] = score
+
+    def league(self, rating_type: str) -> tuple[str, str] | None:
+        score = self._leagues.get(rating_type)
+        if score is not None:
+            assert score.subdivision is not None and score.subdivision.division is not None
+            return score.subdivision.division.name, score.subdivision.name
 
 
 class SetSignals(QObject):

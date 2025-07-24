@@ -1835,7 +1835,7 @@ class ClientWindow(FormClass, BaseClass):
         self.id = message["me"]["id"]
         self.login = message["me"]["login"]
 
-        self.me.onLogin(self.login, self.id)
+        self.me.on_login(self.login, self.id)
         logger.info("Login success")
 
         crash.CRASH_REPORT_USER = self.login
@@ -1984,6 +1984,12 @@ class ClientWindow(FormClass, BaseClass):
             if options := message.get("game_options"):
                 arguments.append("/gameoptions")
                 arguments.extend(f"{name}:{option}" for name, option in options.items())
+
+            league = self.me.league(rating_type)
+            if league is not None:
+                division, subdivision = league
+                arguments.extend(("/division", division))
+                arguments.extend(("/subdivision", subdivision))
 
             # Launch the auto lobby
             lobby_mode = LobbyInitMode.AUTO
