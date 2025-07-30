@@ -64,6 +64,7 @@ class ApiBase(QObject):
         self.handlers: dict[QNetworkReply, Callable[[PreProcessedApiResponse], Any]] = {}
         self.non_get_handlers: dict[QNetworkReply, Callable[[QNetworkReply], Any]] = {}
         self.error_handlers: dict[QNetworkReply, Callable[[QNetworkReply], Any]] = {}
+        self._allow_http2 = True
 
     def set_route(self, route: str) -> None:
         self.route = route
@@ -114,11 +115,11 @@ class ApiBase(QObject):
         url = self._url_from_endpoint(endpoint)
         self.get(url, response_handler, error_handler)
 
-    @staticmethod
-    def prepare_request(url: QUrl | None) -> QNetworkRequest:
+    def prepare_request(self, url: QUrl | None) -> QNetworkRequest:
         request = QNetworkRequest(url) if url else QNetworkRequest()
         # last 2 args are unused, but for some reason they are required
-        ApiBase.oauth.prepareRequest(request, QByteArray(), QByteArray())
+        self.oauth.prepareRequest(request, QByteArray(), QByteArray())
+        request.setAttribute(QNetworkRequest.Attribute.Http2AllowedAttribute, self._allow_http2)
         return request
 
     def get(
@@ -207,8 +208,14 @@ class ApiBase(QObject):
     def onRequestFinished(self, reply: QNetworkReply) -> None:
         self._running = False
         if reply.error() != QNetworkReply.NetworkError.NoError:
-            logger.error("API request error. URL: %s. Error: %s", reply.url().url(), reply.error())
+            logger.error(
+                "API request error. URL: %s. Error: %s (%s)",
+                reply.url().url(),
+                reply.error(), reply.errorString(),
+            )
             self.error_handlers[reply](reply)
+            if reply.error() == QNetworkReply.NetworkError.UnknownContentError:
+                self._allow_http2 = False
         elif (
                 reply.operation() in (
                     self.manager.Operation.DeleteOperation,
