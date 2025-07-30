@@ -41,6 +41,7 @@ Default value will be returned instead
 """
 import os
 import re
+from collections.abc import Generator
 
 
 class luaParser:
@@ -49,13 +50,13 @@ class luaParser:
         self.iszip = False
         self.zip = None
         self.__path = luaPath
-        self.__keyFilter = re.compile(r"[\[\],'\"]")
-        self.__valFilter = re.compile(r"[\[\]]")
+        self.__keyFilter = re.compile(r"[\[\],'\"](=*)")
+        self.__valFilter = re.compile(r"[\[\]](=*)")
         self.__searchResult = dict()
         self.__searchPattern = dict()
         self.__foundItemsCount = dict()
-        self.__stream = list()
-        self.__lines = list()
+        self.__stream: list[str] = []
+        self.__lines: list[str] = []
         self.__prevUnfinished = False
         self.__inString = False
         self.__stringChar = ""
@@ -68,7 +69,7 @@ class luaParser:
         self.errorMsg = ""
         self.loweringKeys = True
 
-    def __checkUninterruptibleStr(self, char):
+    def __checkUninterruptibleStr(self, char: str) -> None:
         if char == "\"" or char == "'":
             if not self.__inString:
                 self.__stringChar = char
@@ -78,6 +79,22 @@ class luaParser:
         elif not self.__inString and char == "(":
             self.__inString = True
             self.__stringChar = ")"
+
+    def process_multiline_string(self, line: str) -> Generator[str]:
+        opat = re.compile(r"\[(=*)\[")
+        cpat = re.compile(r"\](=*)\]")
+        open = len(opat.findall(line))
+        close = len(cpat.findall(line))
+
+        yield line
+
+        for _ in range(100):  # let's stay limited
+            if open == close:
+                return
+            next_line = self.__stream.pop(0)
+            open += len(opat.findall(next_line))
+            close += len(cpat.findall(next_line))
+            yield next_line
 
     def __processLine(self, parent=""):
         counter = 0
@@ -135,6 +152,10 @@ class luaParser:
                         if pos <= len(line):
                             self.__checkUninterruptibleStr(line[pos])
                         newLine = pos
+                    elif char == "[" and re.search(r"\[(=*)\[", line[pos:]):
+                        multi_string = "".join(self.process_multiline_string(line))
+                        self.__lines.append(multi_string)
+                        pos = len(line)
                     pos = pos + 1
                 if len(self.__lines) > 0:
                     line = self.__lines.pop(0)
@@ -164,7 +185,7 @@ class luaParser:
                     if value[-1] == ",":
                         value = value[:-1]
                     # get rid of redundant chars in value
-                    value = self.__valFilter.sub("", value)
+                    value = self.__valFilter.sub("", value).strip()
                 if len(value) != 0:
                     # parse value:
                     # if the string starts with '{'
