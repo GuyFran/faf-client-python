@@ -111,7 +111,6 @@ class IceAdapterManager(QObject):
             if self.download_if_necessary(release["assets"]):
                 if self.latest_version != release["tag_name"]:
                     Settings.set(f"iceadapter/{self.adapter_kind}_latest", release["tag_name"])
-                    self.latest_version = release["tag_name"]
                 self.done.emit()
                 return
 
