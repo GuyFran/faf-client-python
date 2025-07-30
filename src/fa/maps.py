@@ -515,6 +515,7 @@ class InstalledMapsCache(QtCore.QObject):
                 if (
                         (root == base_folder and dr.lower() not in maps)
                         or dr.lower() in self.installed_maps
+                        or not os.path.isdir(dr)
                 ):
                     continue
                 map_path = os.path.join(root, dr)
