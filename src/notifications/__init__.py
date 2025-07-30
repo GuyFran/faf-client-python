@@ -5,6 +5,7 @@ Each event_type has a NsHook to customize it.
 from typing import Any
 
 from PyQt6 import QtCore
+from PyQt6.QtGui import QPixmap
 
 from src import util
 from src.config import Settings
@@ -197,6 +198,7 @@ class Notifications:
             game = data
             preview = maps.preview(game.mapname, pixmap=True)
             if preview:
+                assert isinstance(preview, QPixmap)
                 pixmap = preview.scaled(80, 80)
 
             # TODO: outsource as function?

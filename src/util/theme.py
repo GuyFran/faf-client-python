@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Any
 
 from PyQt6 import QtCore
 from PyQt6 import QtGui
@@ -15,18 +16,18 @@ class Theme():
     Represents a single FAF client theme.
     """
 
-    def __init__(self, themedir, name):
+    def __init__(self, themedir: str | None, name: str) -> None:
         """
         A 'None' themedir represents no theming (no dir prepended to filename)
         """
         self._themedir = themedir
         self.name = name
-        self._pixmapcache = {}
+        self._pixmapcache: dict[str, QtGui.QPixmap | None] = {}
 
     def __str__(self):
         return str(self.name)
 
-    def _themepath(self, filename):
+    def _themepath(self, filename: str) -> str:
         if self._themedir is None:
             return filename
         else:
@@ -50,10 +51,10 @@ class Theme():
             version_file = self._themepath("version")
             with open(version_file) as f:
                 return Version(f.read().strip())
-        except (IOError, ValueError):
+        except (OSError, ValueError):
             return None
 
-    def pixmap(self, filename):
+    def pixmap(self, filename: str) -> QtGui.QPixmap | None:
         """
         This function loads a pixmap from a themed directory, or anywhere.
         It also stores them in a cache dictionary (may or may not be necessary
@@ -85,13 +86,13 @@ class Theme():
     def readlines(self, filename):
         # Reads and returns the contents of a file in the theme dir.
         with open(self._themepath(filename)) as f:
-            logger.debug(u"Read themed file: " + filename)
+            logger.debug("Read themed file: " + filename)
             return f.readLines()
 
     @_noneIfNoFile
     def readstylesheet(self, filename):
         with open(self._themepath(filename)) as f:
-            logger.info(u"Read themed stylesheet: " + filename)
+            logger.info("Read themed stylesheet: " + filename)
             return f.read().replace(
                 "%THEMEPATH%", self._themedir.replace("\\", "/"),
             )
@@ -110,7 +111,7 @@ class Theme():
     def readfile(self, filename):
         # Reads and returns the contents of a file in the theme folder.
         with open(self._themepath(filename)) as f:
-            logger.debug(u"Read themed file: " + filename)
+            logger.debug("Read themed file: " + filename)
             return f.read()
 
     @_noneIfNoFile
@@ -303,7 +304,7 @@ class ThemeSet(QtCore.QObject):
                 pass
         return theme_changed()
 
-    def _theme_callchain(self, fn_name, filename, themed):
+    def _theme_callchain(self, fn_name: str, filename: str, themed: bool) -> Any:
         """
         Calls fn_name chaining through theme / default theme / unthemed.
         """
@@ -323,7 +324,7 @@ class ThemeSet(QtCore.QObject):
             return ret
         return _nullcheck
 
-    def _pixmap(self, filename, themed=True):
+    def _pixmap(self, filename: str, themed: bool = True) -> QtGui.QPixmap | None:
         return self._theme_callchain("pixmap", filename, themed)
 
     @_warn_resource_null
@@ -355,7 +356,7 @@ class ThemeSet(QtCore.QObject):
         filepath = self._theme_callchain("sound", filename, themed)
         return QtCore.QUrl.fromLocalFile(filepath)
 
-    def pixmap(self, filename, themed=True):
+    def pixmap(self, filename: str, themed: bool = True) -> QtGui.QPixmap:
         # If we receive None, return the default pixmap
         ret = self._pixmap(filename, themed)
         if ret is None:
@@ -365,7 +366,12 @@ class ThemeSet(QtCore.QObject):
     def reloadStyleSheets(self):
         self.stylesheets_reloaded.emit()
 
-    def icon(self, filename, themed=True, pix=False):
+    def icon(
+        self,
+        filename: str,
+        themed: bool = True,
+        pix: bool = False,
+    ) -> QtGui.QIcon | QtGui.QPixmap:
         """
         Convenience method returning an icon from a cached,
         optionally themed pixmap as returned by the pixmap(...) function

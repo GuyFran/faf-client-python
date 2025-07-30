@@ -315,15 +315,19 @@ def export_preview_from_map(
     return previews
 
 
-def get_preview_for_generated_map(mapname: str) -> QtGui.QIcon:
+def get_preview_for_generated_map(
+        mapname: str,
+        *,
+        pixmap: bool = False,
+) -> QtGui.QIcon | QtGui.QPixmap:
     mapdir = os.path.join(getUserMapsFolder(), mapname)
     preview_name = f"{mapname}_preview.png"
     preview_path = os.path.join(mapdir, preview_name)
 
     if os.path.isfile(preview_path):
-        return util.THEME.icon(preview_path)
+        return util.THEME.icon(preview_path, pix=pixmap)
 
-    return util.THEME.icon("games/generated_map.png")
+    return util.THEME.icon("games/generated_map.png", pix=pixmap)
 
 
 def preview(
@@ -333,7 +337,7 @@ def preview(
         large: bool = False,
 ) -> QtGui.QIcon | QtGui.QPixmap | None:
     if isGeneratedMap(mapname):
-        return get_preview_for_generated_map(mapname)
+        return get_preview_for_generated_map(mapname, pixmap=pixmap)
     try:
         # Try to load directly from cache
         encode_option = QtCore.QUrl.ComponentFormattingOption.EncodeSpaces
