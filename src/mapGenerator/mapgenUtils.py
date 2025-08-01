@@ -2,13 +2,13 @@ import re
 
 versionPattern = re.compile("\\d\\d?\\d?\\.\\d\\d?\\d?\\.\\d\\d?\\d?")
 generatedMapPattern = re.compile(
-    "neroxis_map_generator_({})_(.*)".format(versionPattern.pattern),
+    f"neroxis_map_generator_({versionPattern.pattern})_(.*)",
 )
 
 
-def isGeneratedMap(name):
+def isGeneratedMap(name: str) -> bool:
     '''
     Can't even place it in mapgenManager file outside object as separate
     function  without getting import errors on start
     '''
-    return re.match(generatedMapPattern, name)
+    return re.match(generatedMapPattern, name) is not None

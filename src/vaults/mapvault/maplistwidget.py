@@ -1,3 +1,4 @@
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QLabel
 from PyQt6.QtWidgets import QLayout
 from PyQt6.QtWidgets import QWidget
@@ -5,6 +6,7 @@ from PyQt6.QtWidgets import QWidget
 from src import util
 from src.api.models.Map import Map
 from src.fa import maps
+from src.mapGenerator.mapgenUtils import isGeneratedMap
 from src.vaults.listwidget import VaultListWidget
 
 
@@ -38,3 +40,8 @@ class MapListWidget(VaultListWidget):
             size_label,            games_label,
             self.created_label(), self.rating_layout(),
         ]
+
+    def get_thumbnail(self) -> QPixmap:
+        if isGeneratedMap(self.item_data.xd):
+            return util.THEME.pixmap("games/generated_map.png")
+        return super().get_thumbnail()
