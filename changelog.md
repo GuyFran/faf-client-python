@@ -1,6 +1,10 @@
 0.x.x
 =====
 
+0.24.2
+* Handle multline strings in lua files
+* Fix displaying generated map icon in notifications and vaults
+
 0.24.1
 * Add separate 'Game Launched' notification for ladder
 * Handle null clan descriptions
