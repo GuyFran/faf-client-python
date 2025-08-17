@@ -120,7 +120,7 @@ def existMaps(force=False):
     return __exist_maps
 
 
-def isMapAvailable(mapname):
+def isMapAvailable(mapname: str) -> bool:
     """
     Returns true if the map with the given name is available on the client
     """
@@ -150,7 +150,7 @@ def folderForMap(mapname: str) -> str | None:
     return None
 
 
-def getBaseMapsFolder():
+def getBaseMapsFolder() -> str:
     """
     Returns the folder containing all the base maps for this client.
     """
@@ -162,7 +162,7 @@ def getBaseMapsFolder():
         return "maps"
 
 
-def getUserMapsFolder():
+def getUserMapsFolder() -> str:
     """
     Returns to folder where the downloaded maps of the user are stored.
     """

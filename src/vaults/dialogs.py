@@ -159,7 +159,7 @@ def downloadVaultAssetNoMsg(
         name: str,
         category: str,
         silent: bool,
-        request_params: dict | None = None,
+        request_params: dict[str, str] | None = None,
         label: str = "",
 ) -> tuple[bool, Callable[[], None] | None]:
     """

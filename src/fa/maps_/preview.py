@@ -61,7 +61,7 @@ def image_from_dds_data(reader: io.BufferedReader) -> QImage:
 
 def create_large_preview(
         mapdir: str,
-        armies: dict | None = None,
+        armies: dict[str, dict[str, str | float]] | None = None,
         *,
         scale: int = 1,
 ) -> QPixmap:

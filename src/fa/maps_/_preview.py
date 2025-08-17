@@ -1,6 +1,6 @@
+from collections.abc import Iterable
 from enum import Enum
 from enum import auto
-from typing import Iterable
 
 from PyQt6.QtCore import QPointF
 from PyQt6.QtCore import QRectF
@@ -39,7 +39,7 @@ def parse_positions(savefile: str) -> dict[str, dict[str, QPointF]]:
     army = ""
     mass_cnt = 0
     hydro_cnt = 0
-    with open(savefile, "rt") as file:
+    with open(savefile) as file:
         for line in file:
             if line.find("ARMY_") > -1:
                 state = State.ARMY
@@ -70,7 +70,7 @@ def parse_positions(savefile: str) -> dict[str, dict[str, QPointF]]:
 def add_markers(
         mapdir: str,
         mapdata: MapData,
-        armies: dict | None = None,
+        armies: dict[str, dict[str, str | float]] | None = None,
         *,
         scale: int = 1,
 ) -> None:

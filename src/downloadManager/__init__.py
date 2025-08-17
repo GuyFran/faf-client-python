@@ -219,7 +219,7 @@ class ZipDownloadExtract(BaseDownload):
             target_dir: str,
             nam: QNetworkAccessManager,
             addr: str,
-            request_params: dict | None = None,
+            request_params: dict[str, str] | None = None,
             exist_ok: bool = False,
     ) -> None:
         self._target_dir = target_dir

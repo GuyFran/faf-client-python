@@ -37,7 +37,7 @@ class ModelItem(QObject):
         self.before_updated.emit(self, old, _transaction)
 
     @property
-    def id_key(self):
+    def id_key(self) -> Any:
         raise NotImplementedError
 
     def __hash__(self):

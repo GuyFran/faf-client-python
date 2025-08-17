@@ -35,7 +35,7 @@ class MapGeneratorManager(QObject):
 
         self.currentVersion = Settings.get('mapGenerator/version', "0", str)
 
-    def generateMap(self, mapname=None, args=None):
+    def generateMap(self, mapname: str | None = None, args: list[str] | None = None) -> str:
         if mapname is None:
             '''
              Requests latest version once per session
@@ -54,11 +54,12 @@ class MapGeneratorManager(QObject):
                 # if not "0", use older version, otherwise we don't have any
                 # generator at all
                 elif self.currentVersion == "0":
-                    return False
+                    return ""
             version = self.currentVersion
             args = args
         else:
             matcher = generatedMapPattern.match(mapname)
+            assert matcher is not None
             version = matcher.group(1)
             args = ['--map-name', mapname]
 
@@ -87,7 +88,7 @@ class MapGeneratorManager(QObject):
                 )
                 result = msgbox.exec()
                 if result == QtWidgets.QMessageBox.StandardButton.No:
-                    return False
+                    return ""
                 elif result == QtWidgets.QMessageBox.StandardButton.YesToAll:
                     Settings.set('mapGenerator/autostart', True)
 
@@ -96,18 +97,16 @@ class MapGeneratorManager(QObject):
                 os.makedirs(mapsFolder)
 
             # Start generator with progress bar
-            self.generatorProcess = MapGeneratorProcess(
-                actualPath, mapsFolder, args,
-            )
+            self.generatorProcess = MapGeneratorProcess(actualPath, mapsFolder, args)
 
             map_ = self.generatorProcess.mapname
             # Check if map exists or generator failed
             if os.path.isdir(os.path.join(mapsFolder, map_)):
                 return map_
             else:
-                return False
+                return ""
         else:
-            return False
+            return ""
 
     def generateRandomMap(self):
         '''

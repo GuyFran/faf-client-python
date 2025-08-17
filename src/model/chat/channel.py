@@ -1,4 +1,8 @@
+from __future__ import annotations
+
+from collections.abc import Iterator
 from enum import Enum
+from typing import TYPE_CHECKING
 from typing import Self
 
 from PyQt6.QtCore import QObject
@@ -6,6 +10,9 @@ from PyQt6.QtCore import pyqtSignal
 
 from src.model.modelitem import ModelItem
 from src.model.transaction import transactional
+
+if TYPE_CHECKING:
+    from src.model.chat.chatline import ChatLineMetadata
 
 PARTY_CHANNEL_SUFFIX = "'sParty"
 
@@ -37,15 +44,15 @@ class Lines(QObject):
     added = pyqtSignal()
     removed = pyqtSignal(int)
 
-    def __init__(self):
+    def __init__(self) -> None:
         QObject.__init__(self)
-        self._lines = []
+        self._lines: list[ChatLineMetadata] = []
 
-    def add_line(self, line):
+    def add_line(self, line: ChatLineMetadata) -> None:
         self._lines.append(line)
         self.added.emit()
 
-    def remove_lines(self, number):
+    def remove_lines(self, number: int) -> None:
         number = min(number, len(self))
         if number < 0:
             raise ValueError
@@ -54,13 +61,13 @@ class Lines(QObject):
         del self._lines[0:number]
         self.removed.emit(number)
 
-    def __getitem__(self, n):
+    def __getitem__(self, n: int) -> ChatLineMetadata:
         return self._lines[n]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[ChatLineMetadata]:
         return iter(self._lines)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._lines)
 
 
@@ -68,10 +75,17 @@ class Channel(ModelItem):
     added_chatter = pyqtSignal(object)
     removed_chatter = pyqtSignal(object)
 
-    def __init__(self, id_, lines, topic, is_base=False):
+    def __init__(
+        self,
+        id_: ChannelID,
+        lines: Lines,
+        topic: str,
+        is_base: bool = False,
+    ) -> None:
         ModelItem.__init__(self)
-        self.add_field("topic", topic)
-        self.add_field("is_base", is_base)
+        self.is_base = is_base
+        self.topic = topic
+        self._data_fields.extend(("topic", "is_base"))
         self.lines = lines
         self.id = id_
         self.chatters = {}

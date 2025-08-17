@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 from typing import Any
 from typing import Self
@@ -13,11 +15,14 @@ from src.model.chat.channel import ChannelID
 from src.model.chat.channel import ChannelType
 from src.model.chat.channel import Lines
 from src.model.chat.channelchatter import ChannelChatter
+from src.model.chat.channelchatterset import ChannelChatterset
+from src.model.chat.channelset import Channelset
 from src.model.chat.chat import Chat
 from src.model.chat.chatline import ChatLine
 from src.model.chat.chatline import ChatLineMetadataBuilder
 from src.model.chat.chatline import ChatLineType
 from src.model.chat.chatter import Chatter
+from src.model.chat.chatterset import Chatterset
 
 
 class ChatController(QObject):
@@ -66,18 +71,18 @@ class ChatController(QObject):
         return cls(connection, model, user_relations, chat_config, line_metadata_builder)
 
     @property
-    def _channels(self):
+    def _channels(self) -> Channelset:
         return self._model.channels
 
     @property
-    def _chatters(self):
+    def _chatters(self) -> Chatterset:
         return self._model.chatters
 
     @property
-    def _ccs(self):
+    def _ccs(self) -> ChannelChatterset:
         return self._model.channelchatters
 
-    def _check_add_new_channel(self, cid):
+    def _check_add_new_channel(self, cid: ChannelID) -> Channel:
         if cid not in self._channels:
             channel = Channel(cid, Lines(), "")
             self._channels[cid] = channel
@@ -375,7 +380,7 @@ class MessageAction(Enum):
     JOIN = "/join "
 
     @classmethod
-    def parse_message(cls, msg):
+    def parse_message(cls, msg: str) -> tuple[MessageAction, str]:
         if not msg.startswith("/"):
             return cls.MSG, msg
 
