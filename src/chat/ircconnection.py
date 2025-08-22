@@ -168,6 +168,8 @@ class IrcConnection(SimpleIRCClient, IrcSignals):
         self.reconnector = Reconnector(self)
         self.reactor.socket_error.connect(self.reconnector.reconnect)
 
+        self._history_asked: set[str] = set()
+
     @classmethod
     def build(cls, settings: type[config.Settings]) -> IrcConnection:
         port = settings.get("chat/port", 443, int)
@@ -245,9 +247,11 @@ class IrcConnection(SimpleIRCClient, IrcSignals):
     @_only_if_connected
     def join(self, channel: str) -> None:
         self.connection.join(channel)
-        # 500 is the current maximum for faforever server, and most of the messages
-        # are joins/parts, which we don't display
-        self.connection.send_items("CHATHISTORY", "LATEST", channel, "*", "500")
+        if channel not in self._history_asked:
+            # 500 is the current maximum for faforever server, and most of the messages
+            # are joins/parts, which we don't display
+            self.connection.send_items("CHATHISTORY", "LATEST", channel, "*", "500")
+            self._history_asked.add(channel)
 
     @_only_if_connected
     def part(self, channel: str, reason: str = "") -> None:
