@@ -72,6 +72,7 @@ filtersSettings = {
             "VALID", "TOO_MANY_DESYNCS", "WRONG_VICTORY_CONDITION",
             "NO_FOG_OF_WAR", "CHEATS_ENABLED", "PREBUILT_ENABLED",
             "NORUSH_ENABLED", "BAD_UNIT_RESTRICTIONS", "BAD_MAP", "TOO_SHORT",
+            "UNKNOWN_RESULT",
         ],
     ),
     "Victory condition": dict(
@@ -93,7 +94,7 @@ operators = {
 }
 
 
-class ReplayToolboxHandler(object):
+class ReplayToolboxHandler:
     activePage = Settings.get('replay/activeTboxPage', "Hide all", str)
 
     def __init__(
@@ -209,13 +210,13 @@ class ReplayToolboxHandler(object):
 
     def setupComboBoxes(self):
         for n in range(1, self.numOfFiltersLines + 1):
-            filterComboBox = getattr(self._w, "filter{}".format(n))
+            filterComboBox = getattr(self._w, f"filter{n}")
             filterComboBox.operatorBox = getattr(
-                self._w, "operator{}".format(n),
+                self._w, f"operator{n}",
             )
-            filterComboBox.valueBox = getattr(self._w, "value{}".format(n))
+            filterComboBox.valueBox = getattr(self._w, f"value{n}")
             filterComboBox.layout = getattr(
-                self._w, "filterHorizontal{}".format(n),
+                self._w, f"filterHorizontal{n}",
             )
             filterComboBox.dateEdit = None
             filterComboBox.dateIsActive = False
