@@ -64,7 +64,7 @@ class ApiBase(QObject):
         self.handlers: dict[QNetworkReply, Callable[[PreProcessedApiResponse], Any]] = {}
         self.non_get_handlers: dict[QNetworkReply, Callable[[QNetworkReply], Any]] = {}
         self.error_handlers: dict[QNetworkReply, Callable[[QNetworkReply], Any]] = {}
-        self._allow_http2 = True
+        self._allow_http2 = Settings.get("allow_http2", True, type=bool)
 
     def set_route(self, route: str) -> None:
         self.route = route
@@ -216,6 +216,7 @@ class ApiBase(QObject):
             self.error_handlers[reply](reply)
             if reply.error() == QNetworkReply.NetworkError.UnknownContentError:
                 self._allow_http2 = False
+                Settings.set("allow_http2", False)
         elif (
                 reply.operation() in (
                     self.manager.Operation.DeleteOperation,
