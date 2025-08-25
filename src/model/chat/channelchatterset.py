@@ -1,19 +1,34 @@
+from src.model.chat.channel import Channel
+from src.model.chat.channel import ChannelID
+from src.model.chat.channelchatter import ChannelChatter
+from src.model.chat.channelset import Channelset
+from src.model.chat.chatter import Chatter
+from src.model.chat.chatterset import Chatterset
 from src.model.modelitemset import ModelItemSet
+from src.model.transaction import ModelTransaction
 from src.model.transaction import transactional
 
 
-class ChannelChatterset(ModelItemSet):
-    def __init__(self):
-        ModelItemSet.__init__(self)
+class ChannelChatterset(ModelItemSet[tuple[ChannelID, str], ChannelChatter]):
+    @transactional
+    def set_item(
+        self,
+        key: tuple[ChannelID, str],
+        value: ChannelChatter,
+        *,
+        _transaction: ModelTransaction = ModelTransaction(),
+    ) -> None:
+        super().set_item(key, value, _transaction=_transaction)
+        self.emit_added(value, _transaction)
 
     @transactional
-    def set_item(self, key, cc, _transaction=None):
-        ModelItemSet.set_item(self, key, cc, _transaction)
-        self.emit_added(cc, _transaction)
-
-    @transactional
-    def del_item(self, key, _transaction=None):
-        chatter = ModelItemSet.del_item(self, key, _transaction)
+    def del_item(
+        self,
+        key: tuple[ChannelID, str],
+        *,
+        _transaction: ModelTransaction = ModelTransaction(),
+    ) -> None:
+        chatter = super().del_item(key, _transaction=_transaction)
         if chatter is None:
             return
         self.emit_removed(chatter, _transaction)
@@ -21,20 +36,20 @@ class ChannelChatterset(ModelItemSet):
 
 class ChatterChannelIndex:
     def __init__(self):
-        self._by_channel = {}
-        self._by_chatter = {}
+        self._by_channel: dict[ChannelID, set[ChannelChatter]] = {}
+        self._by_chatter: dict[str, set[ChannelChatter]] = {}
 
-    def ccs_by_chatter(self, chatter):
+    def ccs_by_chatter(self, chatter: Chatter) -> set[ChannelChatter]:
         return self._by_chatter.setdefault(chatter.id_key, set())
 
-    def ccs_by_channel(self, channel):
+    def ccs_by_channel(self, channel: Channel) -> set[ChannelChatter]:
         return self._by_channel.setdefault(channel.id_key, set())
 
-    def add_cc(self, cc):
+    def add_cc(self, cc: ChannelChatter) -> None:
         self.ccs_by_chatter(cc.chatter).add(cc)
         self.ccs_by_channel(cc.channel).add(cc)
 
-    def remove_cc(self, cc):
+    def remove_cc(self, cc: ChannelChatter) -> None:
         chat_ccs = self.ccs_by_chatter(cc.chatter)
         chat_ccs.remove(cc)
         if not chat_ccs:
@@ -47,7 +62,12 @@ class ChatterChannelIndex:
 
 
 class ChannelChatterRelation:
-    def __init__(self, channels, chatters, channelchatters):
+    def __init__(
+        self,
+        channels: Channelset,
+        chatters: Chatterset,
+        channelchatters: ChannelChatterset,
+    ) -> None:
         self._channels = channels
         self._chatters = chatters
         self._channelchatters = channelchatters
@@ -58,22 +78,34 @@ class ChannelChatterRelation:
         self._chatters.before_removed.connect(self._removed_chatter)
         self._channels.before_removed.connect(self._removed_channel)
 
-    def _new_cc(self, cc, _transaction=None):
+    def _new_cc(
+        self,
+        cc: ChannelChatter,
+        _transaction: ModelTransaction = ModelTransaction(),
+    ) -> None:
         self._index.add_cc(cc)
-        cc.channel.add_chatter(cc, _transaction)
-        cc.chatter.add_channel(cc, _transaction)
+        cc.channel.add_chatter(cc, _transaction=_transaction)
+        cc.chatter.add_channel(cc, _transaction=_transaction)
 
-    def _removed_cc(self, cc, _transaction=None):
+    def _removed_cc(
+        self,
+        cc: ChannelChatter,
+        _transaction: ModelTransaction = ModelTransaction(),
+    ) -> None:
         self._index.remove_cc(cc)
-        cc.channel.remove_chatter(cc, _transaction)
-        cc.chatter.remove_channel(cc, _transaction)
+        cc.channel.remove_chatter(cc, _transaction=_transaction)
+        cc.chatter.remove_channel(cc, _transaction=_transaction)
 
-    def _removed_chatter(self, chatter, _transaction):
+    def _removed_chatter(
+        self,
+        chatter: Chatter,
+        _transaction: ModelTransaction = ModelTransaction(),
+    ) -> None:
         ccs = set(self._index.ccs_by_chatter(chatter))
         for cc in ccs:
-            self._channelchatters.del_item(cc.id_key, _transaction)
+            self._channelchatters.del_item(cc.id_key, _transaction=_transaction)
 
-    def _removed_channel(self, channel, _transaction):
+    def _removed_channel(self, channel: Channel, _transaction: ModelTransaction) -> None:
         ccs = set(self._index.ccs_by_channel(channel))
         for cc in ccs:
-            self._channelchatters.del_item(cc.id_key, _transaction)
+            self._channelchatters.del_item(cc.id_key, _transaction=_transaction)

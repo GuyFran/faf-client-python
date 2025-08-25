@@ -19,6 +19,8 @@ from src.api.ApiAccessors import UserApiAccessor
 from src.config import Settings
 from src.model.game import Game
 from src.model.game import message_to_game_args
+from src.model.gameset import Gameset
+from src.model.playerset import Playerset
 from src.protocol.lobbyprotocol import ServerMessage
 
 logger = logging.getLogger(__name__)
@@ -311,7 +313,7 @@ class ServerConnection(QtCore.QObject):
         if self.socket.state() == QtNetwork.QAbstractSocket.SocketState.ConnectedState:
             self.socket.sendBinaryMessage(message)
 
-    def send(self, message: ServerMessage) -> None:
+    def send(self, message: dict[str, Any]) -> None:
         data = json.dumps(message)
         if message.get("command") == "auth":
             logger.info(
@@ -337,7 +339,7 @@ class ServerConnection(QtCore.QObject):
             return
 
     @QtCore.pyqtSlot(QtNetwork.QAbstractSocket.SocketError)
-    def socketError(self, error):
+    def socketError(self, error: QtNetwork.QAbstractSocket.SocketError) -> None:
         if (
             error == QtNetwork.QAbstractSocket.SocketError.SocketTimeoutError
             or error == QtNetwork.QAbstractSocket.SocketError.NetworkError
@@ -406,7 +408,7 @@ class LobbyInfo(QtCore.QObject):
     social = QtCore.pyqtSignal(dict)
     serverSession = QtCore.pyqtSignal(dict)
 
-    def __init__(self, dispatcher, gameset, playerset):
+    def __init__(self, dispatcher: Dispatcher, gameset: Gameset, playerset: Playerset) -> None:
         QtCore.QObject.__init__(self)
 
         self._dispatcher = dispatcher
@@ -433,14 +435,14 @@ class LobbyInfo(QtCore.QObject):
     def handle_updated_achievements(self, message):
         pass
 
-    def handle_game_info(self, message):
+    def handle_game_info(self, message: ServerMessage) -> None:
         if 'games' in message:  # initial games from server after client start
             for game in message['games']:
                 self._update_game(game)
         else:
             self._update_game(message)
 
-    def _update_game(self, m: dict) -> None:
+    def _update_game(self, m: ServerMessage) -> None:
         if not message_to_game_args(m):
             return
 

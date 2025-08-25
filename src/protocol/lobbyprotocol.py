@@ -4,7 +4,10 @@ from typing import Literal
 from typing import NotRequired
 from typing import TypedDict
 
-type ServerMessage = Mapping[str, Any]
+
+class ServerMessage(Mapping[str, Any]):
+    def __setitem__(self, key: str, value: Any, /) -> None: ...
+    def __delitem__(self, key: str, /) -> None: ...
 
 
 class GameJoinFailedCommand(TypedDict):

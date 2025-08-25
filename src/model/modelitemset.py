@@ -27,16 +27,22 @@ class ModelItemSet[KT, VT: ModelItem](QObjectMapping[KT, VT]):
     def __iter__(self) -> Iterator[KT]:
         return iter(self._items)
 
-    def emit_added(self, value: VT, _transaction: ModelTransaction | None = None) -> None:
+    def emit_added(self, value: VT, _transaction: ModelTransaction = ModelTransaction()) -> None:
         _transaction.emit(self.added, value)
         self.before_added.emit(value, _transaction)
 
-    def emit_removed(self, value: VT, _transaction: ModelTransaction | None = None) -> None:
+    def emit_removed(self, value: VT, _transaction: ModelTransaction = ModelTransaction()) -> None:
         _transaction.emit(self.removed, value)
         self.before_removed.emit(value, _transaction)
 
     @transactional
-    def set_item(self, key: KT, value: VT, _transaction: ModelTransaction | None = None) -> None:
+    def set_item(
+        self,
+        key: KT,
+        value: VT,
+        *,
+        _transaction: ModelTransaction = ModelTransaction(),
+    ) -> None:
         if key in self:
             raise ValueError
         if key != value.id_key:
@@ -48,15 +54,20 @@ class ModelItemSet[KT, VT: ModelItem](QObjectMapping[KT, VT]):
         self.set_item(key, value)
 
     @transactional
-    def del_item(self, item: KT, _transaction: ModelTransaction | None = None) -> VT | None:
-        return self._items.pop(item, None)
+    def del_item(
+        self,
+        key: KT,
+        *,
+        _transaction: ModelTransaction = ModelTransaction(),
+    ) -> VT | None:
+        return self._items.pop(key, None)
 
     def __delitem__(self, item: KT) -> None:
         # CAVEAT: use only as an entry point for model changes.
         self.del_item(item)
 
     @transactional
-    def clear(self, _transaction: ModelTransaction | None = None) -> None:
+    def clear(self, *, _transaction: ModelTransaction = ModelTransaction()) -> None:
         items = list(self.keys())
         for item in items:
-            self.del_item(item, _transaction)
+            self.del_item(item, _transaction=_transaction)

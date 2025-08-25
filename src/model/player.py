@@ -1,12 +1,13 @@
 from typing import Any
+from typing import Self
 
-from PyQt6.QtCore import pyqtBoundSignal
 from PyQt6.QtCore import pyqtSignal
 
 from src.model.game import Game
 from src.model.modelitem import ModelItem
 from src.model.rating import Rating
 from src.model.rating import RatingType
+from src.model.transaction import ModelTransaction
 from src.model.transaction import transactional
 from src.protocol.lobbyprotocol import PlayerRatings
 
@@ -51,23 +52,21 @@ class Player(ModelItem):
         self._currentGame: Game | None = None
 
     @property
-    def id_key(self):
+    def id_key(self) -> int:
         return self.id
 
-    def copy(self):
-        p = Player(self.id, self.login, **self.field_dict)
+    def copy(self) -> Self:
+        p = self.__class__(self.id, self.login, **self.field_dict)
         p.currentGame = self.currentGame
         return p
 
     @transactional
-    def update(self, **kwargs):
-        _transaction = kwargs.pop("_transaction")
-
+    def update(self, *, _transaction: ModelTransaction = ModelTransaction(), **kwargs: Any) -> None:
         old_data = self.copy()
-        ModelItem.update(self, **kwargs)
-        self.emit_update(old_data, _transaction)
+        super().update(**kwargs)
+        self.emit_update(old_data, _transaction=_transaction)
 
-    def __index__(self):
+    def __index__(self) -> int:
         return self.id
 
     @property
@@ -101,7 +100,7 @@ class Player(ModelItem):
             count += self.ratings[rating_type].get("number_of_games", 0)
         return count
 
-    def rating_estimate(self, rating_type=RatingType.GLOBAL.value):
+    def rating_estimate(self, rating_type: str = RatingType.GLOBAL.value) -> int:
         """
         Get the conservative estimate of the player's trueskill rating
         """
@@ -131,10 +130,10 @@ class Player(ModelItem):
         except KeyError:
             return 0
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             "Player(id={}, login={}, global_rating={}, ladder_rating={})"
         ).format(
@@ -145,11 +144,16 @@ class Player(ModelItem):
         )
 
     @property
-    def currentGame(self) -> Game:
+    def currentGame(self) -> Game | None:
         return self._currentGame
 
     @transactional
-    def set_currentGame(self, game: Game, _transaction: pyqtBoundSignal | None = None) -> None:
+    def set_currentGame(
+        self,
+        game: Game | None,
+        *,
+        _transaction: ModelTransaction = ModelTransaction(),
+    ) -> None:
         if self.currentGame == game:
             return
         old = self._currentGame
@@ -157,6 +161,6 @@ class Player(ModelItem):
         _transaction.emit(self.newCurrentGame, self, game, old)
 
     @currentGame.setter
-    def currentGame(self, val):
+    def currentGame(self, val: Game | None) -> None:
         # CAVEAT: this will emit signals immediately!
         self.set_currentGame(val)

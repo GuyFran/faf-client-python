@@ -91,7 +91,7 @@ class ChatController(QObject):
                 self._join_chatter_to_his_privchannel(cid.name)
         return self._channels[cid]
 
-    def _add_me_to_channel(self, channel):
+    def _add_me_to_channel(self, channel: Channel) -> None:
         my_name = self._connection.nickname
         me = None if my_name is None else self._chatters.get(my_name, None)
         if me is not None:

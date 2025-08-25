@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import json
 import logging
 import os
 import time
+from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 from PyQt6 import QtCore
@@ -19,10 +22,14 @@ from src import util
 from src.api.models.Leaderboard import Leaderboard
 from src.api.replaysapi import ReplaysApiConnector
 from src.api.stats_api import LeaderboardApiConnector
+from src.client.connection import Dispatcher
 from src.config import Settings
 from src.downloadManager import DownloadRequest
 from src.fa.replay import replay
+from src.model.game import Game
 from src.model.game import GameState
+from src.model.gameset import Gameset
+from src.model.playerset import Playerset
 from src.replays.models import MetadataModel
 from src.replays.replaydetails.replaycard import ReplayDetailsCard
 from src.replays.replayitem import ReplayItem
@@ -30,6 +37,9 @@ from src.replays.replayitem import ReplayItemDelegate
 from src.replays.replayToolbox import ReplayToolboxHandler
 from src.util.gameurl import GameUrl
 from src.util.gameurl import GameUrlType
+
+if TYPE_CHECKING:
+    from src.client._clientwindow import ClientWindow
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +82,7 @@ class LiveReplayItem(QtWidgets.QTreeWidgetItem):
             return
         self.setIcon(0, QtGui.QIcon(pixmap))
 
-    def _update_game(self, game):
+    def _update_game(self, game: Game) -> None:
         if game.state == GameState.CLOSED:
             return
 
@@ -83,7 +93,7 @@ class LiveReplayItem(QtWidgets.QTreeWidgetItem):
         self._set_color(game)
         self._generate_player_subitems(game)
 
-    def _set_debug_tooltip(self, game):
+    def _set_debug_tooltip(self, game: Game) -> None:
         info = game.to_dict()
         tip = ""
         for key in list(info.keys()):
@@ -646,7 +656,14 @@ class ReplayVaultWidgetHandler:
         "replay/matchUsername", default_value=True, type=bool,
     )
 
-    def __init__(self, widget, dispatcher, client, gameset, playerset):
+    def __init__(
+        self,
+        widget: ReplaysWidget,
+        dispatcher: Dispatcher,
+        client: ClientWindow,
+        gameset: Gameset,
+        playerset: Playerset,
+    ) -> None:
         self._w = widget
         self._dispatcher = dispatcher
         self.client = client
@@ -934,7 +951,7 @@ class ReplayVaultWidgetHandler:
             if self.toolboxHandler.mapPreview:
                 self.toolboxHandler.updateMapPreview()
 
-    def onlineTreeDoubleClicked(self, item):
+    def onlineTreeDoubleClicked(self, item: ReplayItem) -> None:
         if (
             self.client.games.party
             and self.client.games.party.member_count > 1
@@ -942,54 +959,54 @@ class ReplayVaultWidgetHandler:
             if not self.client.games.leave_party():
                 return
 
-        if hasattr(item, "duration"):  # it's a game not a date separator
-            if "playing" in item.duration:  # live game will not be in vault
-                # search result isn't updated automatically - so game status
-                # might have changed
-                if item.uid in self._gameset:  # game still running
-                    game = self._gameset[item.uid]
-                    if not game.launched_at:  # we frown upon those
-                        return
-                    if game.has_live_replay:  # live game over 5min
-                        for name in game.players:  # find a player ...
-                            if name in self._playerset:  # still logged in
-                                self._startReplay(name)
-                                break
-                    else:
-                        delta = time.gmtime(
-                            game.LIVE_REPLAY_DELAY_SECS
-                            - (time.time() - game.launched_at),
-                        )
-                        wait_str = time.strftime('%M Min %S Sec', delta)
-                        QtWidgets.QMessageBox.information(
-                            client.instance,
-                            "5 Minute Live Game Delay",
-                            (
-                                "It is too early to join the Game.\n"
-                                "You have to wait {} to join.".format(wait_str)
-                            ),
-                        )
-                else:  # game ended - ask to start replay
-                    if QtWidgets.QMessageBox.question(
-                        client.instance,
-                        "Live Game ended",
-                        "Would you like to watch the replay from the vault?",
-                        QtWidgets.QMessageBox.StandardButton.Yes,
-                        QtWidgets.QMessageBox.StandardButton.No,
-                    ) == QtWidgets.QMessageBox.StandardButton.Yes:
-                        req = QNetworkRequest(QtCore.QUrl(item.url))
-                        self.replayDownload.get(req)
+        if not hasattr(item, "duration") or item.duration is None:
+            return
 
-            else:  # start replay
-                if hasattr(item, "url"):
+        if "playing" in item.duration:  # live game will not be in vault
+            # search result isn't updated automatically - so game status
+            # might have changed
+            if item.uid in self._gameset:  # game still running
+                game = self._gameset[item.uid]
+                if not game.launched_at:  # we frown upon those
+                    return
+                if game.has_live_replay:  # live game over 5min
+                    for name in game.players:  # find a player ...
+                        if self._playerset.get_by_name(name) is not None:  # still logged in
+                            self._startReplay(name)
+                            break
+                else:
+                    delta = time.gmtime(
+                        game.LIVE_REPLAY_DELAY_SECS
+                        - (time.time() - game.launched_at),
+                    )
+                    wait_str = time.strftime('%M Min %S Sec', delta)
+                    QtWidgets.QMessageBox.information(
+                        client.instance,
+                        "5 Minute Live Game Delay",
+                        (
+                            "It is too early to join the Game.\n"
+                            "You have to wait {} to join.".format(wait_str)
+                        ),
+                    )
+            else:  # game ended - ask to start replay
+                if QtWidgets.QMessageBox.question(
+                    client.instance,
+                    "Live Game ended",
+                    "Would you like to watch the replay from the vault?",
+                    QtWidgets.QMessageBox.StandardButton.Yes,
+                    QtWidgets.QMessageBox.StandardButton.No,
+                ) == QtWidgets.QMessageBox.StandardButton.Yes:
                     req = QNetworkRequest(QtCore.QUrl(item.url))
                     self.replayDownload.get(req)
 
-    def _startReplay(self, name):
-        if name is None or name not in self._playerset:
-            return
-        player = self._playerset[name]
+        else:  # start replay
+            if hasattr(item, "url"):
+                req = QNetworkRequest(QtCore.QUrl(item.url))
+                self.replayDownload.get(req)
 
+    def _startReplay(self, name: str | None) -> None:
+        if name is None or (player := self._playerset.get_by_name(name)) is None:
+            return
         if not player.currentGame:
             return
         replay(player.currentGame.url(player.id))

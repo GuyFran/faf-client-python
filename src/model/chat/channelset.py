@@ -9,10 +9,10 @@ from src.model.transaction import ModelTransaction
 from src.model.transaction import transactional
 
 
-class Channelset(ModelItemSet):
+class Channelset(ModelItemSet[ChannelID, Channel]):
 
     def __init__(self, base_channels: dict[ChannelID, Channel]) -> None:
-        ModelItemSet.__init__(self)
+        super().__init__()
         self.base_channels = base_channels
 
     @classmethod
@@ -24,18 +24,24 @@ class Channelset(ModelItemSet):
         self,
         key: ChannelID,
         value: Channel,
-        _transaction: ModelTransaction | None = None,
+        *,
+        _transaction: ModelTransaction = ModelTransaction(),
     ) -> None:
         value.is_base = (
             key.type == ChannelType.PUBLIC
             and key.name in self.base_channels
         )
-        ModelItemSet.set_item(self, key, value, _transaction)
+        super().set_item(key, value, _transaction=_transaction)
         self.emit_added(value, _transaction)
 
     @transactional
-    def del_item(self, key, _transaction=None):
-        channel = ModelItemSet.del_item(self, key, _transaction)
+    def del_item(
+        self,
+        key: ChannelID,
+        *,
+        _transaction: ModelTransaction = ModelTransaction(),
+    ) -> None:
+        channel = super().del_item(key, _transaction=_transaction)
         if channel is None:
             return
         self.emit_removed(channel, _transaction)

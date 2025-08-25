@@ -1,18 +1,27 @@
+from __future__ import annotations
+
 import html
 import string
 import time
 from enum import Enum
+from typing import TYPE_CHECKING
 from typing import Any
+from typing import Self
 
 from PyQt6.QtCore import QTimer
 from PyQt6.QtCore import pyqtSignal
 
 from src.decorators import with_logger
 from src.model.modelitem import ModelItem
+from src.model.transaction import ModelTransaction
 from src.model.transaction import transactional
 from src.protocol.lobbyprotocol import ServerMessage
 from src.util.gameurl import GameUrl
 from src.util.gameurl import GameUrlType
+
+if TYPE_CHECKING:
+    from src.model.player import Player
+    from src.model.playerset import Playerset
 
 
 class GameState(Enum):
@@ -56,52 +65,72 @@ class Game(ModelItem):
 
     def __init__(
         self,
-        playerset,
-        uid,
-        state,
-        launched_at,
-        num_players,
-        max_players,
-        title,
-        host,
-        mapname,
-        map_file_path,
-        teams,
-        featured_mod,
-        sim_mods,
-        password_protected,
-        visibility,
+        playerset: Playerset,
+        uid: int,
+        state: GameState,
+        launched_at: float | None,
+        num_players: int,
+        max_players: int,
+        title: str,
+        host: str,
+        mapname: str,
+        map_file_path: str,
+        teams: dict[str, list[str]],
+        featured_mod: str,
+        sim_mods: dict[str, str],
+        password_protected: bool,
+        visibility: GameVisibility,
         game_type: str,
         hosted_at: str | None,
         enforce_rating_range: bool,
         rating_min: float | None,
         rating_max: float | None,
-        **kwargs,
+        **kwargs: Any,
     ):
 
-        ModelItem.__init__(self)
+        super().__init__()
 
         self._playerset = playerset
 
         self.uid = uid
-        self.add_field("state", state)
-        self.add_field("launched_at", launched_at)
-        self.add_field("num_players", num_players)
-        self.add_field("max_players", max_players)
-        self.add_field("title", title)
-        self.add_field("host", host)
-        self.add_field("mapname", mapname)
-        self.add_field("map_file_path", map_file_path)
-        self.add_field("teams", teams)
-        self.add_field("featured_mod", featured_mod)
-        self.add_field("sim_mods", sim_mods)
-        self.add_field("password_protected", password_protected)
-        self.add_field("visibility", visibility)
-        self.add_field("game_type", GameType(game_type))
-        self.add_field("hosted_at", hosted_at)
-        self.add_field("enforce_rating_range", enforce_rating_range)
-        self.add_field("rating_min", rating_min)
-        self.add_field("rating_max", rating_max)
+        self.state = state
+        self.launched_at = launched_at
+        self.num_players = num_players
+        self.max_players = max_players
+        self.title = title
+        self.host = host
+        self.mapname = mapname
+        self.map_file_path = map_file_path
+        self.teams = teams
+        self.featured_mod = featured_mod
+        self.sim_mods = sim_mods
+        self.password_protected = password_protected
+        self.visibility = visibility
+        self.game_type = GameType(game_type)
+        self.hosted_at = hosted_at
+        self.enforce_rating_range = enforce_rating_range
+        self.rating_min = rating_min
+        self.rating_max = rating_max
+        self._data_fields.extend((
+            "state",
+            "launched_at",
+            "num_players",
+            "max_players",
+            "title",
+            "host",
+            "mapname",
+            "map_file_path",
+            "teams",
+            "featured_mod",
+            "sim_mods",
+            "password_protected",
+            "visibility",
+            "game_type",
+            "hosted_at",
+            "enforce_rating_range",
+            "rating_min",
+            "rating_max",
+        ))
         self._aborted = False
 
         self._live_replay_timer = QTimer()
@@ -112,25 +141,23 @@ class Game(ModelItem):
         self._check_live_replay_timer()
 
     @property
-    def id_key(self):
+    def id_key(self) -> int:
         return self.uid
 
-    def copy(self):
-        old = Game(self._playerset, self.uid, **self.field_dict)
+    def copy(self) -> Self:
+        old = self.__class__(self._playerset, self.uid, **self.field_dict)
         old._aborted = self._aborted
         old.has_live_replay = self.has_live_replay
         return old
 
     @transactional
-    def update(self, **kwargs):
+    def update(self, *, _transaction: ModelTransaction = ModelTransaction(), **kwargs: Any) -> None:
         if self._aborted:
             return
-
-        _transaction = kwargs.pop("_transaction")
         old = self.copy()
-        ModelItem.update(self, **kwargs)
+        super().update(**kwargs)
         self._check_live_replay_timer()
-        self.emit_update(old, _transaction)
+        self.emit_update(old, _transaction=_transaction)
 
     def _check_live_replay_timer(self) -> None:
         if (
@@ -148,26 +175,26 @@ class Game(ModelItem):
         self._live_replay_timer.start(int(time_to_replay * 1000))
 
     @transactional
-    def _emit_live_replay(self, _transaction=None):
+    def _emit_live_replay(self, *, _transaction: ModelTransaction = ModelTransaction()) -> None:
         if self.state != GameState.PLAYING:
             return
         self.has_live_replay = True
         _transaction.emit(self.liveReplayAvailable, self)
         self.before_replay_available.emit(self, _transaction)
 
-    def closed(self):
+    def closed(self) -> bool:
         return self.state == GameState.CLOSED or self._aborted
 
     # Used when the server confuses us whether the game is valid anymore.
     @transactional
-    def abort_game(self, _transaction=None):
+    def abort_game(self, *, _transaction: ModelTransaction = ModelTransaction()) -> None:
         if self.closed():
             return
 
         old = self.copy()
         self.state = GameState.CLOSED
         self._aborted = True
-        self.emit_update(old, _transaction)
+        self.emit_update(old, _transaction=_transaction)
 
     def to_dict(self) -> dict[str, Any]:
         data = self.field_dict
@@ -190,31 +217,25 @@ class Game(ModelItem):
 
     # Utility functions start here.
 
-    def is_connected(self, name):
-        return name in self._playerset
+    def is_connected(self, name: str) -> bool:
+        return self.to_player(name) is not None
 
-    def is_ingame(self, name):
+    def is_ingame(self, name: str) -> bool:
         return (
             not self.closed()
-            and self.is_connected(name)
-            and self._playerset[name].currentGame == self
+            and (player := self._playerset.get_by_name(name)) is not None
+            and player.currentGame == self
         )
 
-    def to_player(self, name):
-        if not self.is_connected(name):
-            return None
-        return self._playerset[name]
+    def to_player(self, name: str) -> Player | None:
+        return self._playerset.get_by_name(name)
 
     @property
-    def players(self):
-        if self.teams is None:
-            return []
+    def players(self) -> list[str]:
         return [name for team in self.teams.values() for name in team]
 
     @property
-    def observers(self):
-        if self.teams is None:
-            return []
+    def observers(self) -> list[str]:
         return [
             name
             for tname, team in self.teams.items()
@@ -223,9 +244,7 @@ class Game(ModelItem):
         ]
 
     @property
-    def playing_teams(self):
-        if self.teams is None:
-            return {}
+    def playing_teams(self) -> dict[str, list[str]]:
         return {
             n: t
             for n, t in self.teams.items()
@@ -237,36 +256,41 @@ class Game(ModelItem):
         return [name for team in self.playing_teams.values() for name in team]
 
     @property
-    def host_player(self):
+    def host_player(self) -> Player | None:
         try:
-            return self._playerset[self.host]
+            return self._playerset.get_by_name(self.host)
         except KeyError:
             return None
 
     @transactional
-    def ingame_player_added(self, player, _transaction=None):
+    def ingame_player_added(
+        self,
+        player: Player,
+        *,
+        _transaction: ModelTransaction = ModelTransaction(),
+    ) -> None:
         _transaction.emit(self.ingamePlayerAdded, self, player)
 
     @transactional
-    def ingame_player_removed(self, player, _transaction=None):
+    def ingame_player_removed(
+        self,
+        player: Player,
+        *,
+        _transaction: ModelTransaction = ModelTransaction(),
+    ) -> None:
         _transaction.emit(self.ingamePlayerRemoved, self, player)
 
     @property
-    def average_rating(self):
+    def average_rating(self) -> float:
         players = [
             name
             for team in self.playing_teams.values()
             for name in team
         ]
-        players = [
-            self.to_player(name)
-            for name in players
-            if self.is_connected(name)
-        ]
-        if not players:
+        players = list(filter(None, map(self.to_player, players)))
+        if len(players) == 0:
             return 0
-        else:
-            return sum([p.global_estimate for p in players]) / len(players)
+        return sum(p.global_estimate for p in players) / len(players)
 
     @property
     def mapdisplayname(self):

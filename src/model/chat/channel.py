@@ -3,15 +3,18 @@ from __future__ import annotations
 from collections.abc import Iterator
 from enum import Enum
 from typing import TYPE_CHECKING
+from typing import Any
 from typing import Self
 
 from PyQt6.QtCore import QObject
 from PyQt6.QtCore import pyqtSignal
 
 from src.model.modelitem import ModelItem
+from src.model.transaction import ModelTransaction
 from src.model.transaction import transactional
 
 if TYPE_CHECKING:
+    from src.model.chat.channelchatter import ChannelChatter
     from src.model.chat.chatline import ChatLineMetadata
 
 PARTY_CHANNEL_SUFFIX = "'sParty"
@@ -88,33 +91,41 @@ class Channel(ModelItem):
         self._data_fields.extend(("topic", "is_base"))
         self.lines = lines
         self.id = id_
-        self.chatters = {}
+        self.chatters: dict[tuple[ChannelID, str], ChannelChatter] = {}
 
     @property
-    def id_key(self):
+    def id_key(self) -> ChannelID:
         return self.id
 
-    def copy(self):
-        return Channel(self.id, self.lines, **self.field_dict)
+    def copy(self) -> Self:
+        return self.__class__(self.id, self.lines, **self.field_dict)
 
     @transactional
-    def update(self, **kwargs):
-        _transaction = kwargs.pop("_transaction")
-
+    def update(self, *, _transaction: ModelTransaction = ModelTransaction(), **kwargs: Any) -> None:
         old = self.copy()
-        ModelItem.update(self, **kwargs)
-        self.emit_update(old, _transaction)
+        super().update(**kwargs)
+        self.emit_update(old, _transaction=_transaction)
 
     @transactional
-    def set_topic(self, topic, _transaction=None):
+    def set_topic(self, topic: str, *, _transaction: ModelTransaction = ModelTransaction()) -> None:
         self.update(topic=topic, _transaction=_transaction)
 
     @transactional
-    def add_chatter(self, cc, _transaction=None):
+    def add_chatter(
+        self,
+        cc: ChannelChatter,
+        *,
+        _transaction: ModelTransaction = ModelTransaction(),
+    ) -> None:
         self.chatters[cc.id_key] = cc
         _transaction.emit(self.added_chatter, cc)
 
     @transactional
-    def remove_chatter(self, cc, _transaction=None):
+    def remove_chatter(
+        self,
+        cc: ChannelChatter,
+        *,
+        _transaction: ModelTransaction = ModelTransaction(),
+    ) -> None:
         del self.chatters[cc.id_key]
         _transaction.emit(self.removed_chatter, cc)
