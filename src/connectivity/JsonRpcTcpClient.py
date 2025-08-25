@@ -14,17 +14,14 @@ from PyQt6.QtCore import QObject
 from PyQt6.QtNetwork import QAbstractSocket
 from PyQt6.QtNetwork import QTcpSocket
 
-type RpcParams = list[str | int | bool]
+type IceCommandArgs = Sequence[str | int | bool | IceCommandArgs]
 
 
 class RpcObject(TypedDict):
     method: str
-    params: RpcParams
+    params: IceCommandArgs
     jsonrpc: Literal["2.0"]
     id: NotRequired[int]
-
-
-type IceCommandArgs = Sequence[str | int | bool | IceCommandArgs]
 
 
 class JsonRpcTcpClient(QObject):
@@ -39,6 +36,7 @@ class JsonRpcTcpClient(QObject):
         self.callbacks_result: dict[int, Callable[..., None]] = {}
         self.callbacks_error: dict[int, Callable[..., None]] = {}
         self.buffer = b''
+        self.decoder = json.JSONDecoder()
 
     def connect_(self, host: str, port: int, *, blocking: bool = False) -> None:
         self.host = host
@@ -112,63 +110,40 @@ class JsonRpcTcpClient(QObject):
 
     @QtCore.pyqtSlot()
     def onData(self) -> None:
-        newData = b''
+        new_data = b""
         while self.socket.bytesAvailable():
-            newData += bytes(self.socket.readAll())
+            new_data += self.socket.readAll().data()
 
         # this seems to be a new notification, which invalidates out buffer.
         # This may happen on malformed JSON data
-        if newData.startswith(b"{\"jsonrpc\":\"2.0\""):
+        if new_data.startswith(b"{\"jsonrpc\":\"2.0\""):
             if len(self.buffer) > 0:
                 self._logger.error(
                     "Parse error: discarding old possibly malformed buffer data: %s",
                     self.buffer,
                 )
-            self.buffer = newData
+            self.buffer = new_data
         else:
-            self.buffer += newData
-        self.buffer = self.processBuffer(self.buffer.strip())
+            self.buffer += new_data
+        self.buffer = self.process_buffer(self.buffer.strip())
 
-    # from https://github.com/joncol/jcon-cpp/blob/master/src/jcon/
-    # json_rpc_endpoint.cpp#L107
-    def processBuffer(self, buf: bytes) -> bytes:
-        if len(buf) == 0:
-            return b''
-        if not buf.startswith(b'{'):
-            self._logger.error("parse error: buffer expected to start: %s", buf)
-            return b''
-        in_string = False
-        brace_nesting_level = 0
-        for i, c in enumerate(buf):
-            if c == ord('"'):
-                in_string = not in_string
+    def process_buffer(self, buf: bytes) -> bytes:
+        if not buf:
+            return b""
 
-            if not in_string:
-                if c == ord('{'):
-                    brace_nesting_level += 1
-                if c == ord('}'):
-                    brace_nesting_level -= 1
-                    if brace_nesting_level < 0:
-                        self._logger.error("parse error: brace_nesting_level < 0: %s", buf)
-                        return b''
-                    if brace_nesting_level == 0:
-                        complete_json_buf = buf[:i + 1]
-                        remaining_buf = buf[i + 1:]
-                        try:
-                            request = json.loads(
-                                complete_json_buf.decode('utf-8'),
-                            )
-                        except ValueError:
-                            self._logger.error("json.loads failed for %s", complete_json_buf)
-                            return b''
-                        # is this a request?
-                        if "method" in request:
-                            self.parseRequest(request)
-                        # this is only a response
-                        else:
-                            self.parseResponse(request)
-                        return self.processBuffer(remaining_buf.strip())
-        return buf
+        try:
+            obj, end_index = self.decoder.raw_decode(buf.decode("utf-8"))
+        except (UnicodeDecodeError, ValueError, json.JSONDecodeError) as e:
+            self._logger.error("json.loads failed for %s. Error: %s", buf, e)
+            return buf
+
+        if "method" in obj:
+            self.parseRequest(obj)
+        else:
+            self.parseResponse(obj)
+
+        remaining = buf[end_index:].strip()
+        return self.process_buffer(remaining)
 
     def call(
         self,
