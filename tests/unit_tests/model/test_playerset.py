@@ -45,7 +45,7 @@ def test_add_remove(mocker):
     ps[p.id] = p
     assert newplayer.called
     assert ps[p.id] is p
-    assert ps[p.login] is p
+    assert ps.get_by_name(p.login) is p
 
     del ps[p.id]
     assert goneplayer.called
@@ -60,7 +60,7 @@ def test_add_remove(mocker):
 def test_cant_add_by_login():
     ps = Playerset()
     p = Player(**DEFAULT_DICT)
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         ps[p.login] = p
 
 
@@ -84,5 +84,5 @@ def test_cant_get_by_player():
     ps = Playerset()
     p = Player(**DEFAULT_DICT)
     ps[p.id] = p
-    with pytest.raises(TypeError):
+    with pytest.raises(KeyError):
         ps[p]
