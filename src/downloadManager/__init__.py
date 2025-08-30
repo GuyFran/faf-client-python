@@ -400,7 +400,7 @@ class DownloadTimeouts[T]:
     def __getitem__(self, item: T, /) -> int:
         return self._timed_out_items.get(item, 0)
 
-    def __setitem__(self, item: T, value: int) -> None:
+    def __setitem__(self, item: T, value: int, /) -> None:
         if value == 0:
             self._timed_out_items.pop(item, None)
         else:

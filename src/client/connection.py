@@ -356,10 +356,10 @@ class Dispatcher:
         self._receivers: dict[tuple[str, str | None], Callable[[ServerMessage], Any]] = {}
         self._dispatchees: dict[str, Callable[[ServerMessage], Any]] = {}
 
-    def __setitem__(self, key: str, fn: Callable[[ServerMessage], Any]) -> None:
+    def __setitem__(self, key: str, fn: Callable[[ServerMessage], Any], /) -> None:
         self._dispatchees[key] = fn
 
-    def __delitem__(self, key: str) -> None:
+    def __delitem__(self, key: str, /) -> None:
         del self._dispatchees[key]
 
     def subscribe_to(

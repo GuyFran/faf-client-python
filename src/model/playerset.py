@@ -41,6 +41,6 @@ class Playerset(ModelItemSet[int, Player]):
         del self._logins[player.login]
         self.emit_removed(player, _transaction)
 
-    def __delitem__(self, item: int) -> None:
+    def __delitem__(self, item: int, /) -> None:
         # CAVEAT: use only as an entry point for model changes.
         self.del_item(item)
