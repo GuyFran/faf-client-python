@@ -3,6 +3,7 @@
 
 0.24.3
 * Add `UNKNOWN_RESULT` to replay validity search options
+* Fix not displaying installed maps in host widget
 
 0.24.2
 * Handle multline strings in lua files
