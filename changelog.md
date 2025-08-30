@@ -1,6 +1,9 @@
 0.x.x
 =====
 
+0.24.3
+* Add `UNKNOWN_RESULT` to replay validity search options
+
 0.24.2
 * Handle multline strings in lua files
 * Fix displaying generated map icon in notifications and vaults
