@@ -4,6 +4,7 @@ import logging
 import os
 import zipfile
 from io import BytesIO
+from typing import Any
 
 from PyQt6.QtCore import QByteArray
 from PyQt6.QtCore import QEventLoop
@@ -27,7 +28,7 @@ from src.util import MAP_PREVIEW_SMALL_DIR
 logger = logging.getLogger(__name__)
 
 
-class BaseDownload(QObject):
+class BaseDownload[T: QFile | BytesIO](QObject):
     """
     A simple async one-shot file downloader.
     """
@@ -39,7 +40,7 @@ class BaseDownload(QObject):
             self,
             nam: QNetworkAccessManager,
             addr: str,
-            dest: QFile | BytesIO,
+            dest: T,
             destpath: str | None = None,
             request_params: dict[str, str] | None = None,
     ) -> None:
@@ -63,24 +64,27 @@ class BaseDownload(QObject):
         self._running = False
         self._sock_finished = False
 
-    def _stop(self):
+    def _stop(self) -> None:
         ran = self._running
         self._running = False
         if ran:
             self._about_to_finish()
             self._finish()
 
-    def _error(self):
+    def _error(self) -> None:
         self.error = True
         self._stop()
 
-    def cancel(self):
+    def cancel(self) -> None:
         self.canceled = True
-        if not self._dfile.isFinished():
+        if self._dfile is not None and not self._dfile.isFinished():
             self._dfile.abort()
         self._stop()
 
     def _handle_status(self) -> None:
+        if self._dfile is None:
+            logger.warning("Handling status of nonexistent download request: %s", self.addr)
+            return
         # check status code
         statusCode = self._dfile.attribute(QNetworkRequest.Attribute.HttpStatusCodeAttribute)
         if statusCode != 200:
@@ -104,18 +108,19 @@ class BaseDownload(QObject):
         req.setMaximumRedirectsAllowed(3)
         return req
 
-    def run(self):
+    def run(self) -> None:
         self._running = True
         self.start.emit(self)
 
         self._dfile = self._nam.get(self.prepare_request())
+        assert self._dfile is not None
         self._dfile.errorOccurred.connect(self._error)
         self._dfile.finished.connect(self._atFinished)
         self._dfile.downloadProgress.connect(self._atProgress)
         self._dfile.readyRead.connect(self._kick_read)
         self._kick_read()
 
-    def _atFinished(self):
+    def _atFinished(self) -> None:
         self._sock_finished = True
         self._kick_read()
 
@@ -124,29 +129,32 @@ class BaseDownload(QObject):
         self.bytes_total = total
         self.progress.emit(self)
 
-    def _kick_read(self):    # Don't run the read loop more than once at a time
+    def _kick_read(self) -> None:    # Don't run the read loop more than once at a time
         if self._reading:
             return
         self._reading = True
         self._read()
         self._reading = False
 
-    def _read(self):
-        while self._dfile.bytesAvailable() > 0 and self._running:
+    def _read(self) -> None:
+        while self._dfile is not None and self._dfile.bytesAvailable() > 0 and self._running:
             self._readloop()
         if self._sock_finished:
             # Sock can be marked as finished either before read or inside
             # readloop. Either way we've read everything after it was marked
             self._stop()
 
-    def _readloop(self):
+    def _readloop(self) -> None:
+        if self._dfile is None:
+            logger.warning("Attempting to read from nonexistent descriptor: %s", self.addr)
+            return
         if self.blocksize is None:
             bs = self._dfile.bytesAvailable()
         else:
             bs = self.blocksize
         self.dest.write(self._dfile.read(bs))
 
-    def succeeded(self):
+    def succeeded(self) -> bool:
         return not self.error and not self.canceled
 
     def failed(self) -> bool:
@@ -167,7 +175,7 @@ class BaseDownload(QObject):
         loop.exec(wait_flag)
 
 
-class FileDownload(BaseDownload):
+class FileDownload(BaseDownload[QFile]):
     def __init__(
             self,
             target_path: str,
@@ -209,7 +217,7 @@ class FileDownload(BaseDownload):
             self._unlink_temp_file()
 
 
-class ZipDownloadExtract(BaseDownload):
+class ZipDownloadExtract(BaseDownload[BytesIO]):
     """
     Download a zip archive in-memory and extract it into target_dir
     """
@@ -267,7 +275,7 @@ class DownloadWrapper(QObject):
             delay_timer: QTimer | None,
     ) -> None:
         super().__init__()
-        self.requests = set()
+        self.requests: set[DownloadRequest] = set()
         self.name = name
         self._url = url
         self._nam = nam
@@ -281,7 +289,7 @@ class DownloadWrapper(QObject):
 
     def _start_download(self) -> None:
         if self._delay_timer is not None:
-            self._delay_timer.disconnect(self._start_download)
+            self._delay_timer.disconnect()
         self._dl = self._prepare_dl()
         self._dl.run()
 
@@ -301,8 +309,8 @@ class DownloadWrapper(QObject):
     def _finished(self, dl: FileDownload) -> None:
         self.done.emit(self, dl.dest.fileName())
 
-    def failed(self):
-        return not self._dl.succeeded()
+    def failed(self) -> bool:
+        return self._dl is None or not self._dl.succeeded()
 
 
 class DownloadRequest(QObject):
@@ -310,21 +318,21 @@ class DownloadRequest(QObject):
 
     def __init__(self):
         QObject.__init__(self)
-        self._dl = None
+        self._dl: DownloadWrapper | None = None
 
     @property
-    def dl(self):
+    def dl(self) -> DownloadWrapper | None:
         return self._dl
 
     @dl.setter
-    def dl(self, value):
+    def dl(self, value: DownloadWrapper | None) -> None:
         if self._dl is not None:
             self._dl.remove_request(self)
         self._dl = value
         if self._dl is not None:
             self._dl.add_request(self)
 
-    def finished(self, name, result):
+    def finished(self, name: str, result: Any) -> None:
         self.done.emit(name, result)
 
 
@@ -345,7 +353,10 @@ class Downloader(QObject):
         self._nam = QNetworkAccessManager(self)
         self._target_dir = target_dir
         self._downloads: dict[str, DownloadWrapper] = {}
-        self._timeouts = DownloadTimeouts(self.REDOWNLOAD_TIMEOUT, self.DOWNLOAD_FAILS_TO_TIMEOUT)
+        self._timeouts = DownloadTimeouts[str](
+            self.REDOWNLOAD_TIMEOUT,
+            self.DOWNLOAD_FAILS_TO_TIMEOUT,
+        )
 
     def set_target_dir(self, target_dir: str) -> None:
         self._target_dir = target_dir
@@ -378,33 +389,33 @@ class Downloader(QObject):
             req.finished(download.name, (download_path, download.failed()))
 
 
-class DownloadTimeouts:
-    def __init__(self, timeout_interval, fail_count_to_timeout):
+class DownloadTimeouts[T]:
+    def __init__(self, timeout_interval: int, fail_count_to_timeout: int) -> None:
         self._fail_count_to_timeout = fail_count_to_timeout
-        self._timed_out_items = {}
+        self._timed_out_items: dict[T, int] = {}
         self.timer = QTimer()
         self.timer.setInterval(timeout_interval)
         self.timer.timeout.connect(self._clear_timeouts)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: T, /) -> int:
         return self._timed_out_items.get(item, 0)
 
-    def __setitem__(self, item, value):
+    def __setitem__(self, item: T, value: int) -> None:
         if value == 0:
             self._timed_out_items.pop(item, None)
         else:
             self._timed_out_items[item] = value
 
-    def on_timeout(self, item):
+    def on_timeout(self, item: T) -> bool:
         return self[item] >= self._fail_count_to_timeout
 
-    def update_fail_count(self, item, failed):
+    def update_fail_count(self, item: T, failed: bool) -> None:
         if failed:
             self[item] += 1
         else:
             self[item] = 0
 
-    def _clear_timeouts(self):
+    def _clear_timeouts(self) -> None:
         self._timed_out_items.clear()
 
 
@@ -412,7 +423,7 @@ class ImageDownloader:
     def __init__(self, save_dir: str = AVATARS_CACHE_DIR, size: QSize | None = None) -> None:
         self._size = size
         self._nam = QNetworkAccessManager()
-        self._requests = {}
+        self._requests: dict[str, set[DownloadRequest]] = {}
         self._nam.finished.connect(self._image_download_finished)
         self.save_dir = save_dir
 
@@ -431,7 +442,7 @@ class ImageDownloader:
     def download_image(self, url: str, req: DownloadRequest) -> None:
         self._add_request(url, req)
 
-    def _add_request(self, url, req):
+    def _add_request(self, url: str, req: DownloadRequest) -> None:
         should_download = url not in self._requests
         self._requests.setdefault(url, set()).add(req)
         if should_download:
@@ -460,7 +471,7 @@ class ImageDownloader:
 class CachedImageDownloader(ImageDownloader):
     def __init__(self, save_dir: str = AVATARS_CACHE_DIR, size: QSize | None = None) -> None:
         ImageDownloader.__init__(self, save_dir, size)
-        self.images = {}
+        self.images: dict[str, QPixmap] = {}
         self.load_cache()
 
     def load_cache(self) -> None:
@@ -496,7 +507,7 @@ class MapPreviewDownloader(ImageDownloader):
         self._add_request(self._target_url(name), req)
 
     def _target_url(self, name: str) -> str:
-        return Settings.get("vault/map_preview_url").format(size=self.size_str, name=name)
+        return Settings.get("vault/map_preview_url", "").format(size=self.size_str, name=name)
 
 
 class MapSmallPreviewDownloader(MapPreviewDownloader):

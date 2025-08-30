@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from collections.abc import Iterator
 from collections.abc import MutableSet
 from typing import Any
+from typing import Literal
 from typing import Self
 
-from irc.client import ServerConnection
 from PyQt6 import QtCore
 from PyQt6.QtCore import QObject
 from PyQt6.QtCore import pyqtBoundSignal
@@ -14,11 +15,15 @@ from PyQt6.QtCore import pyqtSignal
 from src.api.models.LeagueSeasonScore import LeagueSeasonScore
 from src.api.stats_api import LeagueSeasonScoreApiConnector
 from src.client.connection import LobbyInfo
+from src.client.connection import ServerConnection
 from src.config import Settings
+from src.model.chat.chatter import Chatter
 from src.model.chat.chatterset import Chatterset
+from src.model.modelitem import ModelItem
 from src.model.modelitemset import ModelItemSet
 from src.model.player import Player
 from src.model.playerset import Playerset
+from src.protocol.lobbyprotocol import SocialCommand
 
 
 class User(QtCore.QObject):
@@ -30,8 +35,8 @@ class User(QtCore.QObject):
     playerChanged = pyqtSignal(object)
     clan_changed = pyqtSignal(object, object)
 
-    def __init__(self, playerset):
-        QtCore.QObject.__init__(self)
+    def __init__(self, playerset: Playerset) -> None:
+        super().__init__()
 
         self._player = None
         self.id = None
@@ -50,7 +55,7 @@ class User(QtCore.QObject):
         return self._player
 
     @player.setter
-    def player(self, value: Player) -> None:
+    def player(self, value: Player | None) -> None:
         new = value
         old = self._player
         if old is not None:
@@ -61,12 +66,12 @@ class User(QtCore.QObject):
         self.playerChanged.emit(self._player)
         self._emit_clan_changed(new, old)
 
-    def _at_player_update(self, new, old):
+    def _at_player_update(self, new: Player, old: Player) -> None:
         if new.clan != old.clan:
             self._emit_clan_changed(new, old)
 
-    def _emit_clan_changed(self, new_player, old_player):
-        def pclan(p):
+    def _emit_clan_changed(self, new_player: Player | None, old_player: Player | None) -> None:
+        def pclan(p: Player | None) -> str | None:
             return None if p is None else p.clan
         self.clan_changed.emit(pclan(new_player), pclan(old_player))
 
@@ -76,13 +81,15 @@ class User(QtCore.QObject):
         self._update_player()
         self.league_api.get_player_scores(str(id_))
 
-    def _update_player(self):
-        new_player = self._players.get(self.id, None)
+    def _update_player(self) -> None:
+        if self.id is None:
+            return
+        new_player = self._players.get(self.id)
         if self._player is new_player:
             return
         self.player = new_player
 
-    def _on_player_change(self, player):
+    def _on_player_change(self, player: Player) -> None:
         if self.id is None or player.id != self.id:
             return
         self._update_player()
@@ -90,17 +97,17 @@ class User(QtCore.QObject):
     def resetPlayer(self):
         self._player = None
 
-    def is_clannie(self, pid):
+    def is_clannie(self, pid: int | None) -> bool:
         if pid is None:
             return False
-        player = self._players.get(pid, None)
+        player = self._players.get(pid)
         if player is None or self._player is None:
             return False
         if self._player.clan is None:
             return False
         return player.clan == self._player.clan
 
-    def player_clan(self):
+    def player_clan(self) -> str | None:
         return None if self.player is None else self.player.clan
 
     def on_league_scores(self, scores: list[LeagueSeasonScore]) -> None:
@@ -126,9 +133,9 @@ class SetSignals(QObject):
 
 
 class SignallingSet[T](MutableSet[T]):
-    def __init__(self) -> None:
+    def __init__(self, it: Iterable[T] | None = None) -> None:
         super().__init__()
-        self._set: set[T] = set()
+        self._set: set[T] = set(it) if it is not None else set()
         self._signals = SetSignals()
 
     @property
@@ -159,12 +166,12 @@ class SignallingSet[T](MutableSet[T]):
             self.removed.emit(value)
 
 
-class FriendFoeModel:
+class FriendFoeModel[T]:
     def __init__(
         self,
-        friends: SignallingSet[int],
-        foes: SignallingSet[int],
-        chatterboxes: SignallingSet[int],
+        friends: SignallingSet[T],
+        foes: SignallingSet[T],
+        chatterboxes: SignallingSet[str],
     ) -> None:
         self.friends = friends
         self.foes = foes
@@ -172,21 +179,25 @@ class FriendFoeModel:
 
     @classmethod
     def build(cls) -> Self:
-        friends = SignallingSet[int]()
-        foes = SignallingSet[int]()
-        chatterboxes = SignallingSet[int]()
+        friends = SignallingSet[T]()
+        foes = SignallingSet[T]()
+        chatterboxes = SignallingSet[str]()
         return cls(friends, foes, chatterboxes)
 
 
 class UserRelationModel:
-    def __init__(self, player_relations: FriendFoeModel, irc_relations: FriendFoeModel) -> None:
+    def __init__(
+        self,
+        player_relations: FriendFoeModel[int],
+        irc_relations: FriendFoeModel[str],
+    ) -> None:
         self.faf = player_relations
         self.irc = irc_relations
 
     @classmethod
     def build(cls) -> Self:
-        player_relations = FriendFoeModel.build()
-        irc_relations = FriendFoeModel.build()
+        player_relations = FriendFoeModel[int].build()
+        irc_relations = FriendFoeModel[str].build()
         return cls(player_relations, irc_relations)
 
     def is_friend(self, id_: int | None = None, name: str | None = None) -> bool:
@@ -205,7 +216,7 @@ class UserRelationModel:
 
     def is_chatterbox(self, id_: int | None = None, name: str | None = None) -> bool:
         if id_ not in [None, -1]:
-            return id_ in self.faf.chatterboxes
+            return str(id_) in self.faf.chatterboxes
         if name is not None:
             return name in self.irc.chatterboxes
         return False
@@ -215,7 +226,7 @@ class IrcRelationController:
     def __init__(
         self,
         keyname: str,
-        set_: SignallingSet[int],
+        set_: SignallingSet[str],
         me: User,
         settings: type[Settings],
     ) -> None:
@@ -231,38 +242,36 @@ class IrcRelationController:
     def build(
         cls,
         keyname: str,
-        set_: SignallingSet[int],
+        set_: SignallingSet[str],
         me: User,
-        settings: Settings,
+        settings: type[Settings],
         **kwargs: Any,
     ) -> Self:
         return cls(keyname, set_, me, settings)
 
     def _load(self) -> None:
+        loaded: list[str]
         if self._key is None:
             loaded = []
         else:
-            loaded = self._settings.get(self._key, [])
+            loaded = self._settings.get_list(self._key, default=[])
         self._set.clear()
-        if self._keyname == "chatterboxes":
-            self._set |= (int(pid) for pid in loaded)
-        else:
-            self._set |= loaded
+        self._set |= set(loaded)
 
-    def _save(self):
+    def _save(self) -> None:
         if self._key is not None:
             self._settings.set(self._key, list(self._set))
 
     @property
-    def key(self):
+    def key(self) -> str | None:
         return self._key
 
     @key.setter
-    def key(self, value):
+    def key(self, value: str | None) -> None:
         self._key = value
         self._load()
 
-    def _at_player_changed(self, player: Player) -> None:
+    def _at_player_changed(self, player: Player | None) -> None:
         self.key = self._irc_key(player)
 
     def _irc_key(self, player: Player | None) -> str | None:
@@ -270,20 +279,20 @@ class IrcRelationController:
             return None
         return f"chat.{self._keyname}/{player.id}"
 
-    def add(self, item):
-        self._set.add(item)
+    def add(self, item: str | int) -> None:
+        self._set.add(str(item))
         self._save()
 
-    def remove(self, item):
-        self._set.discard(item)
+    def remove(self, item: str | int) -> None:
+        self._set.discard(str(item))
         self._save()
 
 
 class FafRelationController:
     def __init__(
         self,
-        msg_in: str,
-        msg_out: str,
+        msg_in: Literal["friends", "foes"],
+        msg_out: Literal["friend", "foe"],
         set_: SignallingSet[int],
         lobby_info: LobbyInfo,
         lobby_connection: ServerConnection,
@@ -298,8 +307,8 @@ class FafRelationController:
     @classmethod
     def build(
         cls,
-        msg_in: str,
-        msg_out: str,
+        msg_in: Literal["friends", "foes"],
+        msg_out: Literal["friend", "foe"],
         set_: SignallingSet[int],
         lobby_info: LobbyInfo,
         lobby_connection: ServerConnection,
@@ -307,25 +316,30 @@ class FafRelationController:
     ) -> Self:
         return cls(msg_in, msg_out, set_, lobby_info, lobby_connection)
 
-    def _handle_social(self, message):
-        data = message.get(self._msg_in, None)
+    def _handle_social(self, message: SocialCommand) -> None:
+        data = message.get(self._msg_in)
         if data is None:
             return
         self._set.clear()
-        self._set |= (int(pid) for pid in data)
+        self._set |= {int(pid) for pid in data}
 
-    def _send_message(self, action, pid):
+    def _send_message(self, action: str, pid: int) -> None:
         self._lobby_connection.send({
             "command": action,
             self._msg_out: pid,
         })
 
-    def add(self, pid):
+    def add(self, pid: str | int) -> None:
+        # FIXME: this method should only accept ints, but it accepts strs too
+        # to be consistent with IrcFriendFoeController's method
+        # (see _handle_social in playercontextmenu)
+        assert isinstance(pid, int)
         if pid not in self._set:
             self._send_message("social_add", pid)
             self._set.add(pid)
 
-    def remove(self, pid):
+    def remove(self, pid: str | int) -> None:
+        assert isinstance(pid, int)  # FIXME
         if pid in self._set:
             self._send_message("social_remove", pid)
             self._set.remove(pid)
@@ -343,7 +357,7 @@ class IrcFriendFoeController:
         self.chatterboxes = chatterboxes
 
     @classmethod
-    def build(cls, irc_relations: FriendFoeModel, **kwargs: Any) -> Self:
+    def build(cls, irc_relations: FriendFoeModel[str], **kwargs: Any) -> Self:
         friends = IrcRelationController.build(
             "irc_friends", irc_relations.friends, **kwargs,
         )
@@ -361,14 +375,14 @@ class FafFriendFoeController:
         self,
         friends: FafRelationController,
         foes: FafRelationController,
-        chatterboxes: FafRelationController,
+        chatterboxes: IrcRelationController,
     ) -> None:
         self.friends = friends
         self.foes = foes
         self.chatterboxes = chatterboxes
 
     @classmethod
-    def build(cls, faf_relations: FriendFoeModel, **kwargs: Any) -> Self:
+    def build(cls, faf_relations: FriendFoeModel[int], **kwargs: Any) -> Self:
         friends = FafRelationController.build(
             "friends", "friend", faf_relations.friends, **kwargs,
         )
@@ -405,11 +419,8 @@ class UserRelationship(QObject):
     """
     updated = pyqtSignal()
 
-    def __init__(self):
-        QObject.__init__(self)
 
-
-class RelationshipTracker(QObject):
+class RelationshipTracker[KT, VT: ModelItem](QObject):
     """
     This class listens to relationship change events and distributes them among
     objects corresponding to particular chatters / players. This is done so
@@ -418,31 +429,31 @@ class RelationshipTracker(QObject):
     """
     updated = pyqtSignal(object)
 
-    def __init__(self, item_set: ModelItemSet) -> None:
+    def __init__(self, item_set: ModelItemSet[KT, VT]) -> None:
         QObject.__init__(self)
         self._item_set = item_set
         self._item_set.removed.connect(self._at_item_removed)
-        self._trackers = {}
+        self._trackers: dict[KT, UserRelationship] = {}
 
     # Since users of this class might listen to addition and removal of
     # chatters or players and the add / remove signal slots are
     # executed in an unspecified order, we can't just create trackers
     # at an add signal - we have to do it on-demand.
-    def __getitem__(self, key):
+    def __getitem__(self, key: KT, /) -> UserRelationship:
         if key not in self._trackers:
             if key not in self._item_set:
                 raise KeyError
             self._trackers[key] = self._create_tracker(key)
         return self._trackers[key]
 
-    def _create_tracker(self, key):
+    def _create_tracker(self, key: KT, /) -> UserRelationship:
         return UserRelationship()
 
-    def _at_item_removed(self, item):
+    def _at_item_removed(self, item: VT, /) -> None:
         if item.id_key in self._trackers:
             del self._trackers[item.id_key]
 
-    def _at_relation_updated(self, key):
+    def _at_relation_updated(self, key: KT, /) -> None:
         tracker = self._trackers.get(key, None)
         if tracker is None:
             return
@@ -450,9 +461,9 @@ class RelationshipTracker(QObject):
         self.updated.emit(key)
 
 
-class FriendFoeTracker(RelationshipTracker):
-    def __init__(self, friendfoes: FriendFoeModel, item_set: ModelItemSet) -> None:
-        RelationshipTracker.__init__(self, item_set)
+class FriendFoeTracker[KT, VT: ModelItem](RelationshipTracker[KT, VT]):
+    def __init__(self, friendfoes: FriendFoeModel[KT], item_set: ModelItemSet[KT, VT]) -> None:
+        super().__init__(item_set)
         self._friendfoes = friendfoes
         for s in [
             friendfoes.friends,
@@ -462,34 +473,25 @@ class FriendFoeTracker(RelationshipTracker):
             for sig in [s.added, s.removed]:
                 sig.connect(self._at_relation_updated)
 
-    @classmethod
-    def build_for_players(
-        cls,
-        friendfoes: FriendFoeModel,
-        playerset: Playerset,
-        **kwargs: Any,
-    ) -> Self:
-        return cls(friendfoes, playerset)
-
-    @classmethod
-    def build_for_chatters(
-        cls,
-        friendfoes: FriendFoeModel,
-        chatterset: Chatterset,
-        **kwargs: Any,
-    ) -> Self:
-        return cls(friendfoes, chatterset)
-
 
 class UserRelationTrackers:
-    def __init__(self, chatter_tracker: FriendFoeTracker, player_tracker: FriendFoeTracker) -> None:
+    def __init__(
+        self,
+        chatter_tracker: FriendFoeTracker[str, Chatter],
+        player_tracker: FriendFoeTracker[int, Player],
+    ) -> None:
         self.chatters = chatter_tracker
         self.players = player_tracker
 
     @classmethod
-    def build(cls, relation_model: UserRelationModel, **kwargs: Any) -> Self:
-        chatter_tracker = FriendFoeTracker.build_for_chatters(relation_model.irc, **kwargs)
-        player_tracker = FriendFoeTracker.build_for_players(relation_model.faf, **kwargs)
+    def build(
+        cls,
+        relation_model: UserRelationModel,
+        playerset: Playerset,
+        chatterset: Chatterset,
+    ) -> Self:
+        chatter_tracker = FriendFoeTracker(relation_model.irc, chatterset)
+        player_tracker = FriendFoeTracker(relation_model.faf, playerset)
         return cls(chatter_tracker, player_tracker)
 
 

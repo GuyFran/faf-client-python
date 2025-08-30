@@ -18,7 +18,7 @@ class ModelItemSet[KT, VT: ModelItem](QObjectMapping[KT, VT]):
         super().__init__()
         self._items: dict[KT, VT] = {}
 
-    def __getitem__(self, item: KT) -> VT:
+    def __getitem__(self, item: KT, /) -> VT:
         return self._items[item]
 
     def __len__(self) -> int:
@@ -49,7 +49,7 @@ class ModelItemSet[KT, VT: ModelItem](QObjectMapping[KT, VT]):
             raise ValueError
         self._items[key] = value
 
-    def __setitem__(self, key: KT, value: VT) -> None:
+    def __setitem__(self, key: KT, value: VT, /) -> None:
         # CAVEAT: use only as an entry point for model changes.
         self.set_item(key, value)
 
@@ -62,7 +62,7 @@ class ModelItemSet[KT, VT: ModelItem](QObjectMapping[KT, VT]):
     ) -> VT | None:
         return self._items.pop(key, None)
 
-    def __delitem__(self, item: KT) -> None:
+    def __delitem__(self, item: KT, /) -> None:
         # CAVEAT: use only as an entry point for model changes.
         self.del_item(item)
 

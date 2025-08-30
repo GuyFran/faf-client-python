@@ -595,15 +595,15 @@ class LocalReplaysWidgetHandler:
 class LocalReplayMetadataCache:
     CACHE_DIFF_THRESHOLD = 20
 
-    def __init__(self, cache_dir, cache_file):
+    def __init__(self, cache_dir: str, cache_file: str) -> None:
         self._cache_dir = cache_dir
         self._cache_file = cache_file
-        self._cache = {}
-        self._new_cache_entries = set()
-        self._used_cache_entries = set()
+        self._cache: dict[str, ReplayMetadata] = {}
+        self._new_cache_entries: set[str] = set()
+        self._used_cache_entries: set[str] = set()
         self.cache_loaded = False
 
-    def load_cache(self):
+    def load_cache(self) -> None:
         if os.path.exists(self._cache_file):
             with open(self._cache_file) as fh:
                 for line in fh:
@@ -611,21 +611,21 @@ class LocalReplayMetadataCache:
                     self._cache[filename] = ReplayMetadata(metadata)
         self.cache_loaded = True
 
-    def save_cache(self):
+    def save_cache(self) -> None:
         if not self._cache_differs_much_from_files():
             return
         with open(self._cache_file, "w") as fh:
             for filename in self._used_cache_entries:
                 fh.write(filename + ":" + self._cache[filename].raw_data)
 
-    def _cache_differs_much_from_files(self):
+    def _cache_differs_much_from_files(self) -> bool:
         new_entries = len(self._new_cache_entries)
         all_entries = len(self._cache)
         all_used_entries = len(self._used_cache_entries)
         unused_entries = all_entries - all_used_entries
         return new_entries + unused_entries > self.CACHE_DIFF_THRESHOLD
 
-    def __getitem__(self, filename):
+    def __getitem__(self, filename: str, /) -> ReplayMetadata:
         if filename not in self._cache:
             try:
                 target_file = os.path.join(self._cache_dir, filename)

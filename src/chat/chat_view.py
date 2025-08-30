@@ -77,7 +77,7 @@ class ChatView:
         self.widget.remove_channel(channel.id_key)
         del self._channels[channel.id_key]
 
-    def _new_server_message(self, msg):
+    def _new_server_message(self, msg: str) -> None:
         self.widget.write_server_message(msg)
 
     def _at_channel_quit_request(self, cid):

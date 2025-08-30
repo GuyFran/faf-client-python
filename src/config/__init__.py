@@ -70,11 +70,11 @@ class Settings:
 
     @overload
     @staticmethod
-    def get_list[T, U](
+    def get_list[T](
         key: str,
         default: list[T],
-        type: type[U] = str,
-    ) -> list[T] | list[U]: ...
+        type: type[T] = str,
+    ) -> list[T]: ...
 
     @overload
     @staticmethod
@@ -85,11 +85,11 @@ class Settings:
     ) -> list[T] | None: ...
 
     @staticmethod
-    def get_list[T, U](
+    def get_list[T](
         key: str,
         default: list[T] | None = None,
-        type: type[U] = str,
-    ) -> list[T] | list[U] | None:
+        type: type[T] = str,
+    ) -> list[T] | None:
         # separate function for lists because annotating common
         # case is impossible (or a skill issue)
         #
@@ -145,7 +145,7 @@ class Settings:
         # s.value("option")  # ["1", "2"]
         # s.value("option", type=float)  # 0.0
         if key in _unpersisted_settings:
-            return _unpersisted_settings[key]
+            return cast(list[T], _unpersisted_settings[key])
         if _settings.contains(key):
             return _settings.value(key, type=type)
         return cast(list[T], defaults[environment].get(key, default))

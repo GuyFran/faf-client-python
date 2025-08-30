@@ -64,7 +64,7 @@ class Lines(QObject):
         del self._lines[0:number]
         self.removed.emit(number)
 
-    def __getitem__(self, n: int) -> ChatLineMetadata:
+    def __getitem__(self, n: int, /) -> ChatLineMetadata:
         return self._lines[n]
 
     def __iter__(self) -> Iterator[ChatLineMetadata]:

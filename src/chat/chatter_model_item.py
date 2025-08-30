@@ -6,13 +6,15 @@ from urllib import parse
 from PyQt6.QtCore import QObject
 from PyQt6.QtCore import pyqtSignal
 
-from src.client.user import UserRelations
+from src.client.user import UserRelationTrackers
 from src.downloadManager import CachedImageDownloader
 from src.downloadManager import DownloadRequest
 from src.downloadManager import MapSmallPreviewDownloader
 from src.fa import maps
 from src.model.chat.channelchatter import ChannelChatter
 from src.model.chat.chatter import Chatter
+from src.model.game import Game
+from src.model.player import Player
 
 
 class ChatterModelItem(QObject):
@@ -26,7 +28,7 @@ class ChatterModelItem(QObject):
         cc: ChannelChatter,
         map_preview_dler: MapSmallPreviewDownloader,
         avatar_dler: CachedImageDownloader,
-        relation_trackers: UserRelations,
+        relation_trackers: UserRelationTrackers,
     ) -> None:
         QObject.__init__(self)
 
@@ -57,7 +59,7 @@ class ChatterModelItem(QObject):
         cls,
         map_preview_dler: MapSmallPreviewDownloader,
         avatar_dler: CachedImageDownloader,
-        relation_trackers: UserRelations,
+        relation_trackers: UserRelationTrackers,
         **kwargs: Any,
     ) -> Callable[[ChannelChatter], Self]:
         def make(cc: ChannelChatter) -> Self:
@@ -71,16 +73,21 @@ class ChatterModelItem(QObject):
     def chatter(self) -> Chatter:
         return self.cc.chatter
 
-    def _set_player(self, chatter, new_player, old_player):
+    def _set_player(
+        self,
+        chatter: Chatter,
+        new_player: Player | None,
+        old_player: Player | None,
+    ) -> None:
         self.player = new_player
         self._updated()
 
     @property
-    def player(self):
+    def player(self) -> Player | None:
         return self._player
 
     @player.setter
-    def player(self, value):
+    def player(self, value: Player | None) -> None:
         if self._player is not None:
             self.game = None
             self._player.updated.disconnect(self._at_player_updated)
@@ -98,20 +105,20 @@ class ChatterModelItem(QObject):
             self.game = self._player.currentGame
             self._download_avatar_if_needed()
 
-    def _at_player_updated(self):
+    def _at_player_updated(self) -> None:
         self._download_avatar_if_needed()
         self._updated()
 
-    def _set_game(self, player, game):
+    def _set_game(self, player: Player | None, game: Game | None) -> None:
         self.game = game
         self._updated()
 
     @property
-    def game(self):
+    def game(self) -> Game | None:
         return self._game
 
     @game.setter
-    def game(self, value):
+    def game(self, value: Game | None) -> None:
         if self._game is not None:
             self._game.updated.disconnect(self._at_game_updated)
             self._game.liveReplayAvailable.disconnect(self._updated)
@@ -123,30 +130,28 @@ class ChatterModelItem(QObject):
             self._game.liveReplayAvailable.connect(self._updated)
             self._download_map_preview_if_needed()
 
-    def _at_game_updated(self, new, old):
+    def _at_game_updated(self, new: Game, old: Game) -> None:
         if new.mapname != old.mapname:
             self._download_map_preview_if_needed()
         self._updated()
 
-    def _download_map_preview_if_needed(self):
+    def _download_map_preview_if_needed(self) -> None:
         name = self.map_name()
         if name is None:
             return
         if not maps.preview(name):
             self._preview_dler.download_preview(name, self._map_request)
 
-    def map_name(self):
-        game = self.game
-        if game is None or game.closed() or game.mapname is None:
+    def map_name(self) -> str | None:
+        if self.game is None or self.game.closed():
             return None
         return self.game.mapname.lower()
 
-    def _download_avatar_if_needed(self):
+    def _download_avatar_if_needed(self) -> None:
         self._avatar_dler.download_if_needed(self.avatar_url(), self._avatar_request)
 
-    def avatar_url(self):
-        try:
-            url = self.player.avatar["url"]
-        except (TypeError, AttributeError, KeyError):
+    def avatar_url(self) -> str | None:
+        if self.player is None or self.player.avatar is None:
             return None
+        url = self.player.avatar["url"]
         return parse.unquote(url)
