@@ -14,7 +14,7 @@ env:
 
 jobs:
   build-windows:
-    environment: deploy
+    environment: release
     runs-on: windows-latest
     outputs:
       MSI_SUM: ${{ steps.checksum.outputs.MSI_SUM }}
