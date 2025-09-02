@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import zipfile
+from typing import Final
 
 from PyQt6 import QtCore
 from PyQt6 import QtGui
@@ -243,6 +244,9 @@ def getModInfoFromFolder(modfolder: str) -> ModInfo | None:  # modfolder must be
     return m
 
 
+ACTIVE_MODS_SECTION_PATTERN: Final = re.compile(r"active_mods\s*=\s*{.*?}", re.S)
+
+
 # returns a list of ModInfo's containing information of the mods
 def getActiveMods(uimods: bool | None = None, temporary: bool = True) -> list[ModInfo]:
     """uimods:
@@ -258,18 +262,14 @@ def getActiveMods(uimods: bool | None = None, temporary: bool = True) -> list[Mo
             logger.info("No game.prefs file found")
             return []
         if temporary:
-            parser = luaparser.luaParser(PREFSFILENAME)
-            parser.loweringKeys = False
-            parsedlist = parser.parse(
-                {"active_mods": "active_mods"},
-                {"active_mods": {}},
-            )
-            modlist = parsedlist["active_mods"]
-            if parser.error:
-                logger.info("Error in reading the game.prefs file")
+            with open(PREFSFILENAME) as f:
+                data = f.read()
+            if matched := ACTIVE_MODS_SECTION_PATTERN.search(data):
+                pat = r"\['(.*?)']\s*=\s*(true|false)"
+                uids = [uid for uid, b in re.findall(pat, matched.group()) if b == "true"]
+            else:
+                logger.warning("No 'active_mods' section found in game.prefs file")
                 return []
-            uids = [uid for uid, b in list(modlist.items()) if b == 'true']
-            # logger.debug("Active mods detected: {}".format(str(uids)))
         else:
             uids = selectedMods[:]
 
@@ -311,10 +311,8 @@ def setActiveMods(mods, keepuimods=True, temporary=True):
         keepTheseMods = []
     allmods = keepTheseMods + mods
     logger.debug("Setting active Mods: %s", [mod.uid for mod in allmods])
-    s = "active_mods = {\n"
-    for mod in allmods:
-        s += f"['{str(mod.uid)}'] = true,\n"
-    s += "}"
+    active_mods = ",\n".join(f"    ['{mod.uid}'] = true" for mod in allmods)
+    s = "active_mods = {\n" + active_mods + ",\n}"
 
     if not temporary:
         global selectedMods
@@ -331,8 +329,8 @@ def setActiveMods(mods, keepuimods=True, temporary=True):
         logger.exception("Couldn't read the game.prefs file")
         return False
 
-    if re.search(r"active_mods\s*=\s*{.*?}", data, re.S):
-        data = re.sub(r"active_mods\s*=\s*{.*?}", s, data, 1, re.S)
+    if ACTIVE_MODS_SECTION_PATTERN.search(data):
+        data = ACTIVE_MODS_SECTION_PATTERN.sub(s, data, 1)
     else:
         data += "\n" + s
 
