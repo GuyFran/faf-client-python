@@ -77,8 +77,7 @@ class ModDetailsWidget(DetailsWidget):
         utils.downloadMod(self.item_version.download_url, self.item_data.display_name)
 
     def remove_item(self) -> None:
-        mod = utils.getModInfoFromFolder(self.item_data.display_name)
-        utils.removeMod(mod)
+        utils.remove_mod_by_uid(self.item_version.uid)
 
     def view_folder(self) -> None:
         full_path = os.path.join(utils.MODFOLDER, self.item_data.display_name)

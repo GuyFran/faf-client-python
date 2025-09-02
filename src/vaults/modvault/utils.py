@@ -86,7 +86,7 @@ def getAllModFolders():  # returns a list of names of installed mods
     return mods
 
 
-def getInstalledMods():
+def getInstalledMods() -> list[ModInfo]:
     installedMods[:] = []
     for f in getAllModFolders():
         m = None
@@ -102,7 +102,6 @@ def getInstalledMods():
                 continue
         if m:
             installedMods.append(m)
-    logger.debug("Getting installed mods. Count: %d", len(installedMods))
     return installedMods
 
 
@@ -186,7 +185,7 @@ def parseModInfo(folder):
     return getModInfo(modinfofile)
 
 
-modCache = {}
+modCache: dict[str, ModInfo] = {}
 
 
 def getModInfoFromZip(zfile):
@@ -223,9 +222,11 @@ def getModInfoFromZip(zfile):
     return m
 
 
-def getModInfoFromFolder(modfolder):  # modfolder must be local to MODFOLDER
-    if modfolder in modCache:
+def getModInfoFromFolder(modfolder: str) -> ModInfo | None:  # modfolder must be local to MODFOLDER
+    try:
         return modCache[modfolder]
+    except KeyError:
+        pass
 
     r = parseModInfo(os.path.join(MODFOLDER, modfolder))
     if r is None:
@@ -438,13 +439,12 @@ def downloadMod(link: str, name: str) -> bool:
         return True
 
     if downloadVaultAsset(link, MODFOLDER, handle_exist, name, "mod", silent=False):
-        mod = getModInfoFromFolder(name)
-        installedMods.append(mod)
+        getInstalledMods()  # update modCache and installedMods list
         return True
     return False
 
 
-def removeMod(mod):
+def removeMod(mod: ModInfo) -> bool:
     logger.debug("Removing mod %s", mod.name)
     real = None
     for m in installedMods:
@@ -452,12 +452,21 @@ def removeMod(mod):
             real = m
             break
     else:
-        logger.debug("Can't remove mod. Mod not found.")
+        logger.warning("Can't remove '%s' mod. Mod not found.", mod.name)
         return False
-    shutil.rmtree(real.absfolder)
-    if real.localfolder in modCache:
-        del modCache[real.localfolder]
+    try:
+        shutil.rmtree(real.absfolder)
+    except FileNotFoundError as e:
+        logger.warning("%s", e)
+    modCache.pop(real.localfolder, None)
     installedMods.remove(real)
     return True
     # we don't update the installed mods, because the operating system takes
     # some time registering the deleted folder.
+
+
+def remove_mod_by_uid(uid: str) -> bool:
+    for mod in installedMods:
+        if mod.uid == uid:
+            return removeMod(mod)
+    return False
