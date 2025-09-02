@@ -365,11 +365,17 @@ class SanitizedFormatter(logging.Formatter):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.user_profile = os.environ.get("USERPROFILE") or os.environ.get("HOME")
+        if sys.platform == "win32" and self.user_profile:
+            self.windows_things = self.user_profile.replace("\\", "\\\\")
+        else:
+            self.windows_things = ""
 
     def format(self, record: logging.LogRecord) -> str:
         message = super().format(record)
         if self.user_profile and self.user_profile in message:
             message = message.replace(self.user_profile, "%USERPROFILE%")
+        elif self.windows_things and self.windows_things in message:
+            message = message.replace(self.windows_things, "%USERPROFILE%")
         return message
 
 
