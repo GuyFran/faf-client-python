@@ -1,6 +1,9 @@
 0.x.x
 =====
 
+0.24.4
+* Fix exceptions in modvault when modname and modfolder differ
+
 0.24.3
 * Add `UNKNOWN_RESULT` to replay validity search options
 * Fix not displaying installed maps in host widget
