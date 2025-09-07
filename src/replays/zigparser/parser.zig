@@ -122,6 +122,8 @@ pub const Parser = struct {
     player_source: ?u8 = null,
     prev_tick: ?u32 = null,
     prev_digest: ?[]const u8 = null,
+    prev_command_tick: ?u32 = null,
+    prev_command_type: ?u8 = null,
 
     replay_buf: *SliceIterator,
     header_data: HeaderData,
@@ -192,6 +194,12 @@ pub const Parser = struct {
         const units_num = utils.cast_int(u32, self.replay_buf.ptr[0..4]);
         self.replay_buf.ignoreMany(4 * (units_num + 3));
         const cmd_type = self.replay_buf.next().?;
+
+        if (self.body_data.ticks != self.prev_command_tick or cmd_type != self.prev_command_type) {
+            try self.append_chart_data(player);
+        }
+        self.prev_command_tick = self.body_data.ticks;
+        self.prev_command_type = cmd_type;
 
         try self.process_command_target(cmd_type);
         self.replay_buf.ignoreNext();
@@ -319,7 +327,6 @@ pub const Parser = struct {
                 },
                 .CMDST_IssueCommand, .CMDST_IssueFactoryCommand => {
                     const player = self.player_source.?;
-                    try self.append_chart_data(player);
                     try self.process_issue_command(player);
                 },
                 .CMDST_VerifyChecksum => {

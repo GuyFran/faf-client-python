@@ -229,6 +229,8 @@ class ReplayParser(QObject):
 
         prev_tick = -1
         prev_digest = None
+        prev_command_type = -1
+        prev_command_tick = -1
 
         move_prev_command = EUnitCommandType.MovePreviouslyIssuedCommand.value
 
@@ -288,8 +290,6 @@ class ReplayParser(QObject):
                     self.binary.skipRawData(message_len - 3 - (callback_end - callback_start))
 
                 case ECmdStreamOp.CMDST_IssueCommand | ECmdStreamOp.CMDST_IssueFactoryCommand:
-                    self.CPM[player] += 1  # increase commands number
-                    self.cpmChart[player].append(self.ticks)
                     unitNums = self.binary.readUInt32()
                     self.binary.skipRawData(4 * (unitNums + 2))
 
@@ -318,6 +318,12 @@ class ReplayParser(QObject):
                     if upgradeLua:
                         self.binary.skipRawData(1)
 
+                    if self.ticks != prev_command_tick or command_type != prev_command_type:
+                        self.cpmChart[player].append(self.ticks)
+
+                    prev_command_tick = self.ticks
+                    prev_command_type = command_type
+
                     self.commands[player].append({
                         "tick": self.ticks,
                         "cmd_type": command_type,
@@ -328,6 +334,7 @@ class ReplayParser(QObject):
                 case _:
                     self.binary.skipRawData(message_len - 3)
 
+        self.CPM = {id: len(comlist) for id, comlist in self.cpmChart.items()}
         self.replayPercentage.emit(100)
 
     def process_moderator_event(self, function: str, lua: dict) -> None:
@@ -578,7 +585,7 @@ class ReplayParser(QObject):
         self.cpmChart = parsed["body"]["chart_data"]
         self.game_stats = parsed["body"]["game_stats"]
 
-        self.CPM = {id: len(comlist) for id, comlist in self.commands.items()}
+        self.CPM = {id: len(comlist) for id, comlist in self.cpmChart.items()}
         return True
 
     def do_stuff(self) -> None:
