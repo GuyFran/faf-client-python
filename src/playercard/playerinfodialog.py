@@ -96,7 +96,6 @@ class PlayerInfoDialog(FormClass, BaseClass):
         self.ratings_api.get_player_ratings(self.player_id)
         self.player_api.request_player(self.player_id)
         self.player_event_api.get_player_events(self.player_id)
-        self.tab_widget_ctrl.run()
         self.exec()
 
     def on_tab_changed(self, index: int) -> None:
@@ -108,6 +107,7 @@ class PlayerInfoDialog(FormClass, BaseClass):
             widget = league_formatter_factory(self.player_id, rating, self.leagues_api)
             self.leaguesLayout.addWidget(widget)
         pie_chart = self.stats_charts.game_types_played(ratings["values"])
+        self.tab_widget_ctrl.setup(ratings["values"])
         self.statsChartsLayout.addWidget(pie_chart)
 
     def process_player(self, player: Player) -> None:

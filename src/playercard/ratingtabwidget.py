@@ -10,8 +10,7 @@ from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QTabWidget
 
 from src.api.ApiBase import PreProcessedApiResponse
-from src.api.models.Leaderboard import Leaderboard
-from src.api.stats_api import LeaderboardApiConnector
+from src.api.models.LeaderboardRating import LeaderboardRating
 from src.api.stats_api import LeaderboardRatingJournalApiConnector
 from src.model.rating import Rating
 from src.playercard.plot import LineSeries
@@ -79,13 +78,15 @@ class RatingsPlotTab(QObject):
             self,
             index: int,
             player_id: str,
-            leaderboard: Leaderboard,
+            rating: LeaderboardRating,
             plot: PlotController,
     ) -> None:
         super().__init__()
         self.index = index
         self.player_id = player_id
-        self.leaderboard = leaderboard
+        self.rating = rating
+        assert rating.leaderboard is not None
+        self.leaderboard = rating.leaderboard
         self.ratings_history_api = LeaderboardRatingJournalApiConnector(
             player_id,
             self.leaderboard.technical_name,
@@ -167,12 +168,17 @@ class RatingTabWidgetController(QObject):
         self.widget = tab_widget
         self.widget.currentChanged.connect(self.on_tab_changed)
 
-        self.leaderboards_api = LeaderboardApiConnector()
-        self.leaderboards_api.data_ready.connect(self.populate_leaderboards)
         self.tabs: dict[int, RatingsPlotTab] = {}
 
-    def run(self) -> None:
-        self.leaderboards_api.requestData()
+    def setup(self, ratings: list[LeaderboardRating]) -> None:
+        for index, rating in enumerate(ratings):
+            widget = pg.PlotWidget()
+            tab = RatingsPlotTab(index, self.player_id, rating, PlotController(widget))
+            tab.name_changed.connect(self.widget.setTabText)
+            tab.api_error.connect(self.rating_api_error.emit)
+            self.tabs[index] = tab
+            assert rating.leaderboard is not None
+            self.widget.insertTab(index, widget, rating.leaderboard.pretty_name)
 
     def load_more_ratings(self) -> None:
         index = self.widget.currentIndex()
@@ -181,15 +187,6 @@ class RatingTabWidgetController(QObject):
     def close(self) -> None:
         for tab in self.tabs.values():
             tab.close()
-
-    def populate_leaderboards(self, message: dict[str, list[Leaderboard]]) -> None:
-        for index, leaderboard in enumerate(message["values"]):
-            widget = pg.PlotWidget()
-            tab = RatingsPlotTab(index, self.player_id, leaderboard, PlotController(widget))
-            tab.name_changed.connect(self.widget.setTabText)
-            tab.api_error.connect(self.rating_api_error.emit)
-            self.tabs[index] = tab
-            self.widget.insertTab(index, widget, leaderboard.pretty_name)
 
     def on_tab_changed(self, index: int) -> None:
         self.tabs[index].enter()
