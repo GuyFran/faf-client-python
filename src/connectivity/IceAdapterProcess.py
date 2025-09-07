@@ -28,6 +28,7 @@ class IceProcessArguments(ABC):
     game_id: int
     port: int
     gpg_port: int
+    force_relay: bool
 
     @abstractmethod
     def exe_path(self) -> str: ...
@@ -78,6 +79,8 @@ class JavaProcessArguments(IceProcessArguments):
             "--rpc-port", str(self.port),
             "--gpgnet-port", str(self.gpg_port),
         ]
+        if self.force_relay:
+            args.append("--force-relay")
         if show_adapter_window:
             args.extend(["--info-window", "--delay-ui", str(delay_adapter_ui)])
         if Settings.contains("iceadapter/args"):
@@ -116,7 +119,15 @@ class GoProcessArguments(IceProcessArguments):
 class IceAdapterProcess:
     _logger: ClassVar[logging.Logger]
 
-    def __init__(self, player_id: int, player_login: str, game_id: int, port: int) -> None:
+    def __init__(
+        self,
+        player_id: int,
+        player_login: str,
+        game_id: int,
+        port: int,
+        *,
+        force_relay: bool = False,
+    ) -> None:
         # determine free listen port for the GPG server inside the ice adapter
         # process
         with tcp_server() as server:
@@ -140,6 +151,7 @@ class IceAdapterProcess:
                 game_id,
                 port,
                 self._gpgnet_port,
+                force_relay,
             )
             env = QProcessEnvironment.systemEnvironment()
             env.insert(
@@ -156,6 +168,7 @@ class IceAdapterProcess:
                 game_id,
                 port,
                 self._gpgnet_port,
+                force_relay,
                 ice_logs_path,
             )
 

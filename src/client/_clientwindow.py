@@ -2025,10 +2025,9 @@ class ClientWindow(FormClass, BaseClass):
         }
 
         assert self.game_session is not None
-        self.game_session.game_uid = message["uid"]
         args = GameLaunchArguments(info, arguments)
         self._game_runner.set_launch_args(args)
-        self.game_session.start_ice_adapter(lobby_mode)
+        self.game_session.start_ice_adapter(message["uid"], lobby_mode)
 
     def launch_game(self, gpg_port: int) -> None:
         assert self.game_session is not None

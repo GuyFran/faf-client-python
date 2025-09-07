@@ -77,11 +77,22 @@ class GameSession(QObject):
         self.ice_adapter_manager = IceAdapterManager(self)
         self.ice_adapter_manager.done.connect(self.on_ice_version_set)
 
-    def start_ice_adapter(self, init_mode: LobbyInitMode = LobbyInitMode.NORMAL) -> None:
+    def start_ice_adapter(
+        self,
+        game_uid: int,
+        init_mode: LobbyInitMode = LobbyInitMode.NORMAL,
+    ) -> None:
+        self.game_uid = game_uid
+        self.ice_servers_poller = IceServersPoller(self.game_uid)
+        self.ice_servers_poller.ice_servers_received.connect(self.start_ice_process)
         self.lobby_mode = init_mode
         self.ice_adapter_manager.get_releases()
 
     def on_ice_version_set(self) -> None:
+        assert self.ice_servers_poller is not None
+        self.ice_servers_poller.request_ice_servers()
+
+    def start_ice_process(self) -> None:
         if self.ice_adapter_manager.adapter_kind == "java":
             self.start_java_process()
         else:
@@ -89,11 +100,13 @@ class GameSession(QObject):
 
     def _start_ice_process(self, ice_port: int) -> None:
         assert self.game_uid is not None
+        assert self.ice_servers_poller is not None
         self.ice_adapter_process = IceAdapterProcess(
             player_id=self.player_id,
             player_login=self.player_login,
             game_id=self.game_uid,
             port=ice_port,
+            force_relay=self.ice_servers_poller.force_relay,
         )
         self._relay_port = self.ice_adapter_process.gpg_port()
         self.ice_adapter_process.start()
@@ -117,10 +130,9 @@ class GameSession(QObject):
             "ICE adapter started an listening on port %d for GPGNet connections",
             self._relay_port,
         )
-        self.ice_adapter_client.statusChanged.disconnect(self.on_java_process_started)
         assert self.ice_adapter_client is not None
-        assert self.game_uid is not None
-        self.ice_servers_poller = IceServersPoller(self.ice_adapter_client, self.game_uid)
+        self.ice_adapter_client.statusChanged.disconnect(self.on_java_process_started)
+        self.set_ice_servers()
         self.set_lobby_init_mode()
         self.ready.emit(self._relay_port)
 
@@ -133,6 +145,7 @@ class GameSession(QObject):
             self.ice_adapter_process.close()
             self.ice_adapter_process = None
         self._relay_port = 0
+        self.ice_servers_poller = None
 
     @property
     def relay_port(self) -> int:
@@ -153,6 +166,16 @@ class GameSession(QObject):
             "target": "game",
             "args": args or [],
         })
+
+    def set_ice_servers(self) -> None:
+        if (
+            not self.ice_adapter_client
+            or not self.ice_adapter_client.connected
+        ):
+            logger.error("ICE adapter client not connected when calling setIceServers")
+            return
+        assert self.ice_servers_poller is not None
+        self.ice_adapter_client.call("setIceServers", [self.ice_servers_poller.servers])
 
     def set_lobby_init_mode(self) -> None:
         if (

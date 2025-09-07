@@ -14,7 +14,7 @@ from PyQt6.QtCore import QObject
 from PyQt6.QtNetwork import QAbstractSocket
 from PyQt6.QtNetwork import QTcpSocket
 
-type IceCommandArgs = Sequence[str | int | bool | IceCommandArgs]
+type IceCommandArgs = Sequence[str | int | bool | dict[str, Any] | IceCommandArgs]
 
 
 class RpcObject(TypedDict):
