@@ -157,6 +157,10 @@ class LineSeries:
         self._x = np.append(self._x, series.x())
         self._y = np.append(self._y, series.y())
 
+    def prextend(self, series: LineSeries) -> None:
+        self._x = np.append(series.x(), self._x)
+        self._y = np.append(series.y(), self._y)
+
     def point_at(self, index: int) -> QPointF:
         return QPointF(self._x[index], self._y[index])
 
@@ -181,6 +185,9 @@ class PlotController:
 
     def add_data(self, series: LineSeries) -> None:
         self.series.extend(series)
+
+    def prepend_data(self, series: LineSeries) -> None:
+        self.series.prextend(series)
 
     def hide_scene_actions(self) -> None:
         # hide the 'Export...' action

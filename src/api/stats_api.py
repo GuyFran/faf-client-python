@@ -5,6 +5,7 @@ from typing import cast
 from PyQt6.QtCore import QDateTime
 from PyQt6.QtCore import Qt
 from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtNetwork import QNetworkReply
 
 from src.api.ApiAccessors import ApiAccessor
 from src.api.ApiAccessors import DataApiAccessor
@@ -49,6 +50,7 @@ class LeaderboardApiConnector(DataApiAccessor):
 
 class LeaderboardRatingJournalApiConnector(ApiAccessor):
     ratings_ready = pyqtSignal(dict)
+    api_error = pyqtSignal(str)
 
     def __init__(self) -> None:
         super().__init__("/data/leaderboardRatingJournal")
@@ -67,7 +69,10 @@ class LeaderboardRatingJournalApiConnector(ApiAccessor):
             "page[number]": page,
             "page[totals]": "",
         })
-        self.get_by_query(self.query, self.handle_page)
+        self.get_by_query(self.query, self.handle_page, self.on_error)
+
+    def on_error(self, reply: QNetworkReply) -> None:
+        self.api_error.emit(reply.errorString())
 
     def get_full_history(self, pid: str, leaderboard: str) -> None:
         self.query.update({
@@ -77,7 +82,7 @@ class LeaderboardRatingJournalApiConnector(ApiAccessor):
                 f"leaderboard.technicalName=={leaderboard!r};"
                 "gamePlayerStats.scoreTime=isnull='false'"
             ),
-            "sort": "gamePlayerStats.scoreTime",
+            "sort": "-gamePlayerStats.scoreTime",
         })
         self.get_history_page(1)
 

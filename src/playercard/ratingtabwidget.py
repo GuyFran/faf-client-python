@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import Any
+from typing import cast
+
 import pyqtgraph as pg
 from PyQt6.QtCore import QDateTime
 from PyQt6.QtCore import QObject
@@ -63,7 +66,7 @@ class LineSeriesParser(QThread):
                 score_time.toSecsSinceEpoch(),
                 rating.displayed(),
             )
-            series.set_point(stats_index, point)
+            series.set_point(stats_leng - stats_index - 1, point)
             stats_index += 1
             journal_index += 1
 
@@ -72,6 +75,7 @@ class LineSeriesParser(QThread):
 
 class RatingsPlotTab(QObject):
     name_changed = pyqtSignal(int, str)
+    api_error = pyqtSignal(str)
 
     def __init__(
             self,
@@ -86,9 +90,10 @@ class RatingsPlotTab(QObject):
         self.leaderboard = leaderboard
         self.ratings_history_api = LeaderboardRatingJournalApiConnector()
         self.ratings_history_api.ratings_ready.connect(self.process_rating_history)
+        self.ratings_history_api.api_error.connect(self.on_rating_api_error)
         self.plot = plot
         self._loaded = False
-        self.workers = []
+        self.workers: list[LineSeriesParser] = []
 
     def __del__(self) -> None:
         self.close()
@@ -117,9 +122,10 @@ class RatingsPlotTab(QObject):
         self.plot.draw_series()
         self.name_changed.emit(self.index, self.leaderboard.pretty_name)
 
-    def process_rating_history(self, message: dict) -> None:
-        total_pages = message["meta"]["page"]["totalPages"]
-        current_page = message["meta"]["page"]["number"]
+    def process_rating_history(self, message: dict[str, Any]) -> None:
+        total_pages = cast(int, message["meta"]["page"]["totalPages"])
+        current_page = cast(int, message["meta"]["page"]["number"])
+        self.name_changed.emit(self.index, f"Loading... ({current_page}/{total_pages})")
         self._loaded = current_page >= total_pages
 
         worker = LineSeriesParser(message)
@@ -127,14 +133,22 @@ class RatingsPlotTab(QObject):
         worker.result_ready.connect(self.data_parsed)
         worker.start()
 
+    def on_rating_api_error(self, message: str) -> None:
+        self._loaded = True
+        self.finish()
+        self.api_error.emit(message)
+
     def data_parsed(self, series: LineSeries) -> None:
-        self.plot.add_data(series)
+        self.plot.prepend_data(series)
         if self._loaded:
             self.finish()
 
 
-class RatingTabWidgetController:
+class RatingTabWidgetController(QObject):
+    rating_api_error = pyqtSignal(str)
+
     def __init__(self, player_id: str, tab_widget: QTabWidget) -> None:
+        super().__init__()
         self.player_id = player_id
         self.widget = tab_widget
         self.widget.currentChanged.connect(self.on_tab_changed)
@@ -155,6 +169,7 @@ class RatingTabWidgetController:
             widget = pg.PlotWidget()
             tab = RatingsPlotTab(index, self.player_id, leaderboard, PlotController(widget))
             tab.name_changed.connect(self.widget.setTabText)
+            tab.api_error.connect(self.rating_api_error.emit)
             self.tabs[index] = tab
             self.widget.insertTab(index, widget, leaderboard.pretty_name)
 

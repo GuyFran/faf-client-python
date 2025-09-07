@@ -209,9 +209,11 @@ class ApiBase(QObject):
         self._running = False
         if reply.error() != QNetworkReply.NetworkError.NoError:
             logger.error(
-                "API request error. URL: %s. Error: %s (%s)",
+                "API request error. URL: %s. Error: %s (%s). [%s]",
                 reply.url().url(),
-                reply.error(), reply.errorString(),
+                reply.error(),
+                reply.errorString(),
+                reply.readAll().data().decode(),
             )
             self.error_handlers[reply](reply)
             if reply.error() == QNetworkReply.NetworkError.UnknownContentError:
@@ -244,4 +246,9 @@ class ApiBase(QObject):
 
     def abort(self) -> None:
         for reply in self.handlers.copy():
-            reply.abort()
+            try:
+                reply.abort()
+            except RuntimeError as e:
+                # wrapped C++ object has been deleted: may happen when dialog window
+                # which performed some network requests was closed before they finished
+                logger.warning("%s", e)
