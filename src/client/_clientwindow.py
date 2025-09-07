@@ -1019,7 +1019,8 @@ class ClientWindow(FormClass, BaseClass):
 
         return QtWidgets.QMainWindow.closeEvent(self, event)
 
-    def initMenus(self):
+    def initMenus(self) -> None:
+        # TODO: make proper widgets/dialogs for some/all options?
         self.actionCheck_for_Updates.triggered.connect(self.check_for_updates)
         self.actionUpdate_Settings.triggered.connect(self.show_update_settings)
         self.actionLink_account_to_Steam.triggered.connect(
@@ -1192,6 +1193,38 @@ class ClientWindow(FormClass, BaseClass):
         self.menuICE_Adapter.addAction(self.setIceAdapterVersionsAction)
         self.setIceAdapterVersionsAction.triggered.connect(
             lambda: IceAdapterVersionSettingsDialog(self).exec(),
+        )
+
+        self.menuICE_Adapter.addSeparator()
+        self.forceRelayICEOptionMenu = QtWidgets.QMenu("Force relay", self.menuICE_Adapter)
+        self.forceRelayICEOptionGroup = QtGui.QActionGroup(self.forceRelayICEOptionMenu)
+        self.menuICE_Adapter.addMenu(self.forceRelayICEOptionMenu)
+        self.enableForceRelayICEOption = QtGui.QAction(
+            "Use API provided value",
+            self.forceRelayICEOptionMenu,
+        )
+        self.enableForceRelayICEOption.setCheckable(True)
+        self.enableForceRelayICEOption.setData("auto")
+        self.enableForceRelayICEOption.setChecked(
+            config.Settings.get("iceadapter/force_relay", "auto") == "auto",
+        )
+        self.disableForceRelayICEOption = QtGui.QAction(
+            "Disabled",
+            self.forceRelayICEOptionMenu,
+        )
+        self.disableForceRelayICEOption.setChecked(
+            config.Settings.get("iceadapter/force_relay", "auto") == "disabled",
+        )
+        self.disableForceRelayICEOption.setCheckable(True)
+        self.disableForceRelayICEOption.setData("disabled")
+
+        self.forceRelayICEOptionGroup.addAction(self.enableForceRelayICEOption)
+        self.forceRelayICEOptionGroup.addAction(self.disableForceRelayICEOption)
+        self.forceRelayICEOptionMenu.addAction(self.enableForceRelayICEOption)
+        self.forceRelayICEOptionMenu.addAction(self.disableForceRelayICEOption)
+
+        self.forceRelayICEOptionGroup.triggered.connect(
+            lambda action: config.Settings.set("iceadapter/force_relay", action.data()),
         )
 
         self.actionDoNotKeep.setChecked(
