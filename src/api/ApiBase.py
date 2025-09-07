@@ -34,12 +34,12 @@ class ApiResourceObject(TypedDict):
 class ApiResponse(TypedDict):
     data: ApiResourceObject | list[ApiResourceObject]
     included: NotRequired[list[ApiResourceObject]]
-    meta: NotRequired[dict[str, float]]
+    meta: NotRequired[dict[str, dict[str, int]]]
 
 
 class PreParsedApiResponse(TypedDict):
     data: dict[str, Any] | list[dict[str, Any]]
-    meta: NotRequired[dict[str, float]]
+    meta: NotRequired[dict[str, dict[str, int]]]
 
 
 type PreProcessedApiResponse = ApiResponse | PreParsedApiResponse

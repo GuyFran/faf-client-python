@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-from typing import cast
-
 import pyqtgraph as pg
 from PyQt6.QtCore import QDateTime
 from PyQt6.QtCore import QObject
@@ -12,6 +9,7 @@ from PyQt6.QtCore import QThread
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QTabWidget
 
+from src.api.ApiBase import PreProcessedApiResponse
 from src.api.models.Leaderboard import Leaderboard
 from src.api.stats_api import LeaderboardApiConnector
 from src.api.stats_api import LeaderboardRatingJournalApiConnector
@@ -88,12 +86,18 @@ class RatingsPlotTab(QObject):
         self.index = index
         self.player_id = player_id
         self.leaderboard = leaderboard
-        self.ratings_history_api = LeaderboardRatingJournalApiConnector()
+        self.ratings_history_api = LeaderboardRatingJournalApiConnector(
+            player_id,
+            self.leaderboard.technical_name,
+        )
         self.ratings_history_api.ratings_ready.connect(self.process_rating_history)
         self.ratings_history_api.api_error.connect(self.on_rating_api_error)
         self.plot = plot
         self._loaded = False
         self.workers: list[LineSeriesParser] = []
+        self._current_page = 0
+        self._total_pages = 1
+        self._running = False
 
     def __del__(self) -> None:
         self.close()
@@ -106,10 +110,14 @@ class RatingsPlotTab(QObject):
             pass
 
     def enter(self) -> None:
-        if self._loaded:
+        self.load_more_ratings()
+
+    def load_more_ratings(self) -> None:
+        if self._running or self._loaded:
             return
         self.name_changed.emit(self.index, "Loading...")
-        self.ratings_history_api.get_full_history(self.player_id, self.leaderboard.technical_name)
+        self.ratings_history_api.get_history_page(self._current_page + 1)
+        self._running = True
 
     def clear_threads(self) -> None:
         for worker in self.workers:
@@ -118,15 +126,21 @@ class RatingsPlotTab(QObject):
         self.workers.clear()
 
     def finish(self) -> None:
+        self._running = False
         self.clear_threads()
         self.plot.draw_series()
-        self.name_changed.emit(self.index, self.leaderboard.pretty_name)
+        name = self.leaderboard.pretty_name
+        if not self._loaded:
+            name += f" ({self._current_page}/{self._total_pages})"
+        self.name_changed.emit(self.index, name)
 
-    def process_rating_history(self, message: dict[str, Any]) -> None:
-        total_pages = cast(int, message["meta"]["page"]["totalPages"])
-        current_page = cast(int, message["meta"]["page"]["number"])
-        self.name_changed.emit(self.index, f"Loading... ({current_page}/{total_pages})")
-        self._loaded = current_page >= total_pages
+    def process_rating_history(self, message: PreProcessedApiResponse) -> None:
+        meta = message.get("meta")
+        assert meta is not None
+        self._total_pages = meta["page"]["totalPages"]
+        self._current_page = meta["page"]["number"]
+        self.name_changed.emit(self.index, f"Loading... ({self._current_page}/{self._total_pages})")
+        self._loaded = self._current_page >= self._total_pages
 
         worker = LineSeriesParser(message)
         self.workers.append(worker)
@@ -134,7 +148,7 @@ class RatingsPlotTab(QObject):
         worker.start()
 
     def on_rating_api_error(self, message: str) -> None:
-        self._loaded = True
+        self._running = False
         self.finish()
         self.api_error.emit(message)
 
@@ -159,6 +173,10 @@ class RatingTabWidgetController(QObject):
 
     def run(self) -> None:
         self.leaderboards_api.requestData()
+
+    def load_more_ratings(self) -> None:
+        index = self.widget.currentIndex()
+        self.tabs[index].load_more_ratings()
 
     def close(self) -> None:
         for tab in self.tabs.values():

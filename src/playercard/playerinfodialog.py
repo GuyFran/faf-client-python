@@ -63,6 +63,7 @@ class PlayerInfoDialog(FormClass, BaseClass):
         self.tab_widget_ctrl.rating_api_error.connect(
             lambda message: QMessageBox.warning(self, "API Error", message),
         )
+        self.loadMoreRatingHistoryButton.clicked.connect(self.tab_widget_ctrl.load_more_ratings)
         self.avatar_handler = AvatarHandler(self.avatarList, avatar_dler)
 
         self.player_id = player_id

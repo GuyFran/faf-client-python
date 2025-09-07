@@ -10,6 +10,7 @@ from PyQt6.QtNetwork import QNetworkReply
 from src.api.ApiAccessors import ApiAccessor
 from src.api.ApiAccessors import DataApiAccessor
 from src.api.ApiBase import PreParsedApiResponse
+from src.api.ApiBase import PreProcessedApiResponse
 from src.api.ApiBase import QueryOptions
 from src.api.models.Achievement import Achievement
 from src.api.models.Leaderboard import Leaderboard
@@ -52,13 +53,23 @@ class LeaderboardRatingJournalApiConnector(ApiAccessor):
     ratings_ready = pyqtSignal(dict)
     api_error = pyqtSignal(str)
 
-    def __init__(self) -> None:
+    def __init__(self, pid: str, leaderboard: str) -> None:
         super().__init__("/data/leaderboardRatingJournal")
-        self.query = {}
+        self.query: QueryOptions = {
+            "include": "gamePlayerStats",
+            "filter": (
+                f"gamePlayerStats.player.id=={pid!r};"
+                f"leaderboard.technicalName=={leaderboard!r};"
+                "gamePlayerStats.scoreTime=isnull='false'"
+            ),
+            "sort": "-gamePlayerStats.scoreTime",
+        }
 
-    def handle_page(self, message: dict) -> None:
-        total_pages = message["meta"]["page"]["totalPages"]
-        current_page = message["meta"]["page"]["number"]
+    def handle_page(self, message: PreProcessedApiResponse) -> None:
+        meta = message.get("meta")
+        assert meta is not None
+        total_pages = meta["page"]["totalPages"]
+        current_page = meta["page"]["number"]
         self.ratings_ready.emit(message)
         if current_page < total_pages:
             self.get_history_page(current_page + 1)
@@ -73,18 +84,6 @@ class LeaderboardRatingJournalApiConnector(ApiAccessor):
 
     def on_error(self, reply: QNetworkReply) -> None:
         self.api_error.emit(reply.errorString())
-
-    def get_full_history(self, pid: str, leaderboard: str) -> None:
-        self.query.update({
-            "include": "gamePlayerStats",
-            "filter": (
-                f"gamePlayerStats.player.id=={pid!r};"
-                f"leaderboard.technicalName=={leaderboard!r};"
-                "gamePlayerStats.scoreTime=isnull='false'"
-            ),
-            "sort": "-gamePlayerStats.scoreTime",
-        })
-        self.get_history_page(1)
 
 
 class LeagueSeasonScoreApiConnector(DataApiAccessor):
