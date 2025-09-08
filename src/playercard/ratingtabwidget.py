@@ -111,7 +111,8 @@ class RatingsPlotTab(QObject):
             pass
 
     def enter(self) -> None:
-        self.load_more_ratings()
+        if self._current_page == 0:
+            self.load_more_ratings()
 
     def load_more_ratings(self) -> None:
         if self._running or self._loaded:
