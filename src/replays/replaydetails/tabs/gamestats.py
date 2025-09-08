@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import QWidget
 from src.qt.graphics.labeledbargraphitem import LabeledBarGraphItem
 from src.replays.replaydetails.replayreader import ReplayParser
 from src.replays.replaydetails.tabs.gamestats_types import GameStats
+from src.replays.replaydetails.tabs.gamestats_types import PlayerGameStats
 
 UNIT_TYPES = {
     "land": "Land",
@@ -93,7 +94,7 @@ class PlotsWidget(QWidget):
         self.ui.tabs.currentChanged.connect(self.on_main_tab_changed)
         self.ui.unitsTab.currentChanged.connect(self.on_units_tab_changed)
 
-        self.stats: GameStats = []
+        self.stats: tuple[PlayerGameStats, ...] = []
 
         self.tab_history = set()
         self.units_tab_history = set()
@@ -109,8 +110,8 @@ class PlotsWidget(QWidget):
             self.add_unit_breakdown_plots,
         )
 
-    def initialize(self, data: dict[str, GameStats]) -> None:
-        self.stats = data["stats"]
+    def initialize(self, data: GameStats) -> None:
+        self.stats = tuple(data["stats"])
         self.add_score_plot()
         self.tab_history.add(0)
 
@@ -404,7 +405,7 @@ class GameStatsWidget(QWidget):
             self.ui.stack.removeWidget(w)
             w.deleteLater()
 
-    def draw_stats(self, data: dict[str, GameStats]) -> None:
+    def draw_stats(self, data: GameStats) -> None:
         if not data:
             return
         plots = PlotsWidget()

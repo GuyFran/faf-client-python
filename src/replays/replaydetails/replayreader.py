@@ -31,6 +31,7 @@ from collections.abc import Generator
 from datetime import datetime
 from typing import Any
 from typing import NamedTuple
+from typing import cast
 
 import zstandard
 from PyQt6.QtCore import QByteArray
@@ -48,13 +49,14 @@ from src.replays.replaydetails.replayformat import STITARGET
 from src.replays.replaydetails.replayformat import ECmdStreamOp
 from src.replays.replaydetails.replayformat import EUnitCommandType
 from src.replays.replaydetails.tabs.gamestats_types import GameStats
+from src.replays.replaydetails.types import ParsedReplay
 from src.replays.replaydetails.utils import PLAYER_COLORS
 from src.util import COMMON_DIR
 
 logger = logging.getLogger(__name__)
 
 try:
-    from zigfafreplay import parse_replaydata
+    from zigfafreplay import parse_replaydata  # type: ignore[var-type]
 except ImportError:
     logger.warning("Zig replay parser not found")
     parse_replaydata = None
@@ -116,7 +118,7 @@ class ReplayParser(QObject):
         self.ticks = 0
         self.lasttick: dict[int, int] = {}
         self.army = {}
-        self.pts = []
+        self.pts: list[tuple[int, float, float, int, int]] = []
 
         self.CPM = Counter()
         self.chatLine = []
@@ -126,7 +128,7 @@ class ReplayParser(QObject):
 
         self.cpmChart = defaultdict(list)
         self.commands = defaultdict(list)
-        self.game_stats: dict[str, GameStats] = {}
+        self.game_stats: GameStats = {}
 
     def set_file(self, file: str) -> None:
         self.filename = file
@@ -334,7 +336,7 @@ class ReplayParser(QObject):
                 case _:
                     self.binary.skipRawData(message_len - 3)
 
-        self.CPM = {id: len(comlist) for id, comlist in self.cpmChart.items()}
+        self.CPM = Counter({id: len(comlist) for id, comlist in self.cpmChart.items()})
         self.replayPercentage.emit(100)
 
     def process_moderator_event(self, function: str, lua: dict) -> None:
@@ -563,10 +565,11 @@ class ReplayParser(QObject):
     def _parse_with_zig(self) -> bool:
         if (
             parse_replaydata is None
-            or (parsed := parse_replaydata(self.body)) is None
+            or (parsed := parse_replaydata(self.body)) is None  # type: ignore[var-type]
         ):
             return False
 
+        parsed = cast(ParsedReplay, parsed)
         self.replayPatchFieldId = parsed["header"]["patch"]
         self.replayVersionId, self.map = parsed["header"]["version"].split("\r\n")
 
@@ -585,7 +588,7 @@ class ReplayParser(QObject):
         self.cpmChart = parsed["body"]["chart_data"]
         self.game_stats = parsed["body"]["game_stats"]
 
-        self.CPM = {id: len(comlist) for id, comlist in self.cpmChart.items()}
+        self.CPM = Counter({id: len(comlist) for id, comlist in self.cpmChart.items()})
         return True
 
     def do_stuff(self) -> None:

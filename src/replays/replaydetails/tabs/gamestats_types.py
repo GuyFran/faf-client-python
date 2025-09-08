@@ -1,3 +1,4 @@
+from typing import Literal
 from typing import TypedDict
 
 
@@ -33,4 +34,4 @@ class PlayerGameStats(TypedDict):
     resources: dict[str, dict[str, float]]
 
 
-type GameStats = list[PlayerGameStats]
+type GameStats = dict[Literal["stats"], list[PlayerGameStats] | tuple[PlayerGameStats, ...]]
