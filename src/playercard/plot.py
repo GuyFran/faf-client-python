@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 from bisect import bisect_left
-from collections.abc import Sequence
 
 import numpy as np
+import numpy.typing as npt
 import pyqtgraph as pg
 from PyQt6.QtCore import QDateTime
 from PyQt6.QtCore import QPointF
 from PyQt6.QtGui import QColor
 from pyqtgraph.graphicsItems.DateAxisItem import DateAxisItem
-
-Numeric = float | int
 
 
 class Crosshairs:
@@ -65,7 +63,7 @@ class Crosshairs:
     def is_visible(self) -> bool:
         return self._visible
 
-    def _closest_index(self, lst: Sequence[Numeric], value: Numeric) -> int:
+    def _closest_index(self, lst: npt.NDArray[np.float64], value: float) -> int:
         pos = bisect_left(lst, value)
         if pos == 0:
             return pos
@@ -140,13 +138,13 @@ class Crosshairs:
 
 class LineSeries:
     def __init__(self, size: int = 0) -> None:
-        self._x: np.ndarray = np.zeros(size)
-        self._y: np.ndarray = np.zeros(size)
+        self._x: npt.NDArray[np.float64] = np.zeros(size)
+        self._y: npt.NDArray[np.float64] = np.zeros(size)
 
-    def x(self) -> np.ndarray:
+    def x(self) -> npt.NDArray[np.float64]:
         return self._x
 
-    def y(self) -> np.ndarray:
+    def y(self) -> npt.NDArray[np.float64]:
         return self._y
 
     def set_point(self, index: int, point: QPointF) -> None:
@@ -175,12 +173,13 @@ class PlotController:
         self.hide_scene_actions()
         self.hide_irrelevant_plot_actions()
         self.add_custom_menu_actions()
+        self.plot_item: pg.PlotDataItem = self.widget.plot(pen=pg.mkPen("orange"))
 
     def clear(self) -> None:
         self.widget.clear()
 
-    def draw_series(self) -> None:
-        self.widget.plot(self.series.x(), self.series.y(), pen=pg.mkPen("orange"))
+    def update(self) -> None:
+        self.plot_item.setData(self.series.x(), self.series.y())
         self.widget.autoRange()
 
     def add_data(self, series: LineSeries) -> None:

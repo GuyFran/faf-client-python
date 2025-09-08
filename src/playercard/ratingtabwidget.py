@@ -129,7 +129,6 @@ class RatingsPlotTab(QObject):
     def finish(self) -> None:
         self._running = False
         self.clear_threads()
-        self.plot.draw_series()
         name = self.leaderboard.pretty_name
         if not self._loaded:
             name += f" ({self._current_page}/{self._total_pages})"
@@ -155,6 +154,7 @@ class RatingsPlotTab(QObject):
 
     def data_parsed(self, series: LineSeries) -> None:
         self.plot.prepend_data(series)
+        self.plot.update()
         if self._loaded:
             self.finish()
 
