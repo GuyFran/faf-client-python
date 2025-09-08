@@ -84,18 +84,15 @@ class GameSession(QObject):
         init_mode: LobbyInitMode = LobbyInitMode.NORMAL,
     ) -> None:
         self.game_uid = game_uid
-        self.ice_servers_poller = IceServersPoller(self.game_uid)
-        self.ice_servers_poller.ice_servers_received.connect(self.start_ice_process)
         self.lobby_mode = init_mode
         self.ice_adapter_manager.get_releases()
 
     def on_ice_version_set(self) -> None:
-        assert self.ice_servers_poller is not None
-        self.ice_servers_poller.request_ice_servers()
-
-    def start_ice_process(self) -> None:
         if self.ice_adapter_manager.adapter_kind == "java":
-            self.start_java_process()
+            assert self.game_uid is not None
+            self.ice_servers_poller = IceServersPoller(self.game_uid)
+            self.ice_servers_poller.ice_servers_received.connect(self.start_java_process)
+            self.ice_servers_poller.request_ice_servers()
         else:
             self.start_go_process()
 
