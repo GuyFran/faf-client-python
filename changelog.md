@@ -1,6 +1,17 @@
 0.x.x
 =====
 
+0.24.5
+* Adjust rating history plots to new API restrictions (see https://github.com/FAForever/faf-java-api/pull/1004):
+  - avoid unhandled exceptions on closing profile dialog with unfinished API requests
+  - load recent games first
+  - show pagination progress
+  - update graph on every page of data
+  - add button to try more
+* Pass `force-relay` option to ICE adapter based on API value (see https://github.com/FAForever/faf-icebreaker/pull/121)
+   - add a client option to disable `force-relay` even if it is enabled in API
+* Replaycard: deflate APM count by calculating it more accurately
+
 0.24.4
 * Fix exceptions in modvault when modname and modfolder differ
 
