@@ -9,13 +9,16 @@ from enum import IntEnum
 from typing import Any
 from typing import Literal
 
-from PyQt6 import QtCore
-from PyQt6 import QtNetwork
 from PyQt6.QtCore import QByteArray
+from PyQt6.QtCore import QObject
+from PyQt6.QtCore import QTimer
 from PyQt6.QtCore import QUrl
+from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import pyqtSlot
 from PyQt6.QtNetwork import QAbstractSocket
 from PyQt6.QtNetwork import QHostInfo
 from PyQt6.QtNetwork import QNetworkReply
+from PyQt6.QtNetwork import QTcpSocket
 from PyQt6.QtWebSockets import QWebSocket
 
 from src.api.ApiAccessors import UserApiAccessor
@@ -38,15 +41,15 @@ class ConnectionState(IntEnum):
     CONNECTED = 2
 
 
-class ServerReconnecter(QtCore.QObject):
+class ServerReconnecter(QObject):
     def __init__(self, connection: ServerConnection) -> None:
-        QtCore.QObject.__init__(self)
+        super().__init__()
         self._connection = connection
         connection.state_changed.connect(self.on_state_changed)
         connection.message_received.connect(self._receive_message)
         self._connection_attempts = 0
 
-        self._reconnect_timer = QtCore.QTimer(self)
+        self._reconnect_timer = QTimer(self)
         self._reconnect_timer.setSingleShot(True)
         self._reconnect_timer.timeout.connect(self._connection.do_connect)
 
@@ -54,7 +57,7 @@ class ServerReconnecter(QtCore.QObject):
         self._enabled = False
 
         self._keepalive = False
-        self._keepalive_timer = QtCore.QTimer(self)
+        self._keepalive_timer = QTimer(self)
         self._keepalive_timer.timeout.connect(self._ping_connection)
         self.keepalive_interval = 10 * 1000
         self._waiting_for_message = False
@@ -161,14 +164,14 @@ class ServerReconnecter(QtCore.QObject):
             self._keepalive_timer.start()  # restart
 
 
-class ServerConnection(QtCore.QObject):
+class ServerConnection(QObject):
 
     # These signals are emitted when the client is connected or disconnected
     # from FAF
-    state_changed = QtCore.pyqtSignal(object)
-    connected = QtCore.pyqtSignal()
-    disconnected = QtCore.pyqtSignal()
-    message_received = QtCore.pyqtSignal()
+    state_changed = pyqtSignal(object)
+    connected = pyqtSignal()
+    disconnected = pyqtSignal()
+    message_received = pyqtSignal()
 
     def __init__(self, host: str, port: int, dispatch: Dispatcher) -> None:
         super().__init__()
@@ -200,7 +203,7 @@ class ServerConnection(QtCore.QObject):
         self.api_accessor = UserApiAccessor()
 
     def on_socket_state_change(self, state):
-        states = QtNetwork.QAbstractSocket.SocketState
+        states = QAbstractSocket.SocketState
         my_state = None
         if state == states.UnconnectedState or state == states.BoundState:
             my_state = ConnectionState.DISCONNECTED
@@ -285,7 +288,7 @@ class ServerConnection(QtCore.QObject):
         self.connected.emit()
 
     def socket_connected(self):
-        return self.socket.state() == QtNetwork.QTcpSocket.SocketState.ConnectedState
+        return self.socket.state() == QTcpSocket.SocketState.ConnectedState
 
     def disconnect_(self):
         self.socket.close()
@@ -309,7 +312,7 @@ class ServerConnection(QtCore.QObject):
                         exc_info=sys.exc_info(),
                     )
 
-    @QtCore.pyqtSlot(QByteArray)
+    @pyqtSlot(QByteArray)
     def on_binary_message_received(self, message: QByteArray) -> None:
         data = message.data().decode()
         logger.debug("Server: '%s'", data)
@@ -321,7 +324,7 @@ class ServerConnection(QtCore.QObject):
         message = (action + "\n").encode()
         # it looks like there's a crash in Qt
         # when sending to an unconnected socket
-        if self.socket.state() == QtNetwork.QAbstractSocket.SocketState.ConnectedState:
+        if self.socket.state() == QAbstractSocket.SocketState.ConnectedState:
             self.socket.sendBinaryMessage(message)
 
     def send(self, message: dict[str, Any]) -> None:
@@ -349,13 +352,13 @@ class ServerConnection(QtCore.QObject):
         if self._disconnect_requested:
             return
 
-    @QtCore.pyqtSlot(QtNetwork.QAbstractSocket.SocketError)
-    def socketError(self, error: QtNetwork.QAbstractSocket.SocketError) -> None:
+    @pyqtSlot(QAbstractSocket.SocketError)
+    def socketError(self, error: QAbstractSocket.SocketError) -> None:
         if (
-            error == QtNetwork.QAbstractSocket.SocketError.SocketTimeoutError
-            or error == QtNetwork.QAbstractSocket.SocketError.NetworkError
-            or error == QtNetwork.QAbstractSocket.SocketError.ConnectionRefusedError
-            or error == QtNetwork.QAbstractSocket.SocketError.RemoteHostClosedError
+            error == QAbstractSocket.SocketError.SocketTimeoutError
+            or error == QAbstractSocket.SocketError.NetworkError
+            or error == QAbstractSocket.SocketError.ConnectionRefusedError
+            or error == QAbstractSocket.SocketError.RemoteHostClosedError
         ):
             logger.error("Timeout/network error: %s", self.socket.errorString())
         else:
@@ -407,20 +410,20 @@ class Dispatcher:
                 raise ValueError
 
 
-class LobbyInfo(QtCore.QObject):
+class LobbyInfo(QObject):
 
     # These signals propagate important client state changes to other modules
-    statsInfo = QtCore.pyqtSignal(dict)
-    coopInfo = QtCore.pyqtSignal(dict)
-    tutorialsInfo = QtCore.pyqtSignal(dict)
-    replayVault = QtCore.pyqtSignal(dict)
-    coopLeaderBoard = QtCore.pyqtSignal(dict)
-    avatarList = QtCore.pyqtSignal(list)
-    social = QtCore.pyqtSignal(dict)
-    serverSession = QtCore.pyqtSignal(dict)
+    statsInfo = pyqtSignal(dict)
+    coopInfo = pyqtSignal(dict)
+    tutorialsInfo = pyqtSignal(dict)
+    replayVault = pyqtSignal(dict)
+    coopLeaderBoard = pyqtSignal(dict)
+    avatarList = pyqtSignal(list)
+    social = pyqtSignal(dict)
+    serverSession = pyqtSignal(dict)
 
     def __init__(self, dispatcher: Dispatcher, gameset: Gameset, playerset: Playerset) -> None:
-        QtCore.QObject.__init__(self)
+        super().__init__()
 
         self._dispatcher = dispatcher
         self._dispatcher["stats"] = self._simple_emit(self.statsInfo)
