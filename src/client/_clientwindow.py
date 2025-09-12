@@ -1199,13 +1199,23 @@ class ClientWindow(FormClass, BaseClass):
         self.forceRelayICEOptionMenu = QtWidgets.QMenu("Force relay", self.menuICE_Adapter)
         self.forceRelayICEOptionGroup = QtGui.QActionGroup(self.forceRelayICEOptionMenu)
         self.menuICE_Adapter.addMenu(self.forceRelayICEOptionMenu)
-        self.enableForceRelayICEOption = QtGui.QAction(
+
+        self.enableForceRelayOption = QtGui.QAction(
+            "Enabled",
+            self.forceRelayICEOptionMenu,
+        )
+        self.enableForceRelayOption.setCheckable(True)
+        self.enableForceRelayOption.setData("enabled")
+        self.enableForceRelayOption.setChecked(
+            config.Settings.get("iceadapter/force_relay", "auto") == "enabled",
+        )
+        self.autoForceRelayOption = QtGui.QAction(
             "Use API provided value",
             self.forceRelayICEOptionMenu,
         )
-        self.enableForceRelayICEOption.setCheckable(True)
-        self.enableForceRelayICEOption.setData("auto")
-        self.enableForceRelayICEOption.setChecked(
+        self.autoForceRelayOption.setCheckable(True)
+        self.autoForceRelayOption.setData("auto")
+        self.autoForceRelayOption.setChecked(
             config.Settings.get("iceadapter/force_relay", "auto") == "auto",
         )
         self.disableForceRelayICEOption = QtGui.QAction(
@@ -1218,9 +1228,11 @@ class ClientWindow(FormClass, BaseClass):
         self.disableForceRelayICEOption.setCheckable(True)
         self.disableForceRelayICEOption.setData("disabled")
 
-        self.forceRelayICEOptionGroup.addAction(self.enableForceRelayICEOption)
+        self.forceRelayICEOptionGroup.addAction(self.enableForceRelayOption)
+        self.forceRelayICEOptionGroup.addAction(self.autoForceRelayOption)
         self.forceRelayICEOptionGroup.addAction(self.disableForceRelayICEOption)
-        self.forceRelayICEOptionMenu.addAction(self.enableForceRelayICEOption)
+        self.forceRelayICEOptionMenu.addAction(self.enableForceRelayOption)
+        self.forceRelayICEOptionMenu.addAction(self.autoForceRelayOption)
         self.forceRelayICEOptionMenu.addAction(self.disableForceRelayICEOption)
 
         self.forceRelayICEOptionGroup.triggered.connect(

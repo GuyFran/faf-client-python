@@ -102,7 +102,7 @@ class GoProcessArguments(IceProcessArguments):
         return self.resolved_filename()
 
     def arguments(self) -> list[str]:
-        return [
+        args = [
             "--user-id", str(self.player_id),
             "--user-name", self.player_login,
             "--game-id", str(self.game_id),
@@ -113,6 +113,9 @@ class GoProcessArguments(IceProcessArguments):
             "--log-level", "-1",
             "--log-path", self.log_path,
         ]
+        if not Settings.get("iceadapter/force_relay", "auto") == "auto" and self.force_relay:
+            args.append("--force-turn-relay")
+        return args
 
 
 @with_logger

@@ -88,9 +88,9 @@ class GameSession(QObject):
         self.ice_adapter_manager.get_releases()
 
     def on_ice_version_set(self) -> None:
+        assert self.game_uid is not None
+        self.ice_servers_poller = IceServersPoller(self.game_uid)
         if self.ice_adapter_manager.adapter_kind == "java":
-            assert self.game_uid is not None
-            self.ice_servers_poller = IceServersPoller(self.game_uid)
             self.ice_servers_poller.ice_servers_received.connect(self.start_java_process)
             self.ice_servers_poller.request_ice_servers()
         else:
@@ -99,13 +99,16 @@ class GameSession(QObject):
     def _start_ice_process(self, ice_port: int) -> None:
         assert self.game_uid is not None
         assert self.ice_servers_poller is not None
-        force_relay = Settings.get("iceadapter/force_relay", "auto") == "auto"
         self.ice_adapter_process = IceAdapterProcess(
             player_id=self.player_id,
             player_login=self.player_login,
             game_id=self.game_uid,
             port=ice_port,
-            force_relay=self.ice_servers_poller.force_relay if force_relay else False,
+            force_relay={
+                "enabled": True,
+                "auto": self.ice_servers_poller.force_relay,
+                "disabled": False,
+            }[Settings.get("iceadapter/force_relay", "auto")],
         )
         self._relay_port = self.ice_adapter_process.gpg_port()
         self.ice_adapter_process.start()
