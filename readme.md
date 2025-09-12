@@ -9,8 +9,8 @@ This is the source code for the FA Forever Lobby.
 
 Pre-requisites are:
 
-- Python 3.12+
-- PyQt5 >=6.7
+- Python 3.13+
+- PyQt >= 6.7
 - Requirements as in the [requirements](requirements.txt) (Linux) or [win_requirements](win_requirements.txt) (Windows) file.
 
 
