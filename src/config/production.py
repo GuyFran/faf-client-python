@@ -34,7 +34,7 @@ default_values = {
     'host': 'faforever.com',
     'proxy/host': 'proxy.{host}',
     'proxy/port': 9124,
-    'lobby/host': 'ws.faforever.com',
+    'lobby/host': 'ws.{host}',
     'lobby/port': 443,
     'updater/host': 'lobby.{host}',
     'mordor/host': 'http://mordor.{host}',
