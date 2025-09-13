@@ -353,7 +353,7 @@
            <item>
             <widget class="QLabel" name="label_8">
              <property name="text">
-              <string>Due to API restrictions, large histories will rate limit. Here is the button to try more:</string>
+              <string>Due to API restrictions, max 10 pages are loaded at first. Here is the button to try more:</string>
              </property>
             </widget>
            </item>

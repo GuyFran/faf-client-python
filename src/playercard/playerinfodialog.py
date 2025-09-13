@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCloseEvent
-from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtWidgets import QTableWidgetItem
 from PyQt6.QtWidgets import QWidget
 
@@ -59,11 +58,11 @@ class PlayerInfoDialog(FormClass, BaseClass):
             lambda: self.mainTabWidget.setCurrentIndex(clan_tab_index),
         )
         self.mainTabWidget.currentChanged.connect(self.on_tab_changed)
-        self.tab_widget_ctrl = RatingTabWidgetController(player_id, self.ratingsTabWidget)
-        self.tab_widget_ctrl.rating_api_error.connect(
-            lambda message: QMessageBox.warning(self, "API Error", message),
+        self.tab_widget_ctrl = RatingTabWidgetController(
+            player_id,
+            self.ratingsTabWidget,
+            self.loadMoreRatingHistoryButton,
         )
-        self.loadMoreRatingHistoryButton.clicked.connect(self.tab_widget_ctrl.load_more_ratings)
         self.avatar_handler = AvatarHandler(self.avatarList, avatar_dler)
 
         self.player_id = player_id

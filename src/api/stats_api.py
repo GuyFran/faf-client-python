@@ -66,13 +66,7 @@ class LeaderboardRatingJournalApiConnector(ApiAccessor):
         }
 
     def handle_page(self, message: PreProcessedApiResponse) -> None:
-        meta = message.get("meta")
-        assert meta is not None
-        total_pages = meta["page"]["totalPages"]
-        current_page = meta["page"]["number"]
         self.ratings_ready.emit(message)
-        if current_page < total_pages:
-            self.get_history_page(current_page + 1)
 
     def get_history_page(self, page: int) -> None:
         self.query.update({

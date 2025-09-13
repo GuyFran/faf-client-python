@@ -7,6 +7,8 @@ from PyQt6.QtCore import QPointF
 from PyQt6.QtCore import Qt
 from PyQt6.QtCore import QThread
 from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QPushButton
 from PyQt6.QtWidgets import QTabWidget
 
 from src.api.ApiBase import PreProcessedApiResponse
@@ -94,11 +96,12 @@ class RatingsPlotTab(QObject):
         self.ratings_history_api.ratings_ready.connect(self.process_rating_history)
         self.ratings_history_api.api_error.connect(self.on_rating_api_error)
         self.plot = plot
-        self._loaded = False
         self.workers: list[LineSeriesParser] = []
         self._current_page = 0
         self._total_pages = 1
         self._running = False
+
+        self._default_pages = 10
 
     def __del__(self) -> None:
         self.close()
@@ -112,9 +115,18 @@ class RatingsPlotTab(QObject):
 
     def enter(self) -> None:
         if self._current_page == 0:
-            self.load_more_ratings()
+            self.load_ratings()
+
+    @property
+    def _loaded(self) -> bool:
+        return self._current_page >= self._default_pages
 
     def load_more_ratings(self) -> None:
+        if self._loaded:
+            self._default_pages = self._total_pages
+        self.load_ratings()
+
+    def load_ratings(self) -> None:
         if self._running or self._loaded:
             return
         self.name_changed.emit(self.index, "Loading...")
@@ -131,7 +143,7 @@ class RatingsPlotTab(QObject):
         self._running = False
         self.clear_threads()
         name = self.leaderboard.pretty_name
-        if not self._loaded:
+        if self._current_page < self._total_pages:
             name += f" ({self._current_page}/{self._total_pages})"
         self.name_changed.emit(self.index, name)
 
@@ -140,13 +152,17 @@ class RatingsPlotTab(QObject):
         assert meta is not None
         self._total_pages = meta["page"]["totalPages"]
         self._current_page = meta["page"]["number"]
+        if self._total_pages < self._default_pages:
+            self._default_pages = self._total_pages
         self.name_changed.emit(self.index, f"Loading... ({self._current_page}/{self._total_pages})")
-        self._loaded = self._current_page >= self._total_pages
 
         worker = LineSeriesParser(message)
         self.workers.append(worker)
         worker.result_ready.connect(self.data_parsed)
         worker.start()
+
+        if not self._loaded:
+            self.ratings_history_api.get_history_page(self._current_page + 1)
 
     def on_rating_api_error(self, message: str) -> None:
         self._running = False
@@ -160,14 +176,17 @@ class RatingsPlotTab(QObject):
             self.finish()
 
 
-class RatingTabWidgetController(QObject):
-    rating_api_error = pyqtSignal(str)
-
-    def __init__(self, player_id: str, tab_widget: QTabWidget) -> None:
-        super().__init__()
+class RatingTabWidgetController:
+    def __init__(
+        self,
+        player_id: str,
+        tab_widget: QTabWidget,
+        load_more_button: QPushButton,
+    ) -> None:
         self.player_id = player_id
         self.widget = tab_widget
         self.widget.currentChanged.connect(self.on_tab_changed)
+        load_more_button.clicked.connect(self.load_more_ratings)
 
         self.tabs: dict[int, RatingsPlotTab] = {}
 
@@ -176,7 +195,7 @@ class RatingTabWidgetController(QObject):
             widget = pg.PlotWidget()
             tab = RatingsPlotTab(index, self.player_id, rating, PlotController(widget))
             tab.name_changed.connect(self.widget.setTabText)
-            tab.api_error.connect(self.rating_api_error.emit)
+            tab.api_error.connect(self.on_api_error)
             self.tabs[index] = tab
             assert rating.leaderboard is not None
             self.widget.insertTab(index, widget, rating.leaderboard.pretty_name)
@@ -191,3 +210,7 @@ class RatingTabWidgetController(QObject):
 
     def on_tab_changed(self, index: int) -> None:
         self.tabs[index].enter()
+
+    def on_api_error(self, message: str) -> None:
+        text = "Too Many Requests" if "Too Many" in message else message
+        QMessageBox.warning(self.widget, "API Error", text)
