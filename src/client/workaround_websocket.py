@@ -140,7 +140,6 @@ class Websocket(QObject):
         self.socket = None
 
     def reader_writer_error(self) -> None:
-        assert self.connection is not None
         self.sync_state()
         self.errorOccurred.emit(QAbstractSocket.SocketError.NetworkError)
 
