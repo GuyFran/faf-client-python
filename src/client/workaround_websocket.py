@@ -3,6 +3,7 @@ import socket
 from queue import Queue
 from queue import ShutDown
 from typing import cast
+from unittest import mock
 
 from PyQt6.QtCore import QByteArray
 from PyQt6.QtCore import QObject
@@ -149,7 +150,11 @@ class Websocket(QObject):
 
         self.connect()
         assert self.socket is not None
-        self.connection = connect(url.url(), sock=self.socket)
+
+        # prevent leaking lobby access verfication token into logs
+        with mock.patch.object(logger, "getEffectiveLevel", return_value=logging.INFO):
+            self.connection = connect(url.url(), sock=self.socket, logger=logger)
+
         self.connection.debug = False
         self.connection.protocol.debug = False
 
