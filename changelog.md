@@ -1,6 +1,11 @@
 0.x.x
 =====
 
+0.24.6
+* Force connecting with IPv4 protocol when IPv6 is available, because IPv6 does not work
+* Add ICE Adapter option to always force relay
+* Load only 10 pages of rating history by default in player profile
+
 0.24.5
 * Adjust rating history plots to new API restrictions (see https://github.com/FAForever/faf-java-api/pull/1004):
   - avoid unhandled exceptions on closing profile dialog with unfinished API requests
