@@ -988,6 +988,19 @@ class ReplayVaultWidgetHandler:
                             "You have to wait {} to join.".format(wait_str)
                         ),
                     )
+            elif item.replay["endTime"] is None and not item.live_delay:
+                # player probably foed us; hiding started games from foes
+                # makes no sense, but currently server does that
+                name = item.replay["host"]["login"]
+                if (player := self._playerset.get_by_name(name)) is not None:  # still logged in
+                    url = GameUrl(
+                        GameUrlType.LIVE_REPLAY,
+                        item.mapname,
+                        item.mod,
+                        item.uid,
+                        player.id,
+                    )
+                    replay(url)
             else:  # game ended - ask to start replay
                 if QtWidgets.QMessageBox.question(
                     client.instance,
