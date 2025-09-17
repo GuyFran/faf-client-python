@@ -5,6 +5,7 @@ import logging
 import os
 import time
 
+import zstandard
 from PyQt6 import QtCore
 from PyQt6 import QtNetwork
 from PyQt6 import QtWidgets
@@ -12,6 +13,7 @@ from PyQt6 import QtWidgets
 from src import fa
 from src import util
 from src.config import Settings
+from src.qt.utils import qopen
 
 GPGNET_HOST = "lobby.faforever.com"
 GPGNET_PORT = 8000
@@ -44,7 +46,7 @@ class ReplayRecorder(QtCore.QObject):
 
         # Create a file to write the replay data into
         self.replayData = QtCore.QByteArray()
-        self.replayInfo = fa.instance._info
+        self.replayInfo = fa.instance._info or {}
 
         self._host = Settings.get('replay_server/host')
         self._port = Settings.get('replay_server/port', type=int)
@@ -153,9 +155,11 @@ class ReplayRecorder(QtCore.QObject):
             else:
                 self.__logger.warning("Replay Info not Complete")
 
-            self.replayInfo = fa.instance._info
+            self.replayInfo: dict[str, str | float] = fa.instance._info
 
         self.replayInfo['game_end'] = time.time()
+        self.replayInfo["compression"] = "zstd"
+        self.replayInfo["version"] = 2
 
         basename = "{}-{}.fafreplay".format(
             self.replayInfo['uid'], self.replayInfo['recorder'],
@@ -166,12 +170,11 @@ class ReplayRecorder(QtCore.QObject):
             filename, self.replayData.size(),
         )
 
-        replay = QtCore.QFile(filename)
-        replay.open(QtCore.QIODevice.OpenModeFlag.WriteOnly | QtCore.QIODevice.OpenModeFlag.Text)
-        replay.write(json.dumps(self.replayInfo).encode('utf-8'))
-        replay.write(b'\n')
-        replay.write(QtCore.qCompress(self.replayData).toBase64())
-        replay.close()
+        with qopen(filename, QtCore.QFile.OpenModeFlag.WriteOnly) as replay:
+            replay.write(json.dumps(self.replayInfo).encode() + b"\n")
+            compressor = zstandard.ZstdCompressor()
+            with compressor.stream_writer(replay) as writer:  # type: ignore[arg-type]
+                writer.write(self.replayData.data())
 
 
 class ReplayServer(QtNetwork.QTcpServer):

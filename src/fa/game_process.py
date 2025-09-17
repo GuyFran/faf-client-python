@@ -66,7 +66,7 @@ class GameProcess(QtCore.QProcess):
 
     def run(
         self,
-        info: dict[str, str | int] | None,
+        info: dict[str, str | float] | None,
         arguments: list[str],
         detach: bool = False,
         init_file: str | None = None,

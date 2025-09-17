@@ -629,9 +629,9 @@ class LocalReplayMetadataCache:
         if filename not in self._cache:
             try:
                 target_file = os.path.join(self._cache_dir, filename)
-                with open(target_file) as fh:
+                with open(target_file, "rb") as fh:
                     metadata = fh.readline()
-                    self._cache[filename] = ReplayMetadata(metadata)
+                self._cache[filename] = ReplayMetadata(metadata.decode())
                 self._new_cache_entries.add(filename)
             except OSError:
                 raise KeyError
