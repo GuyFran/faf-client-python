@@ -1986,7 +1986,7 @@ class ClientWindow(FormClass, BaseClass):
 
         self.lobby_connection.send(msg)
 
-    def join_game(self, uid, password=None):
+    def join_game(self, uid: int, password: str | None = None) -> None:
         msg = {
             'command': 'game_join',
             'uid': uid,

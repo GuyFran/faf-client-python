@@ -16,7 +16,7 @@ class Theme():
     Represents a single FAF client theme.
     """
 
-    def __init__(self, themedir: str | None, name: str) -> None:
+    def __init__(self, themedir: str | None, name: str | None) -> None:
         """
         A 'None' themedir represents no theming (no dir prepended to filename)
         """
