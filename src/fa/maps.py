@@ -9,6 +9,7 @@ import sys
 import tempfile
 import zipfile
 from collections.abc import Callable
+from collections.abc import Iterator
 from typing import TypedDict
 from typing import cast
 
@@ -40,12 +41,15 @@ def isBase(mapname: str) -> bool:
     return mapname.lower() in maps
 
 
+def _get_user_maps() -> Iterator[os.DirEntry[str]]:
+    try:
+        return os.scandir(getUserMapsFolder())
+    except OSError:
+        return iter(())  # YEP
+
+
 def getUserMaps() -> list[str]:
-    maps: list[str] = []
-    if os.path.isdir(getUserMapsFolder()):
-        for _dir in os.listdir(getUserMapsFolder()):
-            maps.append(_dir.lower())
-    return maps
+    return [dr.name.lower() for dr in _get_user_maps() if dr.is_dir()]
 
 
 def getDisplayName(filename: str) -> str:
@@ -127,12 +131,7 @@ def isMapAvailable(mapname: str) -> bool:
     if isBase(mapname):
         return True
 
-    if os.path.isdir(getUserMapsFolder()):
-        for infile in os.listdir(getUserMapsFolder()):
-            if infile.lower() == mapname.lower():
-                return True
-
-    return False
+    return mapname.lower() in getUserMaps()
 
 
 def folderForMap(mapname: str) -> str | None:
@@ -142,10 +141,9 @@ def folderForMap(mapname: str) -> str | None:
     if isBase(mapname):
         return os.path.join(getBaseMapsFolder(), mapname)
 
-    if os.path.isdir(getUserMapsFolder()):
-        for infile in os.listdir(getUserMapsFolder()):
-            if infile.lower() == mapname.lower():
-                return os.path.join(getUserMapsFolder(), mapname)
+    for infile in _get_user_maps():
+        if infile.name.lower() == mapname.lower():
+            return infile.path
 
     return None
 
@@ -234,10 +232,9 @@ def export_preview_from_map(
             f"{mapname}{suffix}".casefold(),
             f"{mapname_no_version}{suffix}".casefold(),
         )
-        for entry in os.listdir(mapdir):
-            plausible_preview = os.path.join(mapdir, entry)
-            if os.path.isfile(plausible_preview) and entry.casefold() in casefold_names:
-                return plausible_preview
+        for entry in os.scandir(mapdir):
+            if entry.is_file() and entry.name.casefold() in casefold_names:
+                return entry.path
         return os.path.join(mapdir, f"{mapname}{suffix}")
 
     previewsmallname = plausible_mapname_preview_name(".small.png")
@@ -422,11 +419,11 @@ def processMapFolderForUpload(mapDir: str) -> None:
     # mapName = os.path.basename(mapDir).split(".v")[0]
 
     # making sure we pack only necessary files and not random garbage
-    for filename in os.listdir(mapDir):
+    for entry in os.scandir(mapDir):
         endings = ['.lua', 'preview.jpg', '.scmap', '.dds']
         # stupid trick: False + False == 0, True + False == 1
-        if sum([filename.endswith(x) for x in endings]) > 0:
-            files.append(os.path.join(mapDir, filename))
+        if sum(entry.name.endswith(x) for x in endings) > 0:
+            files.append(entry.path)
 
     temp = tempfile.NamedTemporaryFile(mode='w+b', suffix=".zip", delete=False)
 
@@ -464,9 +461,9 @@ class InstalledMapsCache(QtCore.QObject):
         self.installed_maps = self.load()
 
     def parse_metadata(self, folder: str) -> CachedMapInfo | None:
-        for file in os.listdir(folder):
-            if file.endswith("scenario.lua"):
-                parser = luaParser(os.path.join(folder, file))
+        for entry in os.scandir(folder):
+            if entry.name.endswith("scenario.lua"):
+                parser = luaParser(entry.path)
                 return cast(
                     CachedMapInfo, parser.parse(
                         {
@@ -511,27 +508,24 @@ class InstalledMapsCache(QtCore.QObject):
             if not os.path.isdir(root):
                 logger.warning("Could not find maps folder to parse metadata from: %s", root)
                 continue
-            for dr in os.listdir(root):
+            for dr in os.scandir(root):
                 if (
-                        (root == base_folder and dr.lower() not in maps)
-                        or dr.lower() in self.installed_maps
+                        (root == base_folder and dr.name.lower() not in maps)
+                        or dr.name.lower() in self.installed_maps
+                        or not dr.is_dir()
                 ):
                     continue
 
-                map_path = os.path.join(root, dr)
-                if not os.path.isdir(map_path):
-                    continue
-
-                map_info = self.parse_metadata(map_path)
+                map_info = self.parse_metadata(dr.path)
                 if map_info is None:
                     continue
 
                 if isGeneratedMap(map_info["name"]):
                     self.adjust_generated_map_size(map_info)
 
-                map_info["folder_name"] = dr.lower()
-                self.installed_maps[dr.lower()] = map_info
-                logger.debug("Loaded %s into maps cached metadata", map_path)
+                map_info["folder_name"] = dr.name.lower()
+                self.installed_maps[dr.name.lower()] = map_info
+                logger.debug("Loaded %s into maps cached metadata", dr.path)
         return self.installed_maps
 
     def sanitize(self) -> None:

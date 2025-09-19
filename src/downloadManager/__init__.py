@@ -475,10 +475,9 @@ class CachedImageDownloader(ImageDownloader):
         self.load_cache()
 
     def load_cache(self) -> None:
-        for filename in os.listdir(self.save_dir):
-            filepath = os.path.join(self.save_dir, filename)
-            pix = QPixmap(filepath)
-            self.images[filename] = pix if self._size is None else pix.scaled(self._size)
+        for entry in os.scandir(self.save_dir):
+            pix = QPixmap(entry.path)
+            self.images[entry.name] = pix if self._size is None else pix.scaled(self._size)
 
     def has_image(self, name_or_url: QUrl | str) -> bool:
         return self.get_image(name_or_url) is not None

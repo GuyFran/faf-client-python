@@ -233,27 +233,26 @@ def setAccessTime(file: str) -> None:
 # Get rid of cached files that are stored for too long
 def clearGameCache():
     fmod_dir = os.path.join(CACHE_DIR, 'featured_mod')
-    if os.path.exists(fmod_dir):
-        curr_time = datetime.datetime.now()
-        max_storage_time = Settings.get(
-            'cache/number_of_days', type=int, default=0,
-        )
-        if max_storage_time > -1:  # -1 stands for keeping files forever
-            for _dir in ['bin', 'gamedata']:
-                dir_to_check = os.path.join(fmod_dir, _dir)
-                if os.path.exists(dir_to_check):
-                    files_to_check = []
-                    for dir, _, files in os.walk(dir_to_check):
-                        files_to_check = files
-                    for _file in files_to_check:
-                        access_time = os.path.getatime(
-                            os.path.join(dir_to_check, _file),
-                        )
-                        access_time = datetime.datetime.fromtimestamp(
-                            access_time,
-                        )
-                        if (curr_time - access_time).days >= max_storage_time:
-                            os.remove(os.path.join(dir_to_check, _file))
+
+    if not os.path.exists(fmod_dir):
+        return
+
+    max_storage_time = Settings.get("cache/number_of_days", 0, type=int)
+    if max_storage_time == -1:  # -1 stands for keeping files forever
+        return
+
+    curr_time = datetime.datetime.now()
+    for _dir in ("bin", "gamedata"):
+        dir_to_check = os.path.join(fmod_dir, _dir)
+        if not os.path.exists(dir_to_check):
+            continue
+        for entry in os.scandir(dir_to_check):
+            if not entry.is_file():
+                continue
+            access_timestamp = os.path.getatime(entry.path)
+            access_time = datetime.datetime.fromtimestamp(access_timestamp)
+            if (curr_time - access_time).days >= max_storage_time:
+                os.remove(entry.path)
 
 
 # Get rid of generated maps
@@ -295,12 +294,11 @@ def clearDirectory(directory, confirm=True):
 # Theme and settings
 def _setup_theme() -> ThemeSet:
     default = Theme(COMMON_DIR, None)
-    themes = []
+    themes: list[Theme] = []
     if os.path.isdir(THEME_DIR):
-        for infile in os.listdir(THEME_DIR):
-            theme_path = os.path.join(THEME_DIR, infile)
-            if os.path.isdir(os.path.join(THEME_DIR, infile)):
-                themes.append(Theme(theme_path, infile))
+        for entry in os.scandir(THEME_DIR):
+            if entry.is_dir():
+                themes.append(Theme(entry.path, entry.name))
     return ThemeSet(themes, default, Settings, VERSION_STRING)
 
 
