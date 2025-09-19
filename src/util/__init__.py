@@ -33,8 +33,6 @@ if sys.platform == 'win32':
 
 logger = logging.getLogger(__name__)
 
-LOGFILE_MAX_SIZE = 256 * 1024  # 256kb should be enough for anyone
-
 UNITS_PREVIEW_ROOT = (
     "{}/faf/unitsDB/icons/big/".format(Settings.get('content/host'))
 )
@@ -201,22 +199,7 @@ def remove_obsolete_logs(location, pattern, max_number):
         replay_files.pop(0)
 
 
-# Dirty log rotation: Get rid of logs if larger than 1 MiB
 try:
-    # HACK: Clean up obsolete logs directory trees
-    if os.path.isfile(os.path.join(LOG_DIR, "faforever.log")):
-        shutil.rmtree(LOG_DIR)
-        os.makedirs(LOG_DIR)
-
-    if os.path.isfile(LOG_FILE_FAF):
-        if os.path.getsize(LOG_FILE_FAF) > LOGFILE_MAX_SIZE:
-            os.remove(LOG_FILE_FAF)
-    if os.path.isfile(LOG_FILE_GAME):
-        if os.path.getsize(LOG_FILE_GAME) > LOGFILE_MAX_SIZE:
-            os.remove(LOG_FILE_GAME)
-    if os.path.isfile(LOG_FILE_MAPGEN):
-        if os.path.getsize(LOG_FILE_MAPGEN) > LOGFILE_MAX_SIZE:
-            os.remove(LOG_FILE_MAPGEN)
     remove_obsolete_logs(LOG_DIR, LOG_FILE_GAME_INFIX, 30)
 except Exception:
     pass
@@ -303,32 +286,6 @@ def _setup_theme() -> ThemeSet:
 
 
 THEME = _setup_theme()
-
-
-def __downloadPreviewFromWeb(unitname):
-    """
-    Downloads a preview image from the web for the given unit name
-    """
-    # This is done so generated previews always have a lower case name.
-    # This doesn't solve the underlying problem
-    # (case folding Windows vs. Unix vs. FAF)
-    import urllib.error
-    import urllib.parse
-    import urllib.request
-    unitname = unitname.lower()
-
-    logger.debug("Searching web preview for: " + unitname)
-
-    url = UNITS_PREVIEW_ROOT + urllib.parse.quote(unitname)
-    header = urllib.request.Request(url, headers={'User-Agent': "FAF Client"})
-    req = urllib.request.urlopen(header)
-    img = os.path.join(CACHE_DIR, unitname)
-    with open(img, 'wb') as fp:
-        shutil.copyfileobj(req, fp)
-        fp.flush()
-        os.fsync(fp.fileno())  # probably works without the flush and fsync
-        fp.close()
-    return img
 
 
 def wrongPathNotice():
@@ -426,10 +383,6 @@ def irc_escape(text):
     return " ".join(result)
 
 
-def password_hash(password):
-    return hashlib.sha256(password.strip().encode("utf-8")).hexdigest()
-
-
 def md5text(text):
     m = hashlib.md5()
     m.update(text.encode('utf-8'))
@@ -443,7 +396,7 @@ def md5(file_name: str) -> str:
     """
     m = hashlib.md5()
     if not os.path.isfile(file_name):
-        return None
+        return ""
 
     with open(file_name, "rb") as fd:
         while True:
