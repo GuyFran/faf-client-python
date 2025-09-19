@@ -170,6 +170,10 @@ class IrcConnection(SimpleIRCClient, IrcSignals):
 
         self._history_asked: set[str] = set()
 
+        self._keepalive_timer = QTimer()
+        self._keepalive_timer.setInterval(30 * 1000)
+        self._keepalive_timer.timeout.connect(self.ping)
+
     @classmethod
     def build(cls, settings: type[config.Settings]) -> IrcConnection:
         port = settings.get("chat/port", 443, int)
@@ -183,6 +187,7 @@ class IrcConnection(SimpleIRCClient, IrcSignals):
         self.host = config.Settings.get('chat/host', type=str)
 
     def disconnect_(self) -> None:
+        self._keepalive_timer.stop()
         self.connection.disconnect()
 
     def set_nick_and_username(self, nick: str, username: str) -> None:
@@ -233,6 +238,10 @@ class IrcConnection(SimpleIRCClient, IrcSignals):
         return self.connection.is_connected()
 
     @_only_if_connected
+    def ping(self) -> None:
+        self.connection.ping("keep-alive")
+
+    @_only_if_connected
     def set_topic(self, channel: str, topic: str) -> None:
         self.connection.topic(channel, topic)
 
@@ -271,6 +280,7 @@ class IrcConnection(SimpleIRCClient, IrcSignals):
         self.new_server_message.emit(text)
 
     def on_welcome(self, c: ServerConnection, e: Event) -> None:
+        self._keepalive_timer.start()
         self._enable_server_time_cap()
         self._log_event(e)
         if not self._connected:
@@ -506,6 +516,7 @@ class IrcConnection(SimpleIRCClient, IrcSignals):
 
     def on_disconnect(self, c: ServerConnection, e: Event) -> None:
         self._connected = False
+        self._keepalive_timer.stop()
         self.disconnected.emit()
         message = e.arguments[0]
         logger.info("Disconnected from chat: %s", message)
