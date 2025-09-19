@@ -1,4 +1,7 @@
+from collections.abc import Iterable
 from enum import Enum
+from typing import ClassVar
+from typing import Self
 
 from PyQt6.QtCore import QUrl
 from PyQt6.QtCore import QUrlQuery
@@ -10,10 +13,18 @@ class GameUrlType(Enum):
 
 
 class GameUrl:
-    LOBBY_URL = "lobby.faforever.com"
+    PORT: ClassVar[int] = -1
     REPLAY_SUFFIX = ".SCFAreplay"
 
-    def __init__(self, game_type, map_, mod, uid, player, mods=None):
+    def __init__(
+        self,
+        game_type: GameUrlType,
+        map_: str,
+        mod: str,
+        uid: int,
+        player: str | int,
+        mods: Iterable[str] | None = None,
+    ) -> None:
         self.game_type = game_type
         self.map = map_
         self.mod = mod
@@ -21,9 +32,10 @@ class GameUrl:
         self.uid = uid
         self.player = player    # Can be both name and uid
 
-    def to_url(self):
+    def to_url(self) -> QUrl:
         url = QUrl()
-        url.setHost(self.LOBBY_URL)
+        url.setHost("127.0.0.1")
+        url.setPort(self.PORT)
         url.setScheme(self.game_type.value)
         query = QUrlQuery()
         query.addQueryItem("map", self.map)
@@ -32,21 +44,21 @@ class GameUrl:
             query.addQueryItem("mods", ";".join(self.mods))
 
         if self.game_type == GameUrlType.OPEN_GAME:
-            url.setPath("/{}".format(self.player))
+            url.setPath(f"/{self.player}")
             query.addQueryItem("uid", str(self.uid))
         else:
             url.setPath(
-                "/{}/{}{}".format(self.uid, self.player, self.REPLAY_SUFFIX),
+                f"/{self.uid}/{self.player}{self.REPLAY_SUFFIX}",
             )
 
         url.setQuery(query)
         return url
 
     @classmethod
-    def from_url(cls, url):
+    def from_url(cls, u: str | QUrl, /) -> Self:
         try:
-            url = QUrl(url)
-            query = QUrlQuery(url)
+            url = QUrl(u)
+            query = QUrlQuery(u)
             map_ = cls._get_query_item(query, "map")
             mod = cls._get_query_item(query, "mod")
             game_type = GameUrlType(url.scheme())
@@ -73,12 +85,12 @@ class GameUrl:
         return cls(game_type, map_, mod, uid, player, mods)
 
     @classmethod
-    def _get_query_item(cls, query, name, type_=str):
+    def _get_query_item[T: str | int](cls, query: QUrlQuery, name: str, type_: type[T] = str) -> T:
         str_value = query.queryItemValue(name)
         if str_value == "":
             raise ValueError
         return type_(str_value)
 
     @classmethod
-    def is_game_url(cls, url):
-        return QUrl(url).scheme() in [e.value for e in GameUrlType]
+    def is_game_url(cls, u: str, /) -> bool:
+        return QUrl(u).scheme() in [e.value for e in GameUrlType]

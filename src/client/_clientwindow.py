@@ -90,6 +90,7 @@ from src.ui.status_logo import StatusLogo
 from src.unitdb.unitdbtab import UnitDBTab
 from src.updater import ClientUpdateTools
 from src.util import crash
+from src.util.gameurl import GameUrl
 from src.vaults.mapvault.mapvault import MapVault
 from src.vaults.modvault.modvault import ModVault
 from src.vaults.modvault.utils import getModFolder
@@ -1680,8 +1681,12 @@ class ClientWindow(FormClass, BaseClass):
         if self.state in (ClientState.CONNECTING, ClientState.CONNECTED, ClientState.LOGGED_IN):
             return True
 
+        assert self.replayServer is not None
         if not self.replayServer.doListen():
             return False
+
+        # FIXME: there must be a better way of passing port to game urls
+        GameUrl.PORT = self.replayServer.serverPort()
 
         self.lobby_connection.do_connect()
         return True
