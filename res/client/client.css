@@ -557,7 +557,7 @@ QTableWidget#nameHistoryTableWidget::item::hover
 }
 
 
-QTableWidget::item:selected, QListWidget::item:previously-selected, QListView::item:previously-selected
+QTableWidget::item:selected, QListWidget::item:previous-selected, QListView::item:previous-selected
 {
     border: none;
 }
@@ -579,7 +579,7 @@ QListWidget::item:hover, QListView::item:hover
     border-radius: 3px;
 }
 
-QListView::item:selected, QTreeWidget::item:previously-selected
+QListView::item:selected, QTreeWidget::item:previous-selected
 {
     border: none;
 }
@@ -643,7 +643,7 @@ QTreeWidget::item:selected
     border-radius: 3px;
 }
 
-QTreeWidget::item:previously-selected
+QTreeWidget::item:previous-selected
 {
     border: none;
 }
