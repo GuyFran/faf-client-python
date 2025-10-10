@@ -1139,6 +1139,12 @@ QLabel[ranked_mod="true"]
     color: orange;
 }
 
+QLabel#replayEventTime
+{
+    border-radius: 4px;
+    background: #202025;
+}
+
 QTextEdit#reviewText
 {
     border-style: solid;

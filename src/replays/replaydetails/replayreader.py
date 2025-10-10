@@ -25,6 +25,7 @@ import html
 import json
 import logging
 import os
+import re
 from collections import Counter
 from collections import defaultdict
 from collections.abc import Generator
@@ -42,7 +43,9 @@ from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtCore import qUncompress
 from PyQt6.QtNetwork import QNetworkReply
 
+from src.fa.factions import Factions
 from src.mapGenerator.mapgenUtils import isGeneratedMap
+from src.replays.replaydetails.chatnotifiers import ACU_UPGRADE_NOTIFIERS
 from src.replays.replaydetails.helpers import seconds_to_human
 from src.replays.replaydetails.replayformat import LUA_TYPE
 from src.replays.replaydetails.replayformat import STITARGET
@@ -50,6 +53,7 @@ from src.replays.replaydetails.replayformat import ECmdStreamOp
 from src.replays.replaydetails.replayformat import EUnitCommandType
 from src.replays.replaydetails.tabs.gamestats_types import GameStats
 from src.replays.replaydetails.types import ParsedReplay
+from src.replays.replaydetails.types import _ConvertedCommands
 from src.replays.replaydetails.utils import PLAYER_COLORS
 from src.util import COMMON_DIR
 
@@ -117,17 +121,18 @@ class ReplayParser(QObject):
 
         self.ticks = 0
         self.lasttick: dict[int, int] = {}
+        self.last_activity: dict[int, int] = {}
         self.army = {}
         self.pts: list[tuple[int, float, float, int, int]] = []
 
         self.CPM = Counter()
-        self.chatLine = []
+        self.chatLine: list[tuple[int, str, str, str, int]] = []
 
         self.filename = ""
         self.size = 0
 
         self.cpmChart = defaultdict(list)
-        self.commands = defaultdict(list)
+        self.commands: defaultdict[int, list[_ConvertedCommands]] = defaultdict(list)
         self.game_stats: GameStats = {}
 
     def set_file(self, file: str) -> None:
@@ -336,7 +341,6 @@ class ReplayParser(QObject):
                 case _:
                     self.binary.skipRawData(message_len - 3)
 
-        self.CPM = Counter({id: len(comlist) for id, comlist in self.cpmChart.items()})
         self.replayPercentage.emit(100)
 
     def process_moderator_event(self, function: str, lua: dict) -> None:
@@ -424,6 +428,7 @@ class ReplayParser(QObject):
 
     def _gen_info(self) -> Generator[str]:
         teams = self.get_teams()
+        enhancements = self._get_acu_enhancements()
         yield (
             f"<center><h2>{self.faf_info['title']}</h2>"
             f"<center><h3>{self.replayPatchFieldId}</h3>"
@@ -471,15 +476,20 @@ class ReplayParser(QObject):
                     yield f"Rating: {rating}"
                 # Commands per minute
                 if self.ticks and id in self.players:
-                    yield " apm: "
+                    yield " CPM: "
                     try:
-                        if id in self.lasttick:  # player dies before the game ends
-                            yield f"{self.CPM[id] / (self.lasttick[id] * 1.0 / 10 / 60):.2f}"
-                        else:
+                        try:  # player dies before the game ends
+                            yield f"{self.CPM[id] / (self.last_activity[id] * 1.0 / 10 / 60):.2f}"
+                        except KeyError:
                             yield f"{self.CPM[id] / (self.ticks * 1.0 / 10 / 60):.2f}"
                     except ZeroDivisionError:
                         yield "0.00"
-                yield "</td></tr>"
+                yield "</td>"
+                yield "<td>"
+                for _, (name, enh_path) in enhancements[id].items():
+                    yield f"<img height=32 src=\"{enh_path}\" title=\"{name}\"/>"
+                yield "</td>"
+                yield "</tr>"
             yield "<tr><td>&nbsp;</td></tr>"
         yield "</table></p>"
 
@@ -525,6 +535,26 @@ class ReplayParser(QObject):
 
     def get_chat(self) -> str:
         return "".join(self._gen_chat())
+
+    def _get_acu_enhancements(self) -> dict[int, dict[str, tuple[str, str]]]:
+        upgrades: dict[int, dict[str, tuple[str, str]]] = defaultdict(dict)
+        pattern = re.compile(r"(?!Tech)(.+) (done!|готов!)")
+
+        for *_, text, sender in (line for line in self.chatLine if line[2] == "notify"):
+            faction = Factions(self.army[sender]["Faction"]).name.lower()
+            if (found := pattern.match(text)) is not None:
+                enh_desc = found.group(1).strip()
+                try:
+                    picname, slot = ACU_UPGRADE_NOTIFIERS[faction][enh_desc]
+                except KeyError:
+                    continue
+                pic = self._enhancement_path(faction, picname)
+                upgrades[sender][slot] = (enh_desc, pic)
+        return upgrades
+
+    def _enhancement_path(self, faction: str, name: str) -> str:
+        filename = f"{name}.png"
+        return os.path.join(COMMON_DIR, "replays", "enhancements", faction, filename)
 
     def _html_escape(self, value: Any) -> Any:
         if not isinstance(value, str):
@@ -588,7 +618,6 @@ class ReplayParser(QObject):
         self.cpmChart = parsed["body"]["chart_data"]
         self.game_stats = parsed["body"]["game_stats"]
 
-        self.CPM = Counter({id: len(comlist) for id, comlist in self.cpmChart.items()})
         return True
 
     def do_stuff(self) -> None:
@@ -601,3 +630,11 @@ class ReplayParser(QObject):
         if not compiled_lib_worked:
             self.parse_header()
             self.parse_ticks()
+        self.post_process()
+
+    def post_process(self) -> None:
+        self.CPM = Counter({pid: len(comlist) for pid, comlist in self.cpmChart.items()})
+        self.last_activity = {
+            pid: comlist[-1] if comlist else self.lasttick.get(pid, self.ticks)
+            for pid, comlist in self.cpmChart.items()
+        }

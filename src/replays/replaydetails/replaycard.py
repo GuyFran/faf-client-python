@@ -23,6 +23,8 @@ from __future__ import annotations
 
 import json
 import os
+from typing import Protocol
+from typing import cast
 
 from PyQt6 import QtCore
 from PyQt6 import QtGui
@@ -38,11 +40,16 @@ from src.replays.replaydetails.replayreader import ReplayException
 from src.replays.replaydetails.replayreader import ReplayParser
 from src.replays.replaydetails.tabs.charttab import ChartsTab
 from src.replays.replaydetails.tabs.chattab import ChatTab
+from src.replays.replaydetails.tabs.events_tab import EventsTab
 from src.replays.replaydetails.tabs.gamestats import GameStatsWidget
 from src.replays.replaydetails.tabs.heatmap import Heatmap
 from src.replays.replaydetails.tabs.maintab import ReplayInfoTab
 
 STYLESHEET = util.THEME.readstylesheet("client/client.css")
+
+
+class TabWidget(Protocol):
+    def initialize(self, parser: ReplayParser) -> None: ...
 
 
 class ReplayLoader(QtCore.QThread):
@@ -123,6 +130,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
 
         self.replay_info_tab = ReplayInfoTab()
         self.chat_tab = ChatTab()
+        self.events_tab = EventsTab()
         self.heatmap_tab = Heatmap()
         self.charts_tab = ChartsTab()
         self.game_stats_tab = GameStatsWidget()
@@ -131,6 +139,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.replayTabs = QtWidgets.QTabWidget()
         self.replayTabs.addTab(self.replay_info_tab, "Info")
         self.replayTabs.addTab(self.chat_tab, "Chat")
+        self.replayTabs.addTab(self.events_tab, "Events")
         self.replayTabs.addTab(self.heatmap_tab, "Heatmap")
         self.replayTabs.addTab(self.charts_tab, "Graph")
         self.replayTabs.addTab(self.game_stats_tab, "Game Stats")
@@ -152,7 +161,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.resize(1024, 768)
         self.generator = MapGeneratorManager()
 
-        self.tab_history = set()
+        self.tab_history: set[int] = set()
         self.replayTabs.currentChanged.connect(self.on_tab_changed)
 
         self.download_timer = QtCore.QElapsedTimer()
@@ -178,8 +187,8 @@ class ReplayDetailsCard(QtWidgets.QDialog):
             return
 
         self.tab_history.add(index)
-        widget = self.replayTabs.widget(index)
-        assert isinstance(widget, (ReplayInfoTab, ChatTab, ChartsTab, GameStatsWidget, Heatmap))
+        widget = cast(TabWidget, self.replayTabs.widget(index))
+        assert widget is not None
         widget.initialize(self.loader.replay)
 
     def show_replay_exception_msg(self, msg: str) -> None:
