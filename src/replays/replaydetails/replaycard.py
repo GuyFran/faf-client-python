@@ -180,6 +180,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
     def closeEvent(self, event: QtGui.QCloseEvent | None) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]  # noqa: E501
         self._save_geometry_to_settings()
         self.heatmap_tab.save_settings()
+        self.events_tab.save_settings()
         super().closeEvent(event)
 
     def on_tab_changed(self, index: int) -> None:

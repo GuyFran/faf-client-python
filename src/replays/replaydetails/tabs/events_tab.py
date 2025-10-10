@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import QTabWidget
 from PyQt6.QtWidgets import QVBoxLayout
 from PyQt6.QtWidgets import QWidget
 
+from src.config import Settings
 from src.fa.factions import Factions
 from src.qt.utils import block_signals
 from src.replays.replaydetails.chatnotifiers import ACU_BLUEPRINTS
@@ -148,6 +149,13 @@ class EventsTab(QWidget):
         self.events = []
         self.finished_pattern = re.compile(r"(.+) (done!|готов!)")
 
+        self.visible_upgrades: list[int] = Settings.get_list(
+            "replaycard.events/visible_upgrades",
+            default=[1] * (len(tuple(EventType)) + 1),  # +1 for 'Select All' checkbox
+            type=int,
+        )
+        self.ui.selectAllUpgradesCheckBox.setChecked(all(self.visible_upgrades[1:]))
+
         self.upgrade_filter_group = QButtonGroup()
         self.upgrade_filter_group.setExclusive(False)
         for i, btn in enumerate((
@@ -158,6 +166,8 @@ class EventsTab(QWidget):
             self.ui.lastCommandCheckBox,
         )):
             self.upgrade_filter_group.addButton(btn, i)
+            if i != 0:
+                btn.setChecked(bool(self.visible_upgrades[i]))
         self.upgrade_filter_group.buttonToggled.connect(self.on_upgrade_filter_changed)
 
         self.players_filter_group = QButtonGroup()
@@ -225,6 +235,7 @@ class EventsTab(QWidget):
         list_widget_item.setBackground(QColor(color))
         list_widget_item.setToolTip(f"{enh_desc}\n[{login}]")
         list_widget_item.setData(Qt.ItemDataRole.UserRole, (event.typ, sender))
+        list_widget_item.setHidden(not self.visible_upgrades[event.typ.value])
         self.ui.eventsLayout.addItem(list_widget_item)
         self.ui.eventsLayout.setItemWidget(list_widget_item, event_widget)
 
@@ -306,3 +317,9 @@ class EventsTab(QWidget):
         chkbx.setChecked(True)
         self.ui.filterPlayersLayout.addWidget(chkbx)
         self.players_filter_group.addButton(chkbx, army_id)
+
+    def save_settings(self) -> None:
+        Settings.set(
+            "replaycard.events/visible_upgrades",
+            [int(btn.isChecked()) for btn in self.upgrade_filter_group.buttons()],
+        )
