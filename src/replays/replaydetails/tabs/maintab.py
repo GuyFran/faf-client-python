@@ -24,6 +24,7 @@ from __future__ import annotations
 import os
 
 from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QUrl
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QMouseEvent
 from PyQt6.QtGui import QPixmap
@@ -44,6 +45,7 @@ from src.fa.maps_.previewdialog import MapPreviewDialog
 from src.mapGenerator.mapgenManager import MapGeneratorManager
 from src.mapGenerator.mapgenUtils import isGeneratedMap
 from src.qt.widgets.clickablelabel import ClickableLabel
+from src.replays.replaydetails.pixmaps import enhancement_pixmap
 from src.replays.replaydetails.replayreader import ReplayParser
 from src.replays.replaydetails.utils import PLAYER_COLORS
 
@@ -107,11 +109,23 @@ class ReplayInfoTab(QWidget):
 
     def initialize(self, replay: ReplayParser) -> None:
         self.replay = replay
-        self.ui.replayInfo.setText(self.replay.get_info())
+        self.set_main_info()
         self.update_lobby_options()
         self.update_map_description()
         self.update_map_pixmap()
         self.update_get_map_button()
+
+    def set_main_info(self) -> None:
+        document = self.ui.replayInfo.document()
+        assert document is not None
+        for _, end_dct in self.replay.acu_enhancements.items():
+            for _, (_, faction, picname) in end_dct.items():
+                document.addResource(
+                    document.ResourceType.ImageResource,
+                    QUrl(f"{faction}_{picname}"),
+                    enhancement_pixmap(faction, picname),
+                )
+        self.ui.replayInfo.setText(self.replay.get_info())
 
     def update_lobby_options(self) -> None:
         self.ui.lobbyOptions.setVisible(True)

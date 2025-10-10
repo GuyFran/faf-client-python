@@ -30,6 +30,7 @@ from collections import Counter
 from collections import defaultdict
 from collections.abc import Generator
 from datetime import datetime
+from functools import cached_property
 from typing import Any
 from typing import NamedTuple
 from typing import cast
@@ -428,7 +429,6 @@ class ReplayParser(QObject):
 
     def _gen_info(self) -> Generator[str]:
         teams = self.get_teams()
-        enhancements = self._get_acu_enhancements()
         yield (
             f"<center><h2>{self.faf_info['title']}</h2>"
             f"<center><h3>{self.replayPatchFieldId}</h3>"
@@ -486,8 +486,8 @@ class ReplayParser(QObject):
                         yield "0.00"
                 yield "</td>"
                 yield "<td>"
-                for _, (name, enh_path) in enhancements[id].items():
-                    yield f"<img height=32 src=\"{enh_path}\" title=\"{name}\"/>"
+                for _, (name, faction, picname) in self.acu_enhancements[id].items():
+                    yield f"<img height=32 src=\"{faction}_{picname}\" title=\"{name}\"/>"
                 yield "</td>"
                 yield "</tr>"
             yield "<tr><td>&nbsp;</td></tr>"
@@ -536,8 +536,9 @@ class ReplayParser(QObject):
     def get_chat(self) -> str:
         return "".join(self._gen_chat())
 
-    def _get_acu_enhancements(self) -> dict[int, dict[str, tuple[str, str]]]:
-        upgrades: dict[int, dict[str, tuple[str, str]]] = defaultdict(dict)
+    @cached_property
+    def acu_enhancements(self) -> dict[int, dict[str, tuple[str, str, str]]]:
+        upgrades: dict[int, dict[str, tuple[str, str, str]]] = defaultdict(dict)
         pattern = re.compile(r"(?!Tech)(.+) (done!|готов!)")
 
         for *_, text, sender in (line for line in self.chatLine if line[2] == "notify"):
@@ -548,13 +549,8 @@ class ReplayParser(QObject):
                     picname, slot = ACU_UPGRADE_NOTIFIERS[faction][enh_desc]
                 except KeyError:
                     continue
-                pic = self._enhancement_path(faction, picname)
-                upgrades[sender][slot] = (enh_desc, pic)
+                upgrades[sender][slot] = (enh_desc, faction, picname)
         return upgrades
-
-    def _enhancement_path(self, faction: str, name: str) -> str:
-        filename = f"{name}.png"
-        return os.path.join(COMMON_DIR, "replays", "enhancements", faction, filename)
 
     def _html_escape(self, value: Any) -> Any:
         if not isinstance(value, str):

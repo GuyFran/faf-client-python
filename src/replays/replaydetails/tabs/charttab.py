@@ -22,7 +22,6 @@ SOFTWARE."""
 import json
 import os
 from collections.abc import Generator
-from functools import lru_cache
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtCore import QUrl
@@ -38,29 +37,12 @@ from PyQt6.QtWidgets import QWidget
 from src import util
 from src.replays.replaydetails.chart import ChartWidget
 from src.replays.replaydetails.helpers import seconds_to_human
+from src.replays.replaydetails.pixmaps import action_pixmaps
+from src.replays.replaydetails.pixmaps import units_pixmaps
 from src.replays.replaydetails.replayformat import cmdTypeToString
 from src.replays.replaydetails.replayreader import ReplayParser
 from src.replays.replaydetails.utils import ACTION_ICONS
 from src.replays.replaydetails.utils import PLAYER_COLORS
-from src.replays.replaydetails.utils import UNIT_ICONS
-
-
-@lru_cache(1)
-def units_pixmaps(file: str) -> dict[str, QPixmap]:
-    pixmap = QPixmap(file)
-    return {
-        name.lower(): pixmap.copy(0, i * 64, 64, 64)
-        for i, name in enumerate(UNIT_ICONS)
-    }
-
-
-@lru_cache(1)
-def action_pixmaps(file: str) -> dict[str, QPixmap]:
-    pixmap = QPixmap(file)
-    return {
-        name: pixmap.copy(0, i * 48, 48, 48)
-        for i, name in enumerate(ACTION_ICONS)
-    }
 
 
 class ChartsTabUI:
@@ -91,8 +73,6 @@ class ChartsTab(QWidget):
         self.ui = ChartsTabUI()
         self.ui.setupUi(self)
         self.show_player_actions = {"all": self.ui.showAllPlayers}
-        self.action_icons = os.path.join(util.COMMON_DIR, "replays", "actions48.png")
-        self.units_icons = os.path.join(util.COMMON_DIR, "unitdb", "units.png")
         db_path = os.path.join(util.COMMON_DIR, "unitdb", "unitdb.json")
         with open(db_path) as file:
             self.unitsdb = json.loads(file.read())
@@ -123,9 +103,9 @@ class ChartsTab(QWidget):
         document = self.ui.actionsDisplay.document()
         assert document is not None
         source_type = document.ResourceType.ImageResource
-        for name, pixmap_ in action_pixmaps(self.action_icons).items():
+        for name, pixmap_ in action_pixmaps().items():
             document.addResource(source_type, QUrl(name), pixmap_)
-        for name, pixmap_ in units_pixmaps(self.units_icons).items():
+        for name, pixmap_ in units_pixmaps().items():
             document.addResource(source_type, QUrl(name), pixmap_)
 
     def gen_chart(self) -> None:
@@ -197,7 +177,7 @@ class ChartsTab(QWidget):
             self.ui.actionsFilterLayout.addLayout(line)
             self.show_player_actions[id] = checkbox
 
-    def _gen_player_actions(self, tick: int) -> Generator[str, None, None]:
+    def _gen_player_actions(self, tick: int) -> Generator[str]:
         yield (
             f"time: {seconds_to_human(tick//10)}"
             f" to {seconds_to_human(min(tick+600, self.replay.ticks)//10)}"

@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import enum
-import os
 import re
 from collections.abc import Sequence
-from functools import lru_cache
 from operator import itemgetter
 from typing import NamedTuple
 from typing import cast
@@ -28,10 +26,10 @@ from src.replays.replaydetails.chatnotifiers import ACU_BLUEPRINTS
 from src.replays.replaydetails.chatnotifiers import ACU_UPGRADE_NOTIFIERS
 from src.replays.replaydetails.chatnotifiers import UNIT_NOTIFIERS
 from src.replays.replaydetails.helpers import seconds_to_human
+from src.replays.replaydetails.pixmaps import enhancement_pixmap
+from src.replays.replaydetails.pixmaps import units_pixmaps
 from src.replays.replaydetails.replayreader import ReplayParser
-from src.replays.replaydetails.tabs.charttab import units_pixmaps
 from src.replays.replaydetails.utils import PLAYER_COLORS
-from src.util import COMMON_DIR
 
 
 class EventType(enum.Enum):
@@ -62,8 +60,6 @@ class EventWidget(QWidget):
         self.faction = faction
         self.typ, self.picname = event
 
-        self.unit_images_path = os.path.join(COMMON_DIR, "unitdb", "units.png")
-
         self.pic = QLabel()
         self.timing = QLabel()
         self.timing.setObjectName("replayEventTime")
@@ -82,7 +78,7 @@ class EventWidget(QWidget):
         if self.typ is EventType.ACU_UPGRADE:
             return enhancement_pixmap(self.faction, self.picname)
         else:
-            return units_pixmaps(self.unit_images_path)[self.picname]
+            return units_pixmaps()[self.picname]
 
 
 class EventsTabUI:
@@ -142,12 +138,6 @@ class EventsTabUI:
         self.filterPlayersLayout.addSpacing(6)
 
         layout.addWidget(self.filter_tab_widget, 1)
-
-
-@lru_cache
-def enhancement_pixmap(faction: str, name: str) -> QPixmap:
-    filepath = os.path.join(COMMON_DIR, "replays", "enhancements", faction, f"{name}.png")
-    return QPixmap(filepath)
 
 
 class EventsTab(QWidget):
