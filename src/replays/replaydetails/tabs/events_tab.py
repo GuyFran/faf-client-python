@@ -249,6 +249,7 @@ class EventsTab(QWidget):
         self.players = parser.players
         self.chat_lines = parser.chatLine
         self.last_activity = parser.last_activity
+        self.teams = parser.teams
 
         self.add_events()
         self.add_player_checkboxes()
@@ -289,9 +290,19 @@ class EventsTab(QWidget):
             )
 
     def add_player_checkboxes(self) -> None:
-        for army_id in self.players:
-            chkbx = QCheckBox(cast(str, self.armies[army_id]["PlayerName"]))
-            chkbx.setChecked(True)
-            self.ui.filterPlayersLayout.addWidget(chkbx)
-            self.players_filter_group.addButton(chkbx, army_id)
+        if len(self.players) == len(self.teams):
+            for army_id in self.players:
+                self._add_player_checkbox(army_id)
+        else:
+            for _, players in self.teams.items():
+                for army_id in players:
+                    self._add_player_checkbox(army_id)
+                self.ui.filterPlayersLayout.addSpacing(6)
+
         self.ui.filterPlayersLayout.addStretch()
+
+    def _add_player_checkbox(self, army_id: int) -> None:
+        chkbx = QCheckBox(cast(str, self.armies[army_id]["PlayerName"]))
+        chkbx.setChecked(True)
+        self.ui.filterPlayersLayout.addWidget(chkbx)
+        self.players_filter_group.addButton(chkbx, army_id)

@@ -421,14 +421,14 @@ class ReplayParser(QObject):
                 teams[team].append(id)
         return teams
 
-    def get_teams(self) -> dict[int, list[int]]:
+    @cached_property
+    def teams(self) -> dict[int, list[int]]:
         if self.faf_info.get("featured_mod", "") == "coop":
             return self._coop_teams()
         else:
             return self._non_coop_teams()
 
     def _gen_info(self) -> Generator[str]:
-        teams = self.get_teams()
         yield (
             f"<center><h2>{self.faf_info['title']}</h2>"
             f"<center><h3>{self.replayPatchFieldId}</h3>"
@@ -453,7 +453,7 @@ class ReplayParser(QObject):
 
         teamid = 0
         yield "<p><table width=100%>"
-        for team in teams.items():
+        for team in self.teams.items():
             teamid += 1
             yield (
                 f"<tr><th bgcolor=grey colspan=5><font color=white>"
