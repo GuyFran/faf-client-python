@@ -146,13 +146,12 @@ class EventsTab(QWidget):
         super().__init__()
         self.ui = EventsTabUI()
         self.ui.setupUi(self)
-        self.events = []
         self.finished_pattern = re.compile(r"(.+) (done!|готов!)")
 
-        self.visible_upgrades: list[int] = Settings.get_list(
+        self.visible_upgrades = Settings.get_list(
             "replaycard.events/visible_upgrades",
-            default=[1] * (len(tuple(EventType)) + 1),  # +1 for 'Select All' checkbox
-            type=int,
+            default=[True] * (len(tuple(EventType)) + 1),  # +1 for 'Select All' checkbox
+            type=bool,
         )
         self.ui.selectAllUpgradesCheckBox.setChecked(all(self.visible_upgrades[1:]))
 
@@ -167,7 +166,7 @@ class EventsTab(QWidget):
         )):
             self.upgrade_filter_group.addButton(btn, i)
             if i != 0:
-                btn.setChecked(bool(self.visible_upgrades[i]))
+                btn.setChecked(self.visible_upgrades[i])
         self.upgrade_filter_group.buttonToggled.connect(self.on_upgrade_filter_changed)
 
         self.players_filter_group = QButtonGroup()
@@ -189,6 +188,7 @@ class EventsTab(QWidget):
             with block_signals(self.upgrade_filter_group):
                 self.ui.selectAllUpgradesCheckBox.setChecked(False)
 
+        self.visible_upgrades = [btn.isChecked() for btn in self.upgrade_filter_group.buttons()]
         self.update_visibility()
 
     def on_player_filter_changed(self, button: QCheckBox) -> None:
@@ -262,8 +262,17 @@ class EventsTab(QWidget):
         self.last_activity = parser.last_activity
         self.teams = parser.teams
 
+        self.clear()
         self.add_events()
         self.add_player_checkboxes()
+
+    def clear(self) -> None:
+        self.ui.eventsLayout.clear()
+        while (layout_item := self.ui.filterPlayersLayout.takeAt(2)) is not None:
+            widget = layout_item.widget()
+            if widget is not None:
+                self.ui.filterPlayersLayout.removeWidget(widget)
+                widget.deleteLater()
 
     def add_events(self) -> None:
         sorted_last_coms = sorted(self.last_activity.items(), key=itemgetter(1))
@@ -321,5 +330,5 @@ class EventsTab(QWidget):
     def save_settings(self) -> None:
         Settings.set(
             "replaycard.events/visible_upgrades",
-            [int(btn.isChecked()) for btn in self.upgrade_filter_group.buttons()],
+            self.visible_upgrades,
         )
