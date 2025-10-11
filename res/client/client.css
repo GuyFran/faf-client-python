@@ -381,6 +381,7 @@ QTableView::item:hover
 
 QTableView::item:selected
 {
+    color: white;
     background-color: #306030;
     border:none;
 }

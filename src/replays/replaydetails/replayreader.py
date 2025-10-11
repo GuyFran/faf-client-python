@@ -519,23 +519,6 @@ class ReplayParser(QObject):
     def map_display_name(self) -> str:
         return self.luaScenarioInfo["name"]
 
-    def _gen_chat(self) -> Generator[str]:
-        yield "<table width=100%>"
-        for index, line in enumerate(self.chatLine):
-            bgcolor = ("#202025", "#303035")[index % 2]
-            yield f"<tr bgcolor='{bgcolor}'>"
-            for i, elem in enumerate(line[:-1]):
-                if i == 0:
-                    text = seconds_to_human(elem // 10)
-                else:
-                    text = elem
-                yield f"<td>{text}</td>"
-            yield "</tr>"
-        yield "</table>"
-
-    def get_chat(self) -> str:
-        return "".join(self._gen_chat())
-
     @cached_property
     def acu_enhancements(self) -> dict[int, dict[str, tuple[str, str, str]]]:
         upgrades: dict[int, dict[str, tuple[str, str, str]]] = defaultdict(dict)
