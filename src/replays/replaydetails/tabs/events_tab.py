@@ -156,9 +156,7 @@ class EventItemDelegate(StyledItemDelegate):
         item_rect: QRect,
         model_item: EventModelItem,
     ) -> None:
-        team_rect = QRect(item_rect)
-        team_rect.setLeft(team_rect.right() - 10)
-        team_rect.setBottom(team_rect.top() + 10)
+        team_rect = QRect(item_rect.right() - 11, item_rect.y() + 1, 10, 10)
 
         path = QPainterPath()
         path.addRoundedRect(QRectF(team_rect), 2, 2)
