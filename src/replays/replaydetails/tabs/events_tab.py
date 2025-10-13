@@ -3,26 +3,41 @@ from __future__ import annotations
 import enum
 import re
 from collections.abc import Sequence
+from dataclasses import dataclass
 from operator import itemgetter
-from typing import NamedTuple
+from typing import Self
 from typing import cast
 
+from PyQt6.QtCore import QModelIndex
+from PyQt6.QtCore import QObject
+from PyQt6.QtCore import QPoint
+from PyQt6.QtCore import QRect
+from PyQt6.QtCore import QRectF
+from PyQt6.QtCore import QSize
 from PyQt6.QtCore import Qt
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QPainter
+from PyQt6.QtGui import QPainterPath
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QButtonGroup
 from PyQt6.QtWidgets import QCheckBox
 from PyQt6.QtWidgets import QHBoxLayout
 from PyQt6.QtWidgets import QLabel
+from PyQt6.QtWidgets import QListView
 from PyQt6.QtWidgets import QListWidget
-from PyQt6.QtWidgets import QListWidgetItem
+from PyQt6.QtWidgets import QStyleOptionViewItem
 from PyQt6.QtWidgets import QTabWidget
 from PyQt6.QtWidgets import QVBoxLayout
 from PyQt6.QtWidgets import QWidget
 
 from src.config import Settings
 from src.fa.factions import Factions
+from src.qt.itemviews.styleditemdelegate import StyledItemDelegate
+from src.qt.models.qtlistmodel import QtListModel
 from src.qt.utils import block_signals
+from src.qt.utils import qpainter
 from src.replays.replaydetails.chatnotifiers import ACU_BLUEPRINTS
 from src.replays.replaydetails.chatnotifiers import ACU_UPGRADE_NOTIFIERS
 from src.replays.replaydetails.chatnotifiers import UNIT_NOTIFIERS
@@ -33,6 +48,129 @@ from src.replays.replaydetails.replayreader import ReplayParser
 from src.replays.replaydetails.utils import PLAYER_COLORS
 
 
+class EventModelItem(QObject):
+    updated = pyqtSignal()
+
+    def __init__(self, replay_event: ReplayEvent) -> None:
+        super().__init__()
+        self.replay_event = replay_event
+
+    @classmethod
+    def make(cls, replay_event: ReplayEvent) -> Self:
+        return cls(replay_event)
+
+    def pixmap(self) -> QPixmap:
+        if self.replay_event.typ is EventType.ACU_UPGRADE:
+            return enhancement_pixmap(self.replay_event.faction, self.replay_event.picture_name)
+        else:
+            return units_pixmaps()[self.replay_event.picture_name]
+
+    def tooltip(self) -> str:
+        return f"{self.replay_event.description}\n[{self.replay_event.login}]"
+
+
+class ReplayEventModel(QtListModel):
+    def __init__(self) -> None:
+        super().__init__(EventModelItem.make)
+        self._id_counter = 0
+
+    def add_replay_event(self, data: ReplayEvent) -> None:
+        self._add_item(data, self._id_counter)
+        self._id_counter += 1
+
+    def clear_replay_events(self) -> None:
+        self._clear_items()
+        self._id_counter = 0
+
+
+class EventItemDelegate(StyledItemDelegate):
+    def __init__(self, *, render_teams: bool) -> None:
+        super().__init__()
+        self.render_teams = render_teams
+
+    def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
+        return QSize(76, 100)
+
+    def paint(
+        self,
+        painter: QPainter | None,
+        option: QStyleOptionViewItem,
+        index: QModelIndex,
+    ) -> None:
+        if painter is None:
+            return
+        event_item: EventModelItem = index.data()
+        with qpainter(painter) as p:
+            self._draw_background(p, option.rect, event_item)
+            self._draw_clear_option(p, option)
+            self._draw_icon(p, option.rect, event_item)
+            self._draw_text(p, option.rect, event_item)
+
+            if self.render_teams:
+                self._draw_team(p, option.rect, event_item)
+
+    def _draw_background(
+        self,
+        painter: QPainter,
+        item_rect: QRect,
+        model_item: EventModelItem,
+    ) -> None:
+        path = QPainterPath()
+        path.addRoundedRect(QRectF(item_rect), 3, 3)
+        painter.fillPath(path, QColor(model_item.replay_event.color))
+
+    def _draw_icon(
+        self,
+        painter: QPainter,
+        item_rect: QRect,
+        model_item: EventModelItem,
+    ) -> None:
+        pix_size = 64
+        icon = QIcon(model_item.pixmap())
+        icon_rect = QRect(item_rect)
+        icon_rect.setSize(QSize(pix_size, pix_size))
+        item_center = item_rect.center()
+        icon_rect.moveCenter(QPoint(item_center.x(), item_rect.top() + pix_size // 2 + 6))
+        icon.paint(painter, icon_rect)
+
+    def _draw_text(
+        self,
+        painter: QPainter,
+        item_rect: QRect,
+        model_item: EventModelItem,
+    ) -> None:
+        text_rect = QRect(item_rect)
+        text_rect.setHeight(20)
+        text_rect.setWidth(56)
+        text_rect.moveCenter(QPoint(item_rect.center().x(), item_rect.bottom() - 16))
+        path = QPainterPath()
+        path.addRoundedRect(QRectF(text_rect), 4, 4)
+        painter.fillPath(path, QColor("#202025"))
+
+        text = str(seconds_to_human(model_item.replay_event.tick // 10))
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, text)
+
+    def _draw_team(
+        self,
+        painter: QPainter,
+        item_rect: QRect,
+        model_item: EventModelItem,
+    ) -> None:
+        team_rect = QRect(item_rect)
+        team_rect.setLeft(team_rect.right() - 10)
+        team_rect.setBottom(team_rect.top() + 10)
+
+        path = QPainterPath()
+        path.addRoundedRect(QRectF(team_rect), 2, 2)
+
+        font = painter.font()
+        font.setPointSize(font.pointSize() - 2)
+        painter.setFont(font)
+        painter.fillPath(path, QColor("#202025"))
+        text = f"{model_item.replay_event.team - 1:.0f}"
+        painter.drawText(team_rect, Qt.AlignmentFlag.AlignCenter, text)
+
+
 class EventType(enum.Enum):
     ACU_UPGRADE = enum.auto()
     HQ_UPGRADE = enum.auto()
@@ -40,59 +178,38 @@ class EventType(enum.Enum):
     LAST_COMMAND = enum.auto()
 
 
-class ReplayEvent(NamedTuple):
+@dataclass(frozen=True)
+class EventNotice:
     typ: EventType
     picture_name: str
 
 
-class EventWidget(QWidget):
-    def __init__(
-        self,
-        tick: int,
-        login: str,
-        text: str,
-        faction: str,
-        event: ReplayEvent,
-    ) -> None:
-        super().__init__()
-        self.tick = tick
-        self.login = login
-        self.text = text
-        self.faction = faction
-        self.typ, self.picname = event
-
-        self.pic = QLabel()
-        self.timing = QLabel()
-        self.timing.setObjectName("replayEventTime")
-
-    def setup(self) -> None:
-        layout = QVBoxLayout(self)
-        layout.setStretch(0, 2)
-        self.pic.setPixmap(self._pixmap())
-
-        self.timing.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.timing.setText(seconds_to_human(self.tick // 10))
-        layout.addWidget(self.pic)
-        layout.addWidget(self.timing)
-
-    def _pixmap(self) -> QPixmap:
-        if self.typ is EventType.ACU_UPGRADE:
-            return enhancement_pixmap(self.faction, self.picname)
-        else:
-            return units_pixmaps()[self.picname]
+@dataclass(frozen=True)
+class ReplayEvent(EventNotice):
+    tick: int
+    login: str
+    description: str
+    faction: str
+    color: str
+    team: float
+    sender: int
 
 
 class EventsTabUI:
     def setupUi(self, widget: QWidget) -> None:
-        layout = QHBoxLayout(widget)
-        self.eventsLayout = QListWidget()
-        self.eventsLayout.setObjectName("replayEvents")
-        self.eventsLayout.setFlow(QListWidget.Flow.LeftToRight)
-        self.eventsLayout.setWrapping(True)
-        self.eventsLayout.setUniformItemSizes(True)
-        self.eventsLayout.setVerticalScrollMode(QListWidget.ScrollMode.ScrollPerPixel)
-        layout.addWidget(self.eventsLayout, 3)
+        self.showTeamsCheckBox = QCheckBox("Render team numbers")
 
+        layout = QHBoxLayout(widget)
+        self.eventsList = QListView()
+        self.eventsList.setSpacing(2)
+        self.eventsList.setObjectName("replayEvents")
+        self.eventsList.setFlow(QListWidget.Flow.LeftToRight)
+        self.eventsList.setWrapping(True)
+        self.eventsList.setUniformItemSizes(True)
+        self.eventsList.setVerticalScrollMode(QListWidget.ScrollMode.ScrollPerPixel)
+        layout.addWidget(self.eventsList, 3)
+
+        settings_layout = QVBoxLayout()
         self.filter_tab_widget = QTabWidget(widget)
 
         self.filter_upgrades_widget = QWidget()
@@ -138,7 +255,9 @@ class EventsTabUI:
         self.filterPlayersLayout.addWidget(self.selectAllPlayersCheckBox)
         self.filterPlayersLayout.addSpacing(6)
 
-        layout.addWidget(self.filter_tab_widget, 1)
+        settings_layout.addWidget(self.showTeamsCheckBox)
+        settings_layout.addWidget(self.filter_tab_widget)
+        layout.addLayout(settings_layout, 1)
 
 
 class EventsTab(QWidget):
@@ -179,6 +298,15 @@ class EventsTab(QWidget):
         self.chat_lines: Sequence[tuple[int, str, str, str, int]] = ()
         self.last_activity: dict[int, int] = {}
 
+        render_teams = Settings.get("replaycard.events/render_teams", default=False, type=bool)
+        self.ui.showTeamsCheckBox.setChecked(render_teams)
+        self.ui.showTeamsCheckBox.checkStateChanged.connect(self.on_show_teams_changed)
+
+        self.events_model = ReplayEventModel()
+        self.events_item_delegate = EventItemDelegate(render_teams=render_teams)
+        self.ui.eventsList.setModel(self.events_model)
+        self.ui.eventsList.setItemDelegate(self.events_item_delegate)
+
     def on_upgrade_filter_changed(self, button: QCheckBox) -> None:
         if button is self.ui.selectAllUpgradesCheckBox:
             with block_signals(self.upgrade_filter_group) as group:
@@ -203,55 +331,34 @@ class EventsTab(QWidget):
         self.update_visibility()
 
     def update_visibility(self) -> None:
-        for row in range(self.ui.eventsLayout.count()):
-            item = self.ui.eventsLayout.item(row)
-            assert item is not None
-
-            event_type, sender = item.data(Qt.ItemDataRole.UserRole)
-
-            player_btn = self.players_filter_group.button(sender)
+        for row in range(self.events_model.rowCount()):
+            model_index = self.events_model.index(row)
+            model_item = cast(
+                EventModelItem,
+                self.events_model.data(model_index, Qt.ItemDataRole.DisplayRole),
+            )
+            player_btn = self.players_filter_group.button(model_item.replay_event.sender)
             assert player_btn is not None
 
-            event_btn = self.upgrade_filter_group.button(event_type.value)
+            event_btn = self.upgrade_filter_group.button(model_item.replay_event.typ.value)
             assert event_btn is not None
 
-            item.setHidden(not player_btn.isChecked() or not event_btn.isChecked())
+            hide = not player_btn.isChecked() or not event_btn.isChecked()
+            self.ui.eventsList.setRowHidden(row, hide)
 
-    def add_event_widget(
-        self,
-        tick: int,
-        sender: int,
-        event: ReplayEvent,
-        enh_desc: str,
-        faction: str,
-    ) -> None:
-        login = cast(str, self.armies[sender]["PlayerName"])
-        event_widget = EventWidget(tick, login, enh_desc, faction, event)
-        event_widget.setup()
-        color_num = int(self.armies[sender]["PlayerColor"])
-        color = PLAYER_COLORS[color_num - 1]
-        list_widget_item = QListWidgetItem(self.ui.eventsLayout)
-        list_widget_item.setSizeHint(event_widget.sizeHint())
-        list_widget_item.setBackground(QColor(color))
-        list_widget_item.setToolTip(f"{enh_desc}\n[{login}]")
-        list_widget_item.setData(Qt.ItemDataRole.UserRole, (event.typ, sender))
-        list_widget_item.setHidden(not self.visible_upgrades[event.typ.value])
-        self.ui.eventsLayout.addItem(list_widget_item)
-        self.ui.eventsLayout.setItemWidget(list_widget_item, event_widget)
-
-    def identify_event(self, faction: str, desc: str) -> ReplayEvent | None:
+    def identify_notice(self, faction: str, desc: str) -> EventNotice | None:
         try:
             ret, _ = ACU_UPGRADE_NOTIFIERS[faction][desc]
-            return ReplayEvent(EventType.ACU_UPGRADE, ret)
+            return EventNotice(EventType.ACU_UPGRADE, ret)
         except KeyError:
             pass
         try:
             ret = UNIT_NOTIFIERS[faction][desc]
-            return ReplayEvent(EventType.UNIT if "230" in ret else EventType.HQ_UPGRADE, ret)
+            return EventNotice(EventType.UNIT if "230" in ret else EventType.HQ_UPGRADE, ret)
         except KeyError:
             pass
         try:
-            return ReplayEvent(EventType.UNIT, UNIT_NOTIFIERS["experimentals"][desc])
+            return EventNotice(EventType.UNIT, UNIT_NOTIFIERS["experimentals"][desc])
         except KeyError:
             return None
 
@@ -267,12 +374,13 @@ class EventsTab(QWidget):
         self.add_player_checkboxes()
 
     def clear(self) -> None:
-        self.ui.eventsLayout.clear()
+        self.events_model.clear_replay_events()
         while (layout_item := self.ui.filterPlayersLayout.takeAt(2)) is not None:
-            widget = layout_item.widget()
-            if widget is not None:
-                self.ui.filterPlayersLayout.removeWidget(widget)
-                widget.deleteLater()
+            if (player_line_layout := layout_item.layout()) is None:
+                continue
+            while (line_item := player_line_layout.takeAt(0)) is not None:
+                if (widget := line_item.widget()) is not None:
+                    widget.deleteLater()
 
     def add_events(self) -> None:
         sorted_last_coms = sorted(self.last_activity.items(), key=itemgetter(1))
@@ -287,27 +395,41 @@ class EventsTab(QWidget):
                 dead_army, death_tick = sorted_last_coms.pop(0)
                 faction = Factions(self.armies[dead_army]["Faction"]).name.lower()
                 unit = ACU_BLUEPRINTS[faction]
-                self.add_event_widget(
-                    death_tick,
-                    dead_army,
-                    ReplayEvent(EventType.LAST_COMMAND, unit),
-                    "Last Command",
-                    faction,
+                self.events_model.add_replay_event(
+                    ReplayEvent(
+                        EventType.LAST_COMMAND,
+                        unit,
+                        death_tick,
+                        cast(str, self.armies[dead_army]["PlayerName"]),
+                        "Last Command",
+                        faction,
+                        PLAYER_COLORS[int(self.armies[dead_army]["PlayerColor"]) - 1],
+                        cast(float, self.armies[dead_army]["Team"]),
+                        dead_army,
+                    ),
                 )
 
             faction = Factions(self.armies[sender]["Faction"]).name.lower()
             enh_desc = found.group(1).strip()
 
-            identified_event = self.identify_event(faction, enh_desc.replace("upgrade", "").strip())
-            if identified_event is None:
+            notice = self.identify_notice(faction, enh_desc.replace("upgrade", "").strip())
+            if notice is None:
                 continue
-            self.add_event_widget(
+            color = PLAYER_COLORS[int(self.armies[sender]["PlayerColor"]) - 1]
+            login = cast(str, self.armies[sender]["PlayerName"])
+            team = cast(float, self.armies[sender]["Team"])
+            replay_event = ReplayEvent(
+                notice.typ,
+                notice.picture_name,
                 tick,
-                sender,
-                identified_event,
+                login,
                 enh_desc,
                 faction,
+                color,
+                team,
+                sender,
             )
+            self.events_model.add_replay_event(replay_event)
 
     def add_player_checkboxes(self) -> None:
         if len(self.players) == len(self.teams):
@@ -317,18 +439,38 @@ class EventsTab(QWidget):
             for _, players in self.teams.items():
                 for army_id in players:
                     self._add_player_checkbox(army_id)
-                self.ui.filterPlayersLayout.addSpacing(6)
+                self.ui.filterPlayersLayout.addSpacing(12)
 
         self.ui.filterPlayersLayout.addStretch()
 
     def _add_player_checkbox(self, army_id: int) -> None:
-        chkbx = QCheckBox(cast(str, self.armies[army_id]["PlayerName"]))
-        chkbx.setChecked(True)
-        self.ui.filterPlayersLayout.addWidget(chkbx)
-        self.players_filter_group.addButton(chkbx, army_id)
+        line = QHBoxLayout()
+
+        checkbox = QCheckBox(cast(str, self.armies[army_id]["PlayerName"]))
+        checkbox.setChecked(True)
+
+        color_label = QLabel()
+        color_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        color_label.setMaximumSize(10, 10)
+
+        color_pixmap = QPixmap(10, 10)
+        color_pixmap.fill(QColor(PLAYER_COLORS[int(self.armies[army_id]["PlayerColor"]) - 1]))
+        color_label.setPixmap(color_pixmap)
+
+        line.addWidget(checkbox)
+        line.addWidget(color_label)
+        line.addStretch()
+
+        self.ui.filterPlayersLayout.addLayout(line)
+        self.players_filter_group.addButton(checkbox, army_id)
 
     def save_settings(self) -> None:
         Settings.set(
             "replaycard.events/visible_upgrades",
             self.visible_upgrades,
         )
+        Settings.set("replaycard.events/render_teams", self.events_item_delegate.render_teams)
+
+    def on_show_teams_changed(self, state: Qt.CheckState) -> None:
+        self.events_item_delegate.render_teams = state == Qt.CheckState.Checked
+        self.ui.eventsList.update()

@@ -1,3 +1,5 @@
+from typing import Any
+
 from PyQt6.QtCore import QAbstractListModel
 from PyQt6.QtCore import QModelIndex
 from PyQt6.QtCore import Qt
@@ -15,9 +17,14 @@ class QtListModel(QAbstractListModel):
             return 0
         return len(self._itemlist)
 
-    def data(self, index, role):
+    def data(self, index: QModelIndex, role: int = 0) -> Any:  # FIXME: remove Any
         if not index.isValid() or index.row() >= len(self._itemlist):
             return None
+        if role == Qt.ItemDataRole.ToolTipRole:
+            try:
+                return self._itemlist[index.row()].tooltip()
+            except AttributeError:
+                return None
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         return self._itemlist[index.row()]
