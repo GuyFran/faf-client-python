@@ -190,7 +190,6 @@ class ReplayDetailsCard(QtWidgets.QDialog):
 
         self.tab_history.add(index)
         widget = cast(TabWidget, self.replayTabs.widget(index))
-        assert widget is not None
         widget.initialize(self.loader.replay)
 
     def show_replay_exception_msg(self, msg: str) -> None:
