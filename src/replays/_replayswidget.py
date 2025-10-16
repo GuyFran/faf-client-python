@@ -798,6 +798,13 @@ class ReplayVaultWidgetHandler:
         _w.onlineTree.itemDoubleClicked.connect(self.onlineTreeDoubleClicked)
         _w.onlineTree.itemPressed.connect(self.online_tree_clicked)
 
+        # restore persistent checkbox settings
+        _w.matchUsernameCheckbox.setChecked(self.match_username)
+        _w.markWatchedCheckbox.setChecked(self.mark_watched)
+        _w.automaticCheckbox.setChecked(self.automatic)
+        _w.spoilerCheckbox.setChecked(self.spoiler_free)
+        _w.hideUnrCheckbox.setChecked(self.hide_unranked)
+
         _w.searchButton.pressed.connect(self.searchVault)
         _w.playerName.returnPressed.connect(self.searchVault)
         _w.mapName.returnPressed.connect(self.searchVault)
@@ -813,12 +820,6 @@ class ReplayVaultWidgetHandler:
         _w.RefreshResetButton.pressed.connect(self.resetRefreshPressed)
         _w.markWatchedCheckbox.checkStateChanged.connect(self.mark_watched_change)
 
-        # restore persistent checkbox settings
-        _w.matchUsernameCheckbox.setChecked(self.match_username)
-        _w.markWatchedCheckbox.setChecked(self.mark_watched)
-        _w.automaticCheckbox.setChecked(self.automatic)
-        _w.spoilerCheckbox.setChecked(self.spoiler_free)
-        _w.hideUnrCheckbox.setChecked(self.hide_unranked)
         _w.detailsButton.clicked.connect(self.show_replay_details)
         _w.detailsButton.setVisible(False)
 
