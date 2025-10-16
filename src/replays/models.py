@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
-from typing import Callable
 
 from pydantic import BaseModel
 from pydantic import Field
@@ -19,6 +19,7 @@ from src.qt.models.qtlistmodel import QtListModel
 # FIXME - this is what the widget uses so far, we should define this
 # schema precisely in the future
 class MetadataModel(BaseModel):
+    uid: int
     complete: bool = Field(False)
     featured_mod: str | None
     launched_at: float

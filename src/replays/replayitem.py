@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import re
 import time
 from datetime import datetime
 from datetime import timezone
 from typing import TYPE_CHECKING
+from typing import cast
 
 from PyQt6 import QtCore
 from PyQt6 import QtGui
@@ -15,22 +17,32 @@ from src.api.models.Game import Game
 from src.config import Settings
 from src.downloadManager import DownloadRequest
 from src.fa import maps
+from src.fa.replay import WatchedReplaysTracker
 from src.games.moditem import mods
 from src.replays.scoreboard import Scoreboard
 
 if TYPE_CHECKING:
     from src.client._clientwindow import ClientWindow
+    from src.replays._replayswidget import ReplaysWidget
 
 
 class ReplayItemDelegate(QtWidgets.QStyledItemDelegate):
-
-    def __init__(self, *args, **kwargs):
-        QtWidgets.QStyledItemDelegate.__init__(self, *args, **kwargs)
-
-    def paint(self, painter, option, index, *args, **kwargs):
+    def paint(
+        self,
+        painter: QtGui.QPainter | None,
+        option: QtWidgets.QStyleOptionViewItem,
+        index: QtCore.QModelIndex,
+    ) -> None:
+        if painter is None:
+            return
         self.initStyleOption(option, index)
 
         painter.save()
+
+        replay_item = cast(ReplayItem | None, index.data(QtCore.Qt.ItemDataRole.UserRole))
+        if replay_item is not None and replay_item.count_as_watched():
+            color = option.palette.text().color().darker().name()
+            option.text = re.sub(r"color=\".+?\"", f"color=\"{color}\"", option.text or "")
 
         html = QtGui.QTextDocument()
         html.setHtml(option.text)
@@ -47,26 +59,43 @@ class ReplayItemDelegate(QtWidgets.QStyledItemDelegate):
         )
 
         # Shadow
-        # painter.fillRect(option.rect.left()+8-1, option.rect.top()+8-1,
-        #                  iconsize.width(), iconsize.height(),
-        #                  QtGui.QColor("#202020"))
+        if index.data(QtCore.Qt.ItemDataRole.UserRole) is not None:
+            painter.fillRect(
+                option.rect.left()+8-1, option.rect.top()+8-1,
+                iconsize.width(), iconsize.height(),
+                QtGui.QColor("#202020"),
+            )
 
         # Icon
+        icon_rect = option.rect.adjusted(3, 0, 0, 0)
+        if index.data(QtCore.Qt.ItemDataRole.UserRole) is not None:
+            painter.fillRect(
+                QtCore.QRect(icon_rect.x(), icon_rect.y(), iconsize.width(), iconsize.height()),
+                QtGui.QColor("#202020"),
+            )
+        if replay_item is not None and replay_item.count_as_watched():
+            icon_mode = icon.Mode.Disabled
+        else:
+            icon_mode = icon.Mode.Normal
         icon.paint(
-            painter, option.rect.adjusted(3, -2, 0, 0),
+            painter, icon_rect,
             QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter,
+            icon_mode,
         )
 
         # Frame around the icon
-        # pen = QtWidgets.QPen()
-        # pen.setWidth(1)
-        # FIXME: This needs to come from theme.
-        # pen.setBrush(QtGui.QColor("#303030"))
+        if index.data(QtCore.Qt.ItemDataRole.UserRole) is not None:
+            pen = QtGui.QPen()
+            pen.setWidth(1)
+            # FIXME: This needs to come from theme.
+            pen.setBrush(QtGui.QColor("#303030"))
 
-        # pen.setCapStyle(QtCore.Qt.PenCapStyle.RoundCap)
-        # painter.setPen(pen)
-        # painter.drawRect(option.rect.left()+5-2, option.rect.top()+5-2,
-        #                  iconsize.width(), iconsize.height())
+            pen.setCapStyle(QtCore.Qt.PenCapStyle.RoundCap)
+            painter.setPen(pen)
+            painter.drawRect(
+                icon_rect.left(), icon_rect.top(),
+                iconsize.width(), iconsize.height(),
+            )
 
         # Description
         painter.translate(
@@ -81,12 +110,12 @@ class ReplayItemDelegate(QtWidgets.QStyledItemDelegate):
 
         painter.restore()
 
-    def sizeHint(self, option, index, *args, **kwargs):
+    def sizeHint(
+        self,
+        option: QtWidgets.QStyleOptionViewItem,
+        index: QtCore.QModelIndex,
+    ) -> QtCore.QSize:
         clip = index.model().data(index, QtCore.Qt.ItemDataRole.UserRole)
-        self.initStyleOption(option, index)
-        html = QtGui.QTextDocument()
-        html.setHtml(option.text)
-        html.setTextWidth(240)
         if clip:
             return QtCore.QSize(215, clip.height)
         else:
@@ -96,11 +125,11 @@ class ReplayItemDelegate(QtWidgets.QStyledItemDelegate):
 class ReplayItem(QtWidgets.QTreeWidgetItem):
     REPLAY_TREE_ITEM_FORMATTER = str(util.THEME.readfile("replays/formatters/replay.html"))
 
-    def __init__(self, uid, parent, *args, **kwargs):
-        QtWidgets.QTreeWidgetItem.__init__(self, *args, **kwargs)
+    def __init__(self, uid: int, parent: ReplaysWidget) -> None:
+        super().__init__()
 
         self.uid = uid
-        self.parent = parent
+        self.parent_widget = parent
         self.height = 70
         self.viewtext = None
         self.mapname = None
@@ -282,7 +311,7 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
     def generate_scoreboard(self) -> Scoreboard:
         if not self.extra_info_loaded:
             self.load_extra_info()
-        self.spoiled = not self.parent.spoilerCheckbox.isChecked()
+        self.spoiled = not self.parent_widget.spoilerCheckbox.isChecked()
         assert self.client is not None
         assert self.game is not None
         scoreboard = Scoreboard(
@@ -294,9 +323,12 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
         return scoreboard
 
     def pressed(self) -> None:
-        menu = QtWidgets.QMenu(self.parent)
+        menu = QtWidgets.QMenu(self.parent_widget)
+        action_watched = QAction(f"Mark as {'unwatched' if self.watched() else 'watched'}", menu)
+        action_watched.triggered.connect(self.change_watched_status)
         actionDownload = QAction("Download replay", menu)
         actionDownload.triggered.connect(self.downloadReplay)
+        menu.addAction(action_watched)
         menu.addAction(actionDownload)
         menu.popup(QtGui.QCursor.pos())
 
@@ -314,20 +346,7 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
             return self.display(column)
         elif role == QtCore.Qt.ItemDataRole.UserRole:
             return self
-        return super(ReplayItem, self).data(column, role)
-
-    def permutations(self, items):
-        """  Yields all permutations of the items. """
-        if items == []:
-            yield []
-        else:
-            for i in range(len(items)):
-                for j in self.permutations(items[:i] + items[i + 1:]):
-                    yield [items[i]] + j
-
-    def __ge__(self, other):
-        """  Comparison operator used for item list sorting """
-        return not self.__lt__(other)
+        return super().data(column, role)
 
     def __lt__(self, other):
         """ Comparison operator used for item list sorting """
@@ -337,3 +356,19 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
             return False
         # Default: uid
         return self.uid < other.uid
+
+    def change_watched_status(self) -> None:
+        if self.watched():
+            WatchedReplaysTracker.discard(self.uid)
+        else:
+            WatchedReplaysTracker.add(self.uid)
+        self.parent_widget.onlineTree.update()
+
+    def watched(self) -> bool:
+        return self.uid in WatchedReplaysTracker
+
+    def count_as_watched(self) -> bool:
+        return (
+            Settings.get("replay/markWatched", True, type=bool)
+            and self.watched()
+        )

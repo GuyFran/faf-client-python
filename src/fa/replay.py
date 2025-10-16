@@ -190,6 +190,7 @@ def replay(source, detach=False):
     if replay_id:
         arguments.append("/replayid")
         arguments.append(str(replay_id))
+        WatchedReplaysTracker.add(replay_id)
 
     # Update the game appropriately
     if not check(mod, mapname, version, featured_mod_versions, sim_mods):
@@ -203,3 +204,40 @@ def replay(source, detach=False):
     else:
         logger.error("Replaying failed. Guru meditation: %s", arguments)
         return False
+
+
+def get_watched_replays() -> set[int]:
+    try:
+        with open(os.path.join(util.CACHE_DIR, "watched_replays")) as f:
+            return set(map(int, f.readlines()))
+    except OSError:
+        return set()
+
+
+class WatchedReplays:
+    def __init__(self, replays: set[int]) -> None:
+        self.watched = replays
+        self._changed = False
+
+    def __contains__(self, item: int, /) -> bool:
+        return item in self.watched
+
+    def add(self, replay_id: int) -> None:
+        self.watched.add(replay_id)
+        self._changed = True
+
+    def discard(self, replay_id: int) -> None:
+        self.watched.discard(replay_id)
+        self._changed = True
+
+    def save_watched_replays(self) -> None:
+        if not self._changed:
+            return
+        try:
+            with open(os.path.join(util.CACHE_DIR, "watched_replays"), "w") as f:
+                f.writelines("\n".join(map(str, self.watched)))
+        except OSError as e:
+            logger.warning("Error writing watched replays: %s", e)
+
+
+WatchedReplaysTracker = WatchedReplays(get_watched_replays())

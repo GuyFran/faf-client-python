@@ -54,6 +54,7 @@ from src.fa.game_runner import GameRunner
 from src.fa.game_session import GameSession
 from src.fa.maps import CachedMapsMetadata
 from src.fa.maps import getUserMapsFolder
+from src.fa.replay import WatchedReplaysTracker
 from src.games import GamesWidget
 from src.games.gameitem import GameViewBuilder
 from src.games.gamemodel import GameModel
@@ -982,6 +983,8 @@ class ClientWindow(FormClass, BaseClass):
 
         CachedMapsMetadata.sanitize()
         CachedMapsMetadata.save()
+
+        WatchedReplaysTracker.save_watched_replays()
 
         # Get rid of the Tray icon
         if self.tray:

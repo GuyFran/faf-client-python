@@ -3,8 +3,11 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import time
 from typing import TYPE_CHECKING
+from typing import Any
+from typing import cast
 
 from pydantic import ValidationError
 from PyQt6 import QtCore
@@ -25,6 +28,7 @@ from src.api.stats_api import LeaderboardApiConnector
 from src.client.connection import Dispatcher
 from src.config import Settings
 from src.downloadManager import DownloadRequest
+from src.fa.replay import WatchedReplaysTracker
 from src.fa.replay import replay
 from src.model.game import Game
 from src.model.game import GameState
@@ -330,13 +334,39 @@ class ReplayMetadata:
 
 
 class LocalReplayItem(QtWidgets.QTreeWidgetItem):
-    def __init__(self, replay_file, metadata=None):
-        QtWidgets.QTreeWidgetItem.__init__(self)
+    def __init__(self, replay_file: str, metadata: ReplayMetadata | None = None) -> None:
+        super().__init__()
         self._replay_file = replay_file
         self._metadata = metadata
         self._map_dl_request = DownloadRequest()
         self._map_dl_request.done.connect(self._map_preview_downloaded)
         self._setup_appearance()
+
+    @property
+    def uid(self) -> int:
+        if found := re.match(r"\d+", self._replay_file):
+            return int(found.group())
+        try:
+            return self._metadata.model.uid  # type: ignore[attr-defined]
+        except AttributeError:
+            return -1
+
+    def watched(self) -> bool:
+        return self.uid in WatchedReplaysTracker
+
+    def count_as_watched(self) -> bool:
+        return Settings.get("replay/markWatched", True, type=bool) and self.watched()
+
+    def change_watched_status(self) -> None:
+        if self.watched():
+            WatchedReplaysTracker.discard(self.uid)
+        else:
+            WatchedReplaysTracker.add(self.uid)
+
+    def data(self, column: int, role: int = 0) -> Any:
+        if role == QtCore.Qt.ItemDataRole.UserRole:
+            return self
+        return super().data(column, role)
 
     def replay_path(self):
         return os.path.join(util.REPLAY_DIR, self._replay_file)
@@ -429,6 +459,14 @@ class LocalReplayBucketItem(QtWidgets.QTreeWidgetItem):
         QtWidgets.QTreeWidgetItem.__init__(self)
         self._setup_appearance(kind, children)
 
+    def data(self, column: int, role: int = 0) -> Any:
+        if role == QtCore.Qt.ItemDataRole.UserRole:
+            return self
+        return super().data(column, role)
+
+    def count_as_watched(self) -> bool:
+        return all(self.child(i).count_as_watched() for i in range(self.childCount()))
+
     def _setup_appearance(self, kind, children):
         if kind == "broken":
             self._setup_broken_appearance()
@@ -488,6 +526,51 @@ class LocalReplayBucketItem(QtWidgets.QTreeWidgetItem):
         )
 
 
+class LocalReplayItemDelegate(QtWidgets.QStyledItemDelegate):
+    def paint(
+        self,
+        painter: QtGui.QPainter | None,
+        option: QtWidgets.QStyleOptionViewItem,
+        index: QtCore.QModelIndex,
+    ) -> None:
+        if painter is None:
+            return
+
+        tree_item = cast(
+            LocalReplayItem | LocalReplayBucketItem,
+            index.data(QtCore.Qt.ItemDataRole.UserRole),
+        )
+
+        painter.save()
+
+        icon = index.data(QtCore.Qt.ItemDataRole.DecorationRole)
+        iconsize = QtCore.QSize(3, 0)
+
+        text_align = QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter
+
+        if icon is not None:
+            iconsize = icon.actualSize(option.rect.size())
+            icon.paint(
+                painter,
+                option.rect,
+                QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter,
+                icon.Mode.Disabled if tree_item.count_as_watched() else icon.Mode.Normal,
+            )
+            text_align = QtCore.Qt.AlignmentFlag.AlignCenter
+
+        if tree_item.count_as_watched():
+            brush = index.data(QtCore.Qt.ItemDataRole.ForegroundRole) or option.palette.text()
+            painter.setPen(brush.color().darker())
+
+        painter.drawText(
+            option.rect.adjusted(iconsize.width(), 0, 0, 0),
+            index.data(QtCore.Qt.ItemDataRole.TextAlignmentRole) or text_align,
+            index.data(),
+        )
+
+        painter.restore()
+
+
 class LocalReplaysWidgetHandler:
     def __init__(self, myTree: QTreeWidget) -> None:
         self.myTree = myTree
@@ -506,6 +589,7 @@ class LocalReplaysWidgetHandler:
             3, QtWidgets.QHeaderView.ResizeMode.ResizeToContents,
         )
         self.myTree.modification_time = 0
+        self.myTree.setItemDelegate(LocalReplayItemDelegate(self.myTree))
 
         replay_cache = os.path.join(util.CACHE_DIR, "local_replays_metadata")
         self.replay_files = LocalReplayMetadataCache(
@@ -527,11 +611,16 @@ class LocalReplaysWidgetHandler:
         # Actions for Games and Replays
         actionReplay = QtGui.QAction("Replay", menu)
         actionExplorer = QtGui.QAction("Show in Explorer", menu)
+        actionMarkWatched = QtGui.QAction(
+            f"Mark as {'unwatched' if item.watched() else 'watched'}",
+            menu,
+        )
         actionDetails = QtGui.QAction("Details", menu)
 
         # Adding to menu
         menu.addAction(actionReplay)
         menu.addAction(actionExplorer)
+        menu.addAction(actionMarkWatched)
         menu.addAction(actionDetails)
 
         # Triggers
@@ -539,10 +628,15 @@ class LocalReplaysWidgetHandler:
         actionExplorer.triggered.connect(
             lambda: util.showFileInFileBrowser(item.replay_path()),
         )
+        actionMarkWatched.triggered.connect(lambda: self.change_watched_status(item))
         actionDetails.triggered.connect(lambda: self.show_replay_details(item.replay_path()))
 
         # Finally: Show the popup
         menu.popup(QtGui.QCursor.pos())
+
+    def change_watched_status(self, item: LocalReplayItem) -> None:
+        item.change_watched_status()
+        self.myTree.update()
 
     def show_replay_details(self, replay_path: str) -> None:
         replay_details = ReplayDetailsCard()
@@ -655,6 +749,7 @@ class ReplayVaultWidgetHandler:
     match_username = Settings.persisted_property(
         "replay/matchUsername", default_value=True, type=bool,
     )
+    mark_watched = Settings.persisted_property("replay/markWatched", default_value=True, type=bool)
 
     def __init__(
         self,
@@ -716,9 +811,11 @@ class ReplayVaultWidgetHandler:
         _w.spoilerCheckbox.checkStateChanged.connect(self.spoiler_checkbox_change)
         _w.hideUnrCheckbox.stateChanged.connect(self.hideUnrCheckboxchange)
         _w.RefreshResetButton.pressed.connect(self.resetRefreshPressed)
+        _w.markWatchedCheckbox.checkStateChanged.connect(self.mark_watched_change)
 
         # restore persistent checkbox settings
         _w.matchUsernameCheckbox.setChecked(self.match_username)
+        _w.markWatchedCheckbox.setChecked(self.mark_watched)
         _w.automaticCheckbox.setChecked(self.automatic)
         _w.spoilerCheckbox.setChecked(self.spoiler_free)
         _w.hideUnrCheckbox.setChecked(self.hide_unranked)
@@ -1039,6 +1136,10 @@ class ReplayVaultWidgetHandler:
                 # then we redo it
                 self.add_scoreboard(self.selectedReplay)
 
+    def mark_watched_change(self, state: QtCore.Qt.CheckState) -> None:
+        self.mark_watched = state == QtCore.Qt.CheckState.Checked
+        self._w.onlineTree.update()
+
     def showLatestCheckboxchange(self, state):
         self.showLatest = state
         if state:  # disable date edit fields if True
@@ -1133,18 +1234,19 @@ class ReplayVaultWidgetHandler:
 
 
 class ReplaysWidget(BaseClass, FormClass):
-    def __init__(self, client, dispatcher, gameset, playerset):
-        super(BaseClass, self).__init__()
-
+    def __init__(
+        self,
+        client: ClientWindow,
+        dispatcher: Dispatcher,
+        gameset: Gameset,
+        playerset: Playerset,
+    ) -> None:
+        BaseClass.__init__(self)
         self.setupUi(self)
 
-        self.liveManager = LiveReplaysWidgetHandler(
-            self.liveTree, client, gameset,
-        )
-        self.localManager = LocalReplaysWidgetHandler(self.myTree)
-        self.vaultManager = ReplayVaultWidgetHandler(
-            self, dispatcher, client, gameset, playerset,
-        )
+        self.liveManager = LiveReplaysWidgetHandler(self.liveTree, client, gameset)
+        self.localManager = LocalReplaysWidgetHandler(self.myTree, client)
+        self.vaultManager = ReplayVaultWidgetHandler(self, dispatcher, client, gameset, playerset)
 
         logger.info("Replays Widget instantiated.")
 
