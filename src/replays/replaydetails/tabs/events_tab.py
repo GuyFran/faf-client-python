@@ -263,7 +263,7 @@ class EventsTab(QWidget):
         super().__init__()
         self.ui = EventsTabUI()
         self.ui.setupUi(self)
-        self.finished_pattern = re.compile(r"(.+) (done!|готов!)")
+        self.finished_pattern = re.compile(r"(.+) (done!|готов!)(.+\(.+\))?")
 
         self.visible_upgrades = Settings.get_list(
             "replaycard.events/visible_upgrades",
@@ -408,9 +408,9 @@ class EventsTab(QWidget):
                 )
 
             faction = Factions(self.armies[sender]["Faction"]).name.lower()
-            enh_desc = found.group(1).strip()
+            enh_name = found.group(1).strip()
 
-            notice = self.identify_notice(faction, enh_desc.replace("upgrade", "").strip())
+            notice = self.identify_notice(faction, enh_name.replace("upgrade", "").strip())
             if notice is None:
                 continue
             color = PLAYER_COLORS[int(self.armies[sender]["PlayerColor"]) - 1]
@@ -421,7 +421,7 @@ class EventsTab(QWidget):
                 notice.picture_name,
                 tick,
                 login,
-                enh_desc,
+                f"{enh_name}{found.group(3) or ''}",
                 faction,
                 color,
                 team,
