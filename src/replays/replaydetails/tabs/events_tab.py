@@ -202,6 +202,7 @@ class EventsTabUI:
         self.eventsList.setSpacing(2)
         self.eventsList.setObjectName("replayEvents")
         self.eventsList.setFlow(QListWidget.Flow.LeftToRight)
+        self.eventsList.setResizeMode(QListView.ResizeMode.Adjust)
         self.eventsList.setWrapping(True)
         self.eventsList.setUniformItemSizes(True)
         self.eventsList.setVerticalScrollMode(QListWidget.ScrollMode.ScrollPerPixel)
