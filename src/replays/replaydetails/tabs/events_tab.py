@@ -26,7 +26,6 @@ from PyQt6.QtWidgets import QCheckBox
 from PyQt6.QtWidgets import QHBoxLayout
 from PyQt6.QtWidgets import QLabel
 from PyQt6.QtWidgets import QListView
-from PyQt6.QtWidgets import QListWidget
 from PyQt6.QtWidgets import QStyleOptionViewItem
 from PyQt6.QtWidgets import QTabWidget
 from PyQt6.QtWidgets import QVBoxLayout
@@ -201,11 +200,11 @@ class EventsTabUI:
         self.eventsList = QListView()
         self.eventsList.setSpacing(2)
         self.eventsList.setObjectName("replayEvents")
-        self.eventsList.setFlow(QListWidget.Flow.LeftToRight)
+        self.eventsList.setFlow(QListView.Flow.LeftToRight)
         self.eventsList.setResizeMode(QListView.ResizeMode.Adjust)
         self.eventsList.setWrapping(True)
         self.eventsList.setUniformItemSizes(True)
-        self.eventsList.setVerticalScrollMode(QListWidget.ScrollMode.ScrollPerPixel)
+        self.eventsList.setVerticalScrollMode(QListView.ScrollMode.ScrollPerPixel)
         layout.addWidget(self.eventsList, 3)
 
         settings_layout = QVBoxLayout()
