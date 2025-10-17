@@ -240,13 +240,16 @@ class MapGenDialog(FormClass, BaseClass):
 
     def load_cmd_options(self) -> None:
         dynamic_options = self._load_dynamic_options()
-        if dynamic_options["gen_version"] != self.mapgen_manager.currentVersion:
+        version = dynamic_options["gen_version"]
+        if not self.mapgen_manager.latestVersion:
+            self.mapgen_manager.update_version_number()
+        if version != self.mapgen_manager.currentVersion:
             self.setWindowTitle("Loading Mapgen Options...")
             self.setEnabled(False)
-            self.mapgen_manager.checkUpdates()
-            gen_path = self.mapgen_manager.versionController(self.mapgen_manager.latestVersion)
+            gen_path = self.mapgen_manager.get_generator(self.mapgen_manager.latestVersion)
             self.options_extractor.extract_all(gen_path)
         else:
+            self.setWindowTitle(f"Map Generator Options - {version}")
             self.set_cmd_options(dynamic_options["options"])
 
     def set_cmd_options(self, dynamic_options: dict[str, list[str]]) -> None:

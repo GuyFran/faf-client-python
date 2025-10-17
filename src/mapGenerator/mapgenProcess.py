@@ -21,8 +21,8 @@ generatorLogger.propagate = False
 generatorLogger.addHandler(setup_file_handler('map_generator.log'))
 
 
-class MapGeneratorProcess(object):
-    def __init__(self, gen_path, out_path, args):
+class MapGeneratorProcess:
+    def __init__(self, gen_path: str, out_path: str, args: list[str]) -> None:
         self._progress = QProgressDialog()
         self._progress.setWindowTitle("Generating map, please wait...")
         self._progress.setCancelButtonText("Cancel")
@@ -41,12 +41,8 @@ class MapGeneratorProcess(object):
 
         self.map_generator_process = QProcess()
         self.map_generator_process.setWorkingDirectory(out_path)
-        self.map_generator_process.readyReadStandardOutput.connect(
-            self.on_log_ready,
-        )
-        self.map_generator_process.readyReadStandardError.connect(
-            self.on_error_ready,
-        )
+        self.map_generator_process.readyReadStandardOutput.connect(self.on_log_ready)
+        self.map_generator_process.readyReadStandardError.connect(self.on_error_ready)
         self._error_msgs_received = 0
 
         self.map_generator_process.finished.connect(self.on_exit)
@@ -55,6 +51,8 @@ class MapGeneratorProcess(object):
         self.java_path = fafpath.get_java_path()
         self.args = ["-jar", gen_path]
         self.args.extend(args)
+
+    def run(self) -> None:
 
         logger.info("Starting map generator with %s", " ".join((self.java_path, *self.args)))
         generatorLogger.info(">>> --------------------- MapGenerator Launch")
