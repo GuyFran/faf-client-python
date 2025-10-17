@@ -193,7 +193,7 @@ class NotificationHooks(QtCore.QAbstractTableModel):
     def getHook(self, row):
         return self.hooks[row]
 
-    def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole.EditRole):
+    def data(self, index: QtCore.QModelIndex, role: int = 0) -> Any:
         if not index.isValid():
             return None
 
