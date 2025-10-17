@@ -87,16 +87,15 @@ class ReplayLoader(QtCore.QThread):
 
 
 class ReplayDetailsCard(QtWidgets.QDialog):
-    def __init__(self, *args, **kwargs) -> None:
-        QtWidgets.QDialog.__init__(self, *args, **kwargs)
-        self.setStyleSheet(STYLESHEET)
+    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+        super().__init__(parent)
         window_flags = (
-            QtCore.Qt.WindowType.WindowTitleHint
+            self.windowFlags()
+            | QtCore.Qt.WindowType.WindowTitleHint
             | QtCore.Qt.WindowType.WindowMaximizeButtonHint
             | QtCore.Qt.WindowType.WindowCloseButtonHint
         )
         self.setWindowFlags(window_flags)
-        self.setModal(True)
 
         self._layout = QtWidgets.QVBoxLayout()
         self._layout.setSpacing(0)
@@ -177,7 +176,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         with Settings.group("replaycard") as settings:
             settings.setValue("geometry", self.saveGeometry())
 
-    def closeEvent(self, event: QtGui.QCloseEvent | None) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]  # noqa: E501
+    def closeEvent(self, event: QtGui.QCloseEvent | None) -> None:  # type: ignore[override]  # noqa: E501
         self._save_geometry_to_settings()
         self.heatmap_tab.save_settings()
         self.chat_tab.save_settings()
