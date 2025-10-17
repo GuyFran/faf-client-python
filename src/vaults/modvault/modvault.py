@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 from PyQt6 import QtCore
 from PyQt6 import QtWidgets
 
-from src.api.models.Map import Map
 from src.api.models.Mod import Mod
 from src.api.vaults_api import ModApiConnector
 from src.vaults.modvault import utils
@@ -28,9 +27,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class ModVault(Vault):
+class ModVault(Vault[Mod]):
     def __init__(self, client: ClientWindow) -> None:
-        Vault.__init__(self, client)
+        super().__init__(client)
         logger.debug("Mod Vault tab instantiating")
         self.UIButton.clicked.connect(self.openUIModForm)
         self.uids = [mod.uid for mod in utils.getInstalledMods()]
@@ -50,15 +49,13 @@ class ModVault(Vault):
 
         self.UIButton.show()
 
-    def create_item(self, data: Map | Mod) -> ModListWidget:
-        assert isinstance(data, Mod)
+    def create_item_widget(self, data: Mod) -> ModListWidget:
         return ModListWidget(data)
 
-    def create_list_item(self, data: Mod | Map) -> ModListItem:
-        assert isinstance(data, Mod)
+    def create_list_item(self, data: Mod) -> ModListItem:
         return ModListItem(self.itemList, data)
 
-    def create_details_widget(self, data: Map | Mod) -> ModDetailsWidget:
+    def create_details_widget(self, data: Mod) -> ModDetailsWidget:
         assert self.client.me.player is not None
         return ModDetailsWidget(data, self.client.me.player)
 

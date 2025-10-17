@@ -42,12 +42,12 @@ from src.vaults.reviewwidget import convert_review
 STYLESHEET = util.THEME.readstylesheet("client/client.css")
 
 
-class DetailsWidget(QWidget):
+class DetailsWidget[T: Map | Mod](QWidget):
     item_availability_changed = pyqtSignal()
 
     def __init__(
             self,
-            item_data: Map | Mod,
+            item_data: T,
             image_cache_dir: str,
             player: Player,
             parent: QWidget | None = None,

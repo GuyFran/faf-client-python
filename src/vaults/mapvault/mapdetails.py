@@ -17,14 +17,14 @@ from src.vaults.detailswidget import DetailsWidget
 STYLESHEET = util.THEME.readstylesheet("client/client.css")
 
 
-class MapDetailsWidget(DetailsWidget):
+class MapDetailsWidget(DetailsWidget[Map]):
     def __init__(
             self,
             item_data: Map,
             player: Player,
             parent: QWidget | None = None,
     ) -> None:
-        DetailsWidget.__init__(self, item_data, util.MAP_PREVIEW_LARGE_DIR, player, parent)
+        super().__init__(item_data, util.MAP_PREVIEW_LARGE_DIR, player, parent)
         self.item_data = item_data
         assert item_data.version is not None
         self.item_version = item_data.version

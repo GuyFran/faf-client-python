@@ -7,8 +7,8 @@ from src.api.models.Map import Map
 from src.api.models.Mod import Mod
 
 
-class VaultListItem(QListWidgetItem):
-    def __init__(self, parent: QListWidget, item_data: Map | Mod) -> None:
+class VaultListItem[T: Map | Mod](QListWidgetItem):
+    def __init__(self, parent: QListWidget, item_data: T) -> None:
         QListWidgetItem.__init__(self, parent)
         self.item_data = item_data
         assert item_data.version is not None

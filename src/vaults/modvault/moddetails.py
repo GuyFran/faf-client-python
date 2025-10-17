@@ -10,14 +10,14 @@ from src.vaults.detailswidget import DetailsWidget
 from src.vaults.modvault import utils
 
 
-class ModDetailsWidget(DetailsWidget):
+class ModDetailsWidget(DetailsWidget[Mod]):
     def __init__(
             self,
             item_data: Mod,
             player: Player,
             parent: QWidget | None = None,
     ) -> None:
-        DetailsWidget.__init__(self, item_data, util.MOD_PREVIEW_DIR, player, parent)
+        super().__init__(item_data, util.MOD_PREVIEW_DIR, player, parent)
         self.item_data = item_data
         assert item_data.version is not None
         self.item_version = item_data.version

@@ -9,7 +9,6 @@ from PyQt6 import QtCore
 from PyQt6 import QtWidgets
 
 from src.api.models.Map import Map
-from src.api.models.Mod import Mod
 from src.api.vaults_api import MapApiConnector
 from src.api.vaults_api import MapPoolApiConnector
 from src.fa import maps
@@ -28,10 +27,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class MapVault(Vault):
+class MapVault(Vault[Map]):
     def __init__(self, client: ClientWindow) -> None:
-        Vault.__init__(self, client)
         logger.debug("Map Vault tab instantiating")
+        super().__init__(client)
         self.installed_maps = maps.getUserMaps()
 
         for sort_type in MapSortType:
@@ -46,16 +45,13 @@ class MapVault(Vault):
 
         self.apiConnector = self.mapApiConnector
 
-    def create_item(self, data: Map | Mod) -> MapListWidget:
-        assert isinstance(data, Map)
+    def create_item_widget(self, data: Map) -> MapListWidget:
         return MapListWidget(data)
 
-    def create_list_item(self, data: Map | Mod) -> MapListItem:
-        assert isinstance(data, Map)
+    def create_list_item(self, data: Map) -> MapListItem:
         return MapListItem(self.itemList, data)
 
-    def create_details_widget(self, data: Map | Mod) -> MapDetailsWidget:
-        assert isinstance(data, Map)
+    def create_details_widget(self, data: Map) -> MapDetailsWidget:
         assert self.client.me.player is not None
         return MapDetailsWidget(data, self.client.me.player)
 

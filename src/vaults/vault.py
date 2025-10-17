@@ -36,7 +36,7 @@ class BrowseType(Enum):
 FormClass, BaseClass = util.THEME.loadUiType("vaults/vault.ui")
 
 
-class Vault(FormClass, BaseClass, BusyWidget):
+class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
     def __init__(self, client: ClientWindow) -> None:
         BaseClass.__init__(self)
         self.setupUi(self)
@@ -215,13 +215,13 @@ class Vault(FormClass, BaseClass, BusyWidget):
         self.detailStack.addWidget(widget)
         self.detailStack.setCurrentIndex(1)
 
-    def create_item(self, data: Map | Mod) -> VaultListWidget:
+    def create_item_widget(self, data: T) -> VaultListWidget:
         return VaultListWidget(data, util.CACHE_DIR)
 
-    def create_list_item(self, data: Map | Mod) -> VaultListItem:
+    def create_list_item(self, data: T) -> VaultListItem:
         return VaultListItem(self.itemList, data)
 
-    def create_details_widget(self, data: Map | Mod) -> DetailsWidget:
+    def create_details_widget(self, data: T) -> DetailsWidget:
         assert self.client.me.player is not None
         return DetailsWidget(data, util.CACHE_DIR, self.client.me.player)
 
@@ -232,12 +232,12 @@ class Vault(FormClass, BaseClass, BusyWidget):
             if item_key in self._items:
                 list_item = self._items[item_key]
             else:
-                item = self.create_item(value)
+                item_widget = self.create_item_widget(value)
                 list_item = self.create_list_item(value)
                 list_item.set_display_type(self.ShowTypeList.currentIndex())
-                list_item.setSizeHint(item.sizeHint())
+                list_item.setSizeHint(item_widget.sizeHint())
                 self._items[item_key] = list_item
-                self.itemList.setItemWidget(list_item, item)
+                self.itemList.setItemWidget(list_item, item_widget)
             self.itemList.addItem(list_item)
         self.sort_items()
         self.update_visibilities()
