@@ -34,6 +34,7 @@ from src.model.game import Game
 from src.model.game import GameState
 from src.model.gameset import Gameset
 from src.model.playerset import Playerset
+from src.qt.utils import qpainter
 from src.replays.models import MetadataModel
 from src.replays.replaydetails.replaycard import ReplayDetailsCard
 from src.replays.replayitem import ReplayItem
@@ -540,35 +541,29 @@ class LocalReplayItemDelegate(QtWidgets.QStyledItemDelegate):
             LocalReplayItem | LocalReplayBucketItem,
             index.data(QtCore.Qt.ItemDataRole.UserRole),
         )
+        with qpainter(painter) as p:
+            if (icon := index.data(QtCore.Qt.ItemDataRole.DecorationRole)) is not None:
+                iconsize = icon.actualSize(option.rect.size())
+                text_align = QtCore.Qt.AlignmentFlag.AlignCenter
+                icon.paint(
+                    p,
+                    option.rect,
+                    QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter,
+                    icon.Mode.Disabled if tree_item.count_as_watched() else icon.Mode.Normal,
+                )
+            else:
+                iconsize = QtCore.QSize(3, 0)
+                text_align = QtCore.Qt.AlignmentFlag.AlignVCenter
 
-        painter.save()
+            if tree_item.count_as_watched():
+                brush = index.data(QtCore.Qt.ItemDataRole.ForegroundRole) or option.palette.text()
+                p.setPen(brush.color().darker())
 
-        icon = index.data(QtCore.Qt.ItemDataRole.DecorationRole)
-        iconsize = QtCore.QSize(3, 0)
-
-        text_align = QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter
-
-        if icon is not None:
-            iconsize = icon.actualSize(option.rect.size())
-            icon.paint(
-                painter,
-                option.rect,
-                QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter,
-                icon.Mode.Disabled if tree_item.count_as_watched() else icon.Mode.Normal,
+            p.drawText(
+                option.rect.adjusted(iconsize.width(), 0, 0, 0),
+                index.data(QtCore.Qt.ItemDataRole.TextAlignmentRole) or text_align,
+                index.data(),
             )
-            text_align = QtCore.Qt.AlignmentFlag.AlignCenter
-
-        if tree_item.count_as_watched():
-            brush = index.data(QtCore.Qt.ItemDataRole.ForegroundRole) or option.palette.text()
-            painter.setPen(brush.color().darker())
-
-        painter.drawText(
-            option.rect.adjusted(iconsize.width(), 0, 0, 0),
-            index.data(QtCore.Qt.ItemDataRole.TextAlignmentRole) or text_align,
-            index.data(),
-        )
-
-        painter.restore()
 
 
 class LocalReplaysWidgetHandler:
