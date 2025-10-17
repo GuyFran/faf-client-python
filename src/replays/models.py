@@ -1,19 +1,17 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
 
 from pydantic import BaseModel
 from pydantic import Field
-from PyQt6.QtCore import QObject
 from PyQt6.QtCore import Qt
-from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QIcon
 
 from src import util
 from src.api.models.Player import Player
 from src.model.rating import Rating
 from src.qt.models.qtlistmodel import QtListModel
+from src.qt.models.qtlistmodel import QtListModelItem
 
 
 # FIXME - this is what the widget uses so far, we should define this
@@ -30,11 +28,9 @@ class MetadataModel(BaseModel):
     game_time: float = Field(0.0)
 
 
-class ScoreboardModelItem(QObject):
-    updated = pyqtSignal()
-
+class ScoreboardModelItem(QtListModelItem):
     def __init__(self, replay_data: dict, mod: str | None) -> None:
-        QObject.__init__(self)
+        super().__init__()
         self.replay_data = replay_data
         self.mod = mod or ""
         self.player = Player(**replay_data["player"])
@@ -127,15 +123,18 @@ class ScoreboardModelItem(QObject):
     def icon(self) -> QIcon:
         return util.THEME.icon(f"replays/{self.faction_name()}.png")
 
+    def tooltip(self) -> None:
+        ...
 
-class ScoreboardModel(QtListModel):
+
+class ScoreboardModel(QtListModel[dict, ScoreboardModelItem]):
     def __init__(
             self,
             spoiled: bool,
             alignment: Qt.AlignmentFlag,
-            item_builder: Callable[[Any], QObject],
+            item_builder: Callable[[dict], ScoreboardModelItem],
     ) -> None:
-        QtListModel.__init__(self, item_builder)
+        super().__init__(item_builder)
         self.spoiled = spoiled
         self.alignment = alignment
 

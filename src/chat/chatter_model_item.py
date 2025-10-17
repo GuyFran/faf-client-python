@@ -4,7 +4,6 @@ from typing import Self
 from urllib import parse
 
 from PyQt6.QtCore import QObject
-from PyQt6.QtCore import pyqtSignal
 
 from src.client.user import UserRelationTrackers
 from src.downloadManager import CachedImageDownloader
@@ -15,14 +14,13 @@ from src.model.chat.channelchatter import ChannelChatter
 from src.model.chat.chatter import Chatter
 from src.model.game import Game
 from src.model.player import Player
+from src.qt.models.qtlistmodel import QtListModelItem
 
 
-class ChatterModelItem(QObject):
+class ChatterModelItem(QtListModelItem):
     """
     UI representation of a chatter.
     """
-    updated = pyqtSignal(object)
-
     def __init__(
         self,
         cc: ChannelChatter,
@@ -155,3 +153,7 @@ class ChatterModelItem(QObject):
             return None
         url = self.player.avatar["url"]
         return parse.unquote(url)
+
+    def tooltip(self) -> None:
+        # TODO: implement this and remove tricks with event filter
+        ...

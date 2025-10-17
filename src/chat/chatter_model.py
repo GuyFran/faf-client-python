@@ -42,13 +42,13 @@ if TYPE_CHECKING:
     from src.client.chat_config import ChatConfig
 
 
-class ChatterModel(QtListModel):
+class ChatterModel(QtListModel[ChannelChatter, ChatterModelItem]):
     def __init__(
         self,
         channel: Channel,
         item_builder: Callable[[ChannelChatter], ChatterModelItem],
     ) -> None:
-        QtListModel.__init__(self, item_builder)
+        super().__init__(item_builder)
         self._channel = channel
 
         self._channel.added_chatter.connect(self.add_chatter)
@@ -62,16 +62,16 @@ class ChatterModel(QtListModel):
         builder = ChatterModelItem.builder(**kwargs)
         return cls(channel, builder)
 
-    def add_chatter(self, chatter):
+    def add_chatter(self, chatter: ChannelChatter) -> None:
         self._add_item(chatter, chatter.id_key)
 
-    def remove_chatter(self, chatter):
+    def remove_chatter(self, chatter: ChannelChatter) -> None:
         self._remove_item(chatter.id_key)
 
-    def clear_chatters(self):
+    def clear_chatters(self) -> None:
         self._clear_items()
 
-    def invalidate_items(self):
+    def invalidate_items(self) -> None:
         start = self.index(0)
         end = self.index(len(self._itemlist) - 1)
         self.dataChanged.emit(start, end)

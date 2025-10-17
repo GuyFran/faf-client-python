@@ -2,25 +2,21 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from PyQt6.QtCore import QObject
-from PyQt6.QtCore import pyqtSignal
-
 from src.client.user import User
 from src.client.user import UserRelations
 from src.downloadManager import DownloadRequest
 from src.downloadManager import MapSmallPreviewDownloader
 from src.fa import maps
 from src.model.game import Game
+from src.qt.models.qtlistmodel import QtListModelItem
 from src.util import pretty_decoded_basename
 
 
-class GameModelItem(QObject):
+class GameModelItem(QtListModelItem):
     """
     UI representation of a running game. Tracks and signals changes that game
     display widgets would like to know about.
     """
-    updated = pyqtSignal(object)
-
     def __init__(
             self,
             game: Game,
@@ -28,7 +24,7 @@ class GameModelItem(QObject):
             me: User,
             preview_dler: MapSmallPreviewDownloader,
     ) -> None:
-        QObject.__init__(self)
+        super().__init__()
 
         self.game = game
         self.game.updated.connect(self._game_updated)
@@ -72,3 +68,7 @@ class GameModelItem(QObject):
     def _at_preview_downloaded(self, preview_file: str) -> None:
         if pretty_decoded_basename(preview_file) == self.game.mapname:
             self.updated.emit(self)
+
+    def tooltip(self) -> None:
+        # TODO: implement this and remove tricks with GameTooltipFilter
+        ...

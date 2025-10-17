@@ -9,13 +9,11 @@ from typing import Self
 from typing import cast
 
 from PyQt6.QtCore import QModelIndex
-from PyQt6.QtCore import QObject
 from PyQt6.QtCore import QPoint
 from PyQt6.QtCore import QRect
 from PyQt6.QtCore import QRectF
 from PyQt6.QtCore import QSize
 from PyQt6.QtCore import Qt
-from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QColor
 from PyQt6.QtGui import QIcon
 from PyQt6.QtGui import QPainter
@@ -35,6 +33,7 @@ from src.config import Settings
 from src.fa.factions import Factions
 from src.qt.itemviews.styleditemdelegate import StyledItemDelegate
 from src.qt.models.qtlistmodel import QtListModel
+from src.qt.models.qtlistmodel import QtListModelItem
 from src.qt.utils import block_signals
 from src.qt.utils import qpainter
 from src.replays.replaydetails.chatnotifiers import ACU_BLUEPRINTS
@@ -47,9 +46,31 @@ from src.replays.replaydetails.replayreader import ReplayParser
 from src.replays.replaydetails.utils import PLAYER_COLORS
 
 
-class EventModelItem(QObject):
-    updated = pyqtSignal()
+class EventType(enum.Enum):
+    ACU_UPGRADE = enum.auto()
+    HQ_UPGRADE = enum.auto()
+    UNIT = enum.auto()
+    LAST_COMMAND = enum.auto()
 
+
+@dataclass(frozen=True)
+class EventNotice:
+    typ: EventType
+    picture_name: str
+
+
+@dataclass(frozen=True)
+class ReplayEvent(EventNotice):
+    tick: int
+    login: str
+    description: str
+    faction: str
+    color: str
+    team: float
+    sender: int
+
+
+class EventModelItem(QtListModelItem):
     def __init__(self, replay_event: ReplayEvent) -> None:
         super().__init__()
         self.replay_event = replay_event
@@ -68,7 +89,7 @@ class EventModelItem(QObject):
         return f"{self.replay_event.description}\n[{self.replay_event.login}]"
 
 
-class ReplayEventModel(QtListModel):
+class ReplayEventModel(QtListModel[ReplayEvent, EventModelItem]):
     def __init__(self) -> None:
         super().__init__(EventModelItem.make)
         self._id_counter = 0
@@ -166,30 +187,6 @@ class EventItemDelegate(StyledItemDelegate):
         painter.fillPath(path, QColor("#202025"))
         text = f"{model_item.replay_event.team - 1:.0f}"
         painter.drawText(team_rect, Qt.AlignmentFlag.AlignCenter, text)
-
-
-class EventType(enum.Enum):
-    ACU_UPGRADE = enum.auto()
-    HQ_UPGRADE = enum.auto()
-    UNIT = enum.auto()
-    LAST_COMMAND = enum.auto()
-
-
-@dataclass(frozen=True)
-class EventNotice:
-    typ: EventType
-    picture_name: str
-
-
-@dataclass(frozen=True)
-class ReplayEvent(EventNotice):
-    tick: int
-    login: str
-    description: str
-    faction: str
-    color: str
-    team: float
-    sender: int
 
 
 class EventsTabUI:
