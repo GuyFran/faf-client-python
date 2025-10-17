@@ -357,6 +357,16 @@ if not Settings.contains('client/language'):
     Settings.set('client/language', os_language())
 
 
+# Skip logs from uic module
+class SkipLogFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return False
+
+
+for name, logger in logging.root.manager.loggerDict.items():
+    if isinstance(logger, logging.Logger) and "uic." in name:
+        logger.addFilter(SkipLogFilter())
+
 # Setup normal rotating log handler
 make_dirs()
 
