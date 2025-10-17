@@ -70,9 +70,7 @@ class UpdaterWorker(QObject):
         self.nam = QNetworkAccessManager(self)
         self.result = UpdaterResult.NONE
 
-        keep_cache = not Settings.get("cache/do_not_keep", type=bool, default=True)
-        in_session_cache = Settings.get("cache/in_session", type=bool, default=False)
-        self.cache_enabled = keep_cache or in_session_cache
+        self.cache_enabled = Settings.get("cache/store_duration", default=30, type=int) > -1
 
         self.dlers: list[FileDownload] = []
         self.interruption_requested = False
@@ -148,7 +146,8 @@ class UpdaterWorker(QObject):
             file: FeaturedModFile,
             precalculated_md5s: dict[str, str] | None = None,
     ) -> None:
-        self.move_to_cache(file, precalculated_md5s)
+        if self.cache_enabled:
+            self.move_to_cache(file, precalculated_md5s)
         if self._is_cached(file):
             self.move_from_cache(file)
         else:

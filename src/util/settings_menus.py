@@ -1,0 +1,252 @@
+from __future__ import annotations
+
+import os
+from typing import TYPE_CHECKING
+
+from PyQt6.QtWidgets import QButtonGroup
+from PyQt6.QtWidgets import QDialog
+from PyQt6.QtWidgets import QGroupBox
+from PyQt6.QtWidgets import QHBoxLayout
+from PyQt6.QtWidgets import QPushButton
+from PyQt6.QtWidgets import QRadioButton
+from PyQt6.QtWidgets import QSpinBox
+from PyQt6.QtWidgets import QVBoxLayout
+from PyQt6.QtWidgets import QWidget
+
+from src.config import Settings
+from src.util import CACHE_DIR
+from src.util import ICE_ADAPTER_DIR
+from src.util import MAPGEN_DIR
+from src.util import showDirInFileBrowser
+
+if TYPE_CHECKING:
+    from src.client._clientwindow import ClientWindow
+
+
+class CacheSettingsUI:
+    def setupUi(self, widget: QWidget) -> None:
+        main_layout = QVBoxLayout(widget)
+
+        game_files_group = QGroupBox("Game Files Cache")
+        game_files_layout = QVBoxLayout()
+
+        self.gameFilesButtonGroup = QButtonGroup(widget)
+
+        self.gameNeverRadio = QRadioButton("Don't keep")
+        self.gameForeverRadio = QRadioButton("Keep forever")
+        self.gameSessionRadio = QRadioButton("Keep in current session")
+        self.gameCustomRadio = QRadioButton("Keep cache for:")
+
+        self.gameFilesButtonGroup.addButton(self.gameNeverRadio, 1)
+        self.gameFilesButtonGroup.addButton(self.gameForeverRadio, 2)
+        self.gameFilesButtonGroup.addButton(self.gameSessionRadio, 3)
+        self.gameFilesButtonGroup.addButton(self.gameCustomRadio, 4)
+
+        self.gameNeverRadio.setChecked(True)
+
+        game_files_layout.addWidget(self.gameNeverRadio)
+        game_files_layout.addWidget(self.gameForeverRadio)
+        game_files_layout.addWidget(self.gameSessionRadio)
+
+        custom_game_layout = QHBoxLayout()
+        custom_game_layout.addWidget(self.gameCustomRadio)
+        self.gameDaysSpinbox = QSpinBox()
+        self.gameDaysSpinbox.setMinimum(1)
+        self.gameDaysSpinbox.setMaximum(9999)
+        self.gameDaysSpinbox.setValue(30)
+        self.gameDaysSpinbox.setSuffix(" days")
+        self.gameDaysSpinbox.setEnabled(False)
+        custom_game_layout.addWidget(self.gameDaysSpinbox)
+        custom_game_layout.addStretch()
+
+        game_files_layout.addLayout(custom_game_layout)
+
+        game_header_layout = QHBoxLayout()
+        game_header_layout.addStretch()
+        self.showGameCacheFolder = QPushButton("Show Folder")
+        game_header_layout.addWidget(self.showGameCacheFolder)
+        game_files_layout.addLayout(game_header_layout)
+
+        game_files_group.setLayout(game_files_layout)
+
+        ice_adapter_group = QGroupBox("ICE Adapter Cache")
+        ice_adapter_group.setToolTip("Previously downloaded old versions of ICE Adapters")
+        ice_adapter_layout = QVBoxLayout()
+
+        self.iceAdapterButtonGroup = QButtonGroup(widget)
+
+        self.iceForeverRadio = QRadioButton("Keep unused forever")
+        self.iceCustomRadio = QRadioButton("Keep unused for:")
+
+        self.iceAdapterButtonGroup.addButton(self.iceForeverRadio, 1)
+        self.iceAdapterButtonGroup.addButton(self.iceCustomRadio, 2)
+
+        self.iceForeverRadio.setChecked(True)
+
+        ice_adapter_layout.addWidget(self.iceForeverRadio)
+
+        custom_ice_layout = QHBoxLayout()
+        custom_ice_layout.addWidget(self.iceCustomRadio)
+        self.iceDaysSpinbox = QSpinBox()
+        self.iceDaysSpinbox.setMinimum(1)
+        self.iceDaysSpinbox.setMaximum(9999)
+        self.iceDaysSpinbox.setValue(30)
+        self.iceDaysSpinbox.setSuffix(" days")
+        self.iceDaysSpinbox.setEnabled(False)
+        custom_ice_layout.addWidget(self.iceDaysSpinbox)
+        custom_ice_layout.addStretch()
+
+        ice_adapter_layout.addLayout(custom_ice_layout)
+
+        ice_header_layout = QHBoxLayout()
+        ice_header_layout.addStretch()
+        self.showIceAdapterFolder = QPushButton("Show Folder")
+        ice_header_layout.addWidget(self.showIceAdapterFolder)
+        ice_adapter_layout.addLayout(ice_header_layout)
+
+        ice_adapter_group.setLayout(ice_adapter_layout)
+
+        map_gen_group = QGroupBox("Map Generator Cache")
+        map_gen_group.setToolTip("Previously downloaded old versions of Map Generator")
+        map_gen_layout = QVBoxLayout()
+
+        self.mapGenButtonGroup = QButtonGroup(widget)
+
+        self.mapgenForeverRadio = QRadioButton("Keep unused forever")
+        self.mapgenCustomRadio = QRadioButton("Keep unused for:")
+
+        self.mapGenButtonGroup.addButton(self.mapgenForeverRadio, 1)
+        self.mapGenButtonGroup.addButton(self.mapgenCustomRadio, 2)
+
+        self.mapgenForeverRadio.setChecked(True)
+
+        map_gen_layout.addWidget(self.mapgenForeverRadio)
+
+        custom_mapgen_layout = QHBoxLayout()
+        custom_mapgen_layout.addWidget(self.mapgenCustomRadio)
+        self.mapgenDaysSpinbox = QSpinBox()
+        self.mapgenDaysSpinbox.setMinimum(1)
+        self.mapgenDaysSpinbox.setMaximum(9999)
+        self.mapgenDaysSpinbox.setValue(30)
+        self.mapgenDaysSpinbox.setSuffix(" days")
+        self.mapgenDaysSpinbox.setEnabled(False)
+        custom_mapgen_layout.addWidget(self.mapgenDaysSpinbox)
+        custom_mapgen_layout.addStretch()
+
+        map_gen_layout.addLayout(custom_mapgen_layout)
+
+        mapgen_header_layout = QHBoxLayout()
+        mapgen_header_layout.addStretch()
+        self.showMapGenFolder = QPushButton("Show Folder")
+        mapgen_header_layout.addWidget(self.showMapGenFolder)
+        map_gen_layout.addLayout(mapgen_header_layout)
+
+        map_gen_group.setLayout(map_gen_layout)
+
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addStretch()
+
+        self.okButton = QPushButton("OK")
+        self.cancelButton = QPushButton("Cancel")
+        self.applyButton = QPushButton("Apply")
+
+        buttons_layout.addWidget(self.okButton)
+        buttons_layout.addWidget(self.cancelButton)
+        buttons_layout.addWidget(self.applyButton)
+
+        main_layout.addWidget(game_files_group)
+        main_layout.addWidget(ice_adapter_group)
+        main_layout.addWidget(map_gen_group)
+        main_layout.addStretch()
+        main_layout.addLayout(buttons_layout)
+
+
+class CacheSetting(QDialog):
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Cache Settings")
+        self.setMinimumWidth(500)
+        self.ui = CacheSettingsUI()
+        self.ui.setupUi(self)
+
+        self.ui.gameCustomRadio.toggled.connect(self.ui.gameDaysSpinbox.setEnabled)
+        self.ui.iceCustomRadio.toggled.connect(self.ui.iceDaysSpinbox.setEnabled)
+        self.ui.mapgenCustomRadio.toggled.connect(self.ui.mapgenDaysSpinbox.setEnabled)
+
+        game_cache_folder = os.path.join(CACHE_DIR, "featured_mod")
+        self.ui.showGameCacheFolder.clicked.connect(lambda: showDirInFileBrowser(game_cache_folder))
+        self.ui.showIceAdapterFolder.clicked.connect(lambda: showDirInFileBrowser(ICE_ADAPTER_DIR))
+        self.ui.showMapGenFolder.clicked.connect(lambda: showDirInFileBrowser(MAPGEN_DIR))
+
+        self.ui.okButton.clicked.connect(self.save_settings_and_quit)
+        self.ui.cancelButton.clicked.connect(self.reject)
+        self.ui.applyButton.clicked.connect(self.save_settings)
+
+    def load_settings(self) -> None:
+        game_duration = Settings.get("cache/store_duration", default=30, type=int)
+
+        if game_duration == -1:
+            self.ui.gameNeverRadio.setChecked(True)
+        elif game_duration == 0:
+            self.ui.gameSessionRadio.setChecked(True)
+        elif game_duration == 99999:
+            self.ui.gameForeverRadio.setChecked(True)
+        else:
+            self.ui.gameCustomRadio.setChecked(True)
+            self.ui.gameDaysSpinbox.setValue(game_duration)
+
+        ice_duration = Settings.get("iceadapter/store_duration", default=30, type=int)
+        if ice_duration == 99999:
+            self.ui.iceForeverRadio.setChecked(True)
+        else:
+            self.ui.iceCustomRadio.setChecked(True)
+            self.ui.iceDaysSpinbox.setValue(ice_duration)
+
+        mapgen_duration = Settings.get("mapGenerator/store_duration", default=30, type=int)
+        if mapgen_duration == 99999:
+            self.ui.mapgenForeverRadio.setChecked(True)
+        else:
+            self.ui.mapgenCustomRadio.setChecked(True)
+            self.ui.mapgenDaysSpinbox.setValue(mapgen_duration)
+
+    def save_settings(self) -> None:
+        for button in self.ui.gameFilesButtonGroup.buttons():
+            if not button.isChecked():
+                continue
+            match button:
+                case self.ui.gameNeverRadio:
+                    Settings.set("cache/store_duration", -1)
+                case self.ui.gameForeverRadio:
+                    Settings.set("cache/store_duration", 99999)
+                case self.ui.gameSessionRadio:
+                    Settings.set("cache/store_duration", 0)
+                case self.ui.gameCustomRadio:
+                    Settings.set("cache/store_duration", self.ui.gameDaysSpinbox.value())
+                case _:
+                    pass
+
+        for button in self.ui.iceAdapterButtonGroup.buttons():
+            if not button.isChecked():
+                continue
+            if button is self.ui.iceForeverRadio:
+                Settings.set("iceadapter/store_duration", 99999)
+            else:
+                Settings.set("iceadapter/store_duration", self.ui.iceDaysSpinbox.value())
+
+        for button in self.ui.mapGenButtonGroup.buttons():
+            if not button.isChecked():
+                continue
+            if button is self.ui.mapgenForeverRadio:
+                Settings.set("mapGenerator/store_duration", 99999)
+            else:
+                Settings.set("mapGenerator/store_duration", self.ui.mapgenDaysSpinbox.value())
+
+    def save_settings_and_quit(self) -> None:
+        self.save_settings()
+        self.accept()
+
+
+def show_cache_settings(client: ClientWindow) -> None:
+    dialog = CacheSetting(client)
+    dialog.load_settings()
+    dialog.exec()

@@ -1,4 +1,3 @@
-import datetime
 import getpass
 import hashlib
 import logging
@@ -7,6 +6,8 @@ import re
 import shutil
 import subprocess
 import sys
+from datetime import datetime
+from operator import attrgetter
 
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QDateTime
@@ -208,7 +209,7 @@ except Exception:
 # Ensure that access time is modified (needed for cache system)
 def setAccessTime(file: str) -> None:
     if os.path.exists(file):
-        curr_time = datetime.datetime.timestamp(datetime.datetime.now())
+        curr_time = datetime.timestamp(datetime.now())
         mtime = os.stat(file).st_mtime
         os.utime(file, times=(curr_time, mtime))
 
@@ -220,11 +221,9 @@ def clearGameCache():
     if not os.path.exists(fmod_dir):
         return
 
-    max_storage_time = Settings.get("cache/number_of_days", 0, type=int)
-    if max_storage_time == -1:  # -1 stands for keeping files forever
-        return
+    max_storage_time = Settings.get("cache/store_duration", 30, type=int)
 
-    curr_time = datetime.datetime.now()
+    curr_time = datetime.now()
     for _dir in ("bin", "gamedata"):
         dir_to_check = os.path.join(fmod_dir, _dir)
         if not os.path.exists(dir_to_check):
@@ -233,7 +232,7 @@ def clearGameCache():
             if not entry.is_file():
                 continue
             access_timestamp = os.path.getatime(entry.path)
-            access_time = datetime.datetime.fromtimestamp(access_timestamp)
+            access_time = datetime.fromtimestamp(access_timestamp)
             if (curr_time - access_time).days >= max_storage_time:
                 os.remove(entry.path)
 
@@ -249,6 +248,33 @@ def clearGeneratedMaps():
             if re.match(mapgenUtils.generatedMapPattern, entry.name):
                 if entry.is_dir():
                     shutil.rmtree(os.path.join(map_dir, entry.name))
+
+
+def clear_unused_ice_adapters():
+    java_version = Settings.get("iceadapter/java_version", "")
+    go_version = Settings.get("iceadapter/go_version", "")
+    for version, ext in zip((java_version, go_version), (".jar", ".exe")):
+        adapters = [entry for entry in os.scandir(ICE_ADAPTER_DIR) if entry.name.endswith(ext)]
+        adapters.sort(key=attrgetter("name"))
+        if not version:
+            adapters.pop()
+        for entry in adapters:
+            if version and version in entry.name:
+                continue
+            delta = (datetime.now() - datetime.fromtimestamp(entry.stat().st_atime))
+            if delta.days >= Settings.get("iceadapter/store_duration", 30, type=int):
+                logger.info("Removing unused ICE adapter '%s'", entry.path)
+                os.unlink(entry.path)
+
+
+def clear_unused_map_generators():
+    generators = [entry for entry in os.scandir(MAPGEN_DIR) if entry.name.endswith(".jar")]
+    generators.sort(key=attrgetter("name"))
+    for entry in generators[:-1]:
+        delta = (datetime.now() - datetime.fromtimestamp(entry.stat().st_atime))
+        if delta.days >= Settings.get("mapGenerator/store_duration", 30, type=int):
+            logger.info("Removing unused map generator '%s'", entry.path)
+            os.unlink(entry.path)
 
 
 def clearDirectory(directory, confirm=True):
