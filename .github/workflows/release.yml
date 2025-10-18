@@ -11,6 +11,7 @@ env:
   ICE_ADAPTER_VERSION: 3.3.12
   BUILD_VERSION: ${{ github.event.inputs.version }}
   PYTHON_VERSION: 3.13
+  ZIG_VERSION: 0.15.2
 
 jobs:
   build-windows:
@@ -57,7 +58,7 @@ jobs:
       - name: Install Zig
         uses: mlugg/setup-zig@v1
         with:
-          version: 0.14.0
+          version: ${{ env.ZIG_VERSION }}
 
       - name: Build zig library
         run: |
@@ -162,7 +163,7 @@ jobs:
       - name: Install Zig
         uses: mlugg/setup-zig@v1
         with:
-          version: 0.14.0
+          version: ${{ env.ZIG_VERSION }}
 
       - name: Build zig library
         run: |

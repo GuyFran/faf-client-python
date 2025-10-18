@@ -1,9 +1,6 @@
-const py = @cImport({
-    @cDefine("PY_SSIZE_T_CLEAN", {});
-    @cInclude("Python.h");
-});
 const std = @import("std");
 
+const py = @import("cimport.zig").py;
 const converter = @import("converter.zig");
 const decompressor = @import("decompressor.zig");
 const parser = @import("parser.zig");

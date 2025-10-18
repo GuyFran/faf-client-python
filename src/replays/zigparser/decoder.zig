@@ -11,30 +11,17 @@ pub fn decode_base64(encoded: []u8, allocator: Allocator) ![]u8 {
 
     try decoder.decode(b64_dest, encoded);
 
-    var fbs = std.io.fixedBufferStream(b64_dest[4..]);
-    const reader = fbs.reader();
-    var decompressor = std.compress.zlib.decompressor(reader);
-
-    var final = std.ArrayList(u8).init(allocator);
-    defer final.deinit();
-
-    while (true) {
-        const decompressed = try decompressor.get(0);
-        if (decompressed.len == 0) {
-            break;
-        }
-        try final.appendSlice(decompressed);
-    }
-    return try final.toOwnedSlice();
+    var reader = std.Io.Reader.fixed(b64_dest[4..]);
+    var decompress: std.compress.flate.Decompress = .init(&reader, .zlib, &.{});
+    return try decompress.reader.allocRemaining(allocator, .unlimited);
 }
 
 pub fn decode_zstd(encoded: []u8, allocator: Allocator) ![]u8 {
-    var stream = std.io.fixedBufferStream(encoded);
-
-    const window_len = std.compress.zstd.DecompressorOptions.default_window_buffer_len;
+    const window_len = std.compress.zstd.default_window_len;
     const window_buffer = try allocator.alloc(u8, window_len);
     defer allocator.free(window_buffer);
 
-    var decompressor = std.compress.zstd.decompressor(stream.reader(), .{ .window_buffer = window_buffer });
-    return try decompressor.reader().readAllAlloc(allocator, std.math.maxInt(usize));
+    var reader = std.Io.Reader.fixed(encoded);
+    var decompress: std.compress.zstd.Decompress = .init(&reader, window_buffer, .{});
+    return try decompress.reader.allocRemaining(allocator, .unlimited);
 }

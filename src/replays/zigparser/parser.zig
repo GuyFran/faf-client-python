@@ -84,8 +84,8 @@ pub const BodyData = struct {
         return Self{
             .ticks = 0,
             .commands = std.AutoHashMap(u8, std.ArrayList(Command)).init(allocator),
-            .points = std.ArrayList(Point).init(allocator),
-            .chatlines = std.ArrayList(Chatline).init(allocator),
+            .points = .empty,
+            .chatlines = .empty,
             .lastticks = std.AutoHashMap(u8, u32).init(allocator),
             .chart_data = std.AutoHashMap(u8, std.ArrayList(u32)).init(allocator),
         };
@@ -97,17 +97,17 @@ pub const BodyData = struct {
             for (array.items) |command| {
                 command.deinit(allocator);
             }
-            array.*.deinit();
+            array.*.deinit(allocator);
         }
         self.commands.deinit();
 
-        self.points.deinit();
-        self.chatlines.deinit();
+        self.points.deinit(allocator);
+        self.chatlines.deinit(allocator);
         self.lastticks.deinit();
 
         var chart_iterator = self.chart_data.valueIterator();
         while (chart_iterator.next()) |chart_entry| {
-            chart_entry.deinit();
+            chart_entry.deinit(allocator);
         }
         self.chart_data.deinit();
         if (self.game_stats) |stats| {
@@ -158,13 +158,16 @@ pub const Parser = struct {
                 const x = utils.cast_float32(self.replay_buf.ptr[0..4]);
                 const y = utils.cast_float32(self.replay_buf.ptr[8..12]);
                 self.replay_buf.ignoreMany(4 * 3);
-                try self.body_data.points.append(Point{
-                    .tick = self.body_data.ticks,
-                    .x = x,
-                    .y = y,
-                    .cmd_type = command_type,
-                    .source = self.player_source.?,
-                });
+                try self.body_data.points.append(
+                    self.allocator,
+                    Point{
+                        .tick = self.body_data.ticks,
+                        .x = x,
+                        .y = y,
+                        .cmd_type = command_type,
+                        .source = self.player_source.?,
+                    },
+                );
             },
             STITARGET.Entity => {
                 self.replay_buf.ignoreMany(4);
@@ -175,10 +178,10 @@ pub const Parser = struct {
 
     pub fn append_chart_data(self: *Self, player: u8) ParseError!void {
         if (self.body_data.chart_data.getPtr(player)) |list| {
-            try list.append(self.body_data.ticks);
+            try list.append(self.allocator, self.body_data.ticks);
         } else {
-            var list = std.ArrayList(u32).init(self.allocator);
-            try list.append(self.body_data.ticks);
+            var list: std.ArrayList(u32) = .empty;
+            try list.append(self.allocator, self.body_data.ticks);
             try self.body_data.chart_data.put(player, list);
         }
     }
@@ -212,12 +215,15 @@ pub const Parser = struct {
             self.replay_buf.ignoreNext();
         }
         if (self.body_data.commands.getPtr(player)) |commands_list| {
-            try commands_list.append(.{
-                .blueprint = blueprint,
-                .cmd_type = cmd_type,
-                .tick = self.body_data.ticks,
-                .upgrades = upgrades,
-            });
+            try commands_list.append(
+                self.allocator,
+                .{
+                    .blueprint = blueprint,
+                    .cmd_type = cmd_type,
+                    .tick = self.body_data.ticks,
+                    .upgrades = upgrades,
+                },
+            );
         }
     }
 
@@ -246,13 +252,16 @@ pub const Parser = struct {
         const army_table = self.header_data.armies.get(@as(u8, @intCast(from))).?.table;
         const player_name = army_table.get(.{ .string = "PlayerName" }).?.string;
         if (std.mem.eql(u8, sender.?.string, player_name)) {
-            try self.body_data.chatlines.append(.{
-                .tick = self.body_data.ticks,
-                .sender = player_name,
-                .to = to.?.string,
-                .text = text.?.string,
-                .army_num = from,
-            });
+            try self.body_data.chatlines.append(
+                self.allocator,
+                .{
+                    .tick = self.body_data.ticks,
+                    .sender = player_name,
+                    .to = to.?.string,
+                    .text = text.?.string,
+                    .army_num = from,
+                },
+            );
         }
     }
 
@@ -304,7 +313,7 @@ pub const Parser = struct {
         self: *Self,
     ) ParseError!void {
         for (0..self.header_data.players.count()) |i| {
-            const list = std.ArrayList(Command).init(self.allocator);
+            const list: std.ArrayList(Command) = .empty;
             try self.body_data.commands.put(@as(u8, @intCast(i)), list);
         }
         const moved_cmd = @intFromEnum(CommandType.MovePreviouslyIssuedCommand);
