@@ -24,6 +24,8 @@ from src.config import VERSION as VERSION_STRING
 from src.config import Settings
 from src.config import _settings  # Stolen from Config because reasons
 from src.config.production import APPDATA_DIR as _APPDATA_DIR
+from src.connectivity.IceAdapterPlatformOptions import GoIceAdapterPlatformOptions
+from src.connectivity.IceAdapterPlatformOptions import JavaIceAdapterPlatformOptions
 from src.mapGenerator import mapgenUtils
 from src.util.theme import Theme
 from src.util.theme import ThemeSet
@@ -250,11 +252,21 @@ def clearGeneratedMaps():
                     shutil.rmtree(os.path.join(map_dir, entry.name))
 
 
-def clear_unused_ice_adapters():
+def clear_unused_ice_adapters() -> None:
+    store_duration = Settings.get("iceadapter/store_duration", 30, type=int)
+    if store_duration >= 9999:
+        return
+
     java_version = Settings.get("iceadapter/java_version", "")
     go_version = Settings.get("iceadapter/go_version", "")
-    for version, ext in zip((java_version, go_version), (".jar", ".exe")):
-        adapters = [entry for entry in os.scandir(ICE_ADAPTER_DIR) if entry.name.endswith(ext)]
+    for version, options in zip(
+        (java_version, go_version),
+        (JavaIceAdapterPlatformOptions(), GoIceAdapterPlatformOptions()),
+    ):
+        adapters = [
+            entry for entry in os.scandir(ICE_ADAPTER_DIR)
+            if options.name() in entry.name and entry.name.endswith(options.extension())
+        ]
         adapters.sort(key=attrgetter("name"))
         if not version:
             adapters.pop()
@@ -262,17 +274,21 @@ def clear_unused_ice_adapters():
             if version and version in entry.name:
                 continue
             delta = (datetime.now() - datetime.fromtimestamp(entry.stat().st_atime))
-            if delta.days >= Settings.get("iceadapter/store_duration", 30, type=int):
+            if delta.days >= store_duration:
                 logger.info("Removing unused ICE adapter '%s'", entry.path)
                 os.unlink(entry.path)
 
 
-def clear_unused_map_generators():
+def clear_unused_map_generators() -> None:
+    store_duration = Settings.get("mapGenerator/store_duration", 30, type=int)
+    if store_duration >= 9999:
+        return
+
     generators = [entry for entry in os.scandir(MAPGEN_DIR) if entry.name.endswith(".jar")]
     generators.sort(key=attrgetter("name"))
     for entry in generators[:-1]:
         delta = (datetime.now() - datetime.fromtimestamp(entry.stat().st_atime))
-        if delta.days >= Settings.get("mapGenerator/store_duration", 30, type=int):
+        if delta.days >= store_duration:
             logger.info("Removing unused map generator '%s'", entry.path)
             os.unlink(entry.path)
 

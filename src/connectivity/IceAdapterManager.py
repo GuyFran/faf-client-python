@@ -1,11 +1,8 @@
 import json
 import logging
 import os
-import sys
 from typing import Any
 from typing import ClassVar
-from typing import NamedTuple
-from typing import Protocol
 
 from PyQt6.QtCore import QObject
 from PyQt6.QtCore import QUrl
@@ -15,40 +12,11 @@ from PyQt6.QtNetwork import QNetworkReply
 from PyQt6.QtNetwork import QNetworkRequest
 
 from src.config import Settings
+from src.connectivity.IceAdapterPlatformOptions import GoIceAdapterPlatformOptions
+from src.connectivity.IceAdapterPlatformOptions import JavaIceAdapterPlatformOptions
 from src.decorators import with_logger
 from src.util import ICE_ADAPTER_DIR
 from src.vaults.dialogs import download_file
-
-
-class IceAdapterPlatformOptions(Protocol):
-    def name(self) -> str: ...
-    def extension(self) -> str: ...
-
-
-class GoIceAdapterPlatformOptions(NamedTuple):
-    windows: str = "windows-amd64"
-    linux: str = "linux-amd64"
-
-    def name(self) -> str:
-        if sys.platform == "win32":
-            return self.windows
-        return self.linux
-
-    def extension(self) -> str:
-        return ".exe" if sys.platform == "win32" else ""
-
-
-class JavaIceAdapterPlatformOptions(NamedTuple):
-    windows: str = "win"
-    linux: str = "linux"
-
-    def name(self) -> str:
-        if sys.platform == "win32":
-            return self.windows
-        return self.linux
-
-    def extension(self) -> str:
-        return ".jar"
 
 
 @with_logger

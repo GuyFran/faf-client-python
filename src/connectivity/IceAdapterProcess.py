@@ -13,9 +13,9 @@ from PyQt6.QtWidgets import QMessageBox
 from src import client
 from src import fafpath
 from src.config import Settings
-from src.connectivity.IceAdapterManager import GoIceAdapterPlatformOptions
-from src.connectivity.IceAdapterManager import IceAdapterPlatformOptions
-from src.connectivity.IceAdapterManager import JavaIceAdapterPlatformOptions
+from src.connectivity.IceAdapterPlatformOptions import GoIceAdapterPlatformOptions
+from src.connectivity.IceAdapterPlatformOptions import IceAdapterPlatformOptions
+from src.connectivity.IceAdapterPlatformOptions import JavaIceAdapterPlatformOptions
 from src.decorators import with_logger
 from src.qt.utils import tcp_server
 from src.util import ICE_ADAPTER_DIR
