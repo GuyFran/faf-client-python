@@ -484,12 +484,10 @@ class ReplayParser(QObject):
                             yield f"{self.CPM[id] / (self.ticks * 1.0 / 10 / 60):.2f}"
                     except ZeroDivisionError:
                         yield "0.00"
-                yield "</td>"
-                yield "<td>"
+                yield "</td><td>"
                 for _, (name, faction, picname) in self.acu_enhancements[id].items():
                     yield f"<img height=32 src=\"{faction}_{picname}\" title=\"{name}\"/>"
-                yield "</td>"
-                yield "</tr>"
+                yield "</td></tr>"
             yield "<tr><td>&nbsp;</td></tr>"
         yield "</table></p>"
 

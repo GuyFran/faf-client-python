@@ -31,17 +31,17 @@ class ChatTableModel(QAbstractTableModel):
     def __init__(self, chat_lines: Sequence[tuple[int, str, str, str, int]]) -> None:
         super().__init__()
         self.chat_lines = chat_lines
+        self._horizontal_header = ("Time", "From", "To", "Message")
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return len(self.chat_lines)
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        return 4
+        return len(self._horizontal_header)
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = 0) -> Any:
-
         if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
-            return ("Time", "From", "To", "Message")[section]
+            return self._horizontal_header[section]
         return super().headerData(section, orientation, role)
 
     def data(self, index: QModelIndex, role: int = 0) -> str | None:
