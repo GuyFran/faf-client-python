@@ -16,6 +16,7 @@ from PyQt6 import QtWidgets
 from PyQt6.QtNetwork import QNetworkAccessManager
 from PyQt6.QtNetwork import QNetworkReply
 from PyQt6.QtNetwork import QNetworkRequest
+from PyQt6.QtWidgets import QStyle
 from PyQt6.QtWidgets import QTreeWidget
 from PyQt6.QtWidgets import QTreeWidgetItem
 
@@ -556,8 +557,9 @@ class LocalReplayItemDelegate(QtWidgets.QStyledItemDelegate):
                 text_align = QtCore.Qt.AlignmentFlag.AlignVCenter
 
             if tree_item.count_as_watched():
+                factor = 300 if option.state & QStyle.StateFlag.State_MouseOver else 200
                 brush = index.data(QtCore.Qt.ItemDataRole.ForegroundRole) or option.palette.text()
-                p.setPen(brush.color().darker())
+                p.setPen(brush.color().darker(factor))
 
             p.drawText(
                 option.rect.adjusted(iconsize.width(), 0, 0, 0),

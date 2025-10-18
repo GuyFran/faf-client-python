@@ -41,7 +41,8 @@ class ReplayItemDelegate(QtWidgets.QStyledItemDelegate):
 
         replay_item = cast(ReplayItem | None, index.data(QtCore.Qt.ItemDataRole.UserRole))
         if replay_item is not None and replay_item.count_as_watched():
-            color = option.palette.text().color().darker().name()
+            factor = 300 if option.state & QtWidgets.QStyle.StateFlag.State_MouseOver else 200
+            color = option.palette.text().color().darker(factor).name()
             option.text = re.sub(r"color=\".+?\"", f"color=\"{color}\"", option.text or "")
 
         html = QtGui.QTextDocument()
