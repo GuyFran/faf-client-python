@@ -610,6 +610,9 @@ class ReplayParser(QObject):
         self.post_process()
 
     def post_process(self) -> None:
+        for pid in self.observers:
+            self.cpmChart.pop(pid, None)
+            self.commands.pop(pid, None)
         self.CPM = Counter({pid: len(comlist) for pid, comlist in self.cpmChart.items()})
         self.last_activity = {
             pid: comlist[-1] if comlist else self.lasttick.get(pid, self.ticks)
