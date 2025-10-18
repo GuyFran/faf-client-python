@@ -977,7 +977,7 @@ class ClientWindow(FormClass, BaseClass):
             self._chatMVC = None
 
         # Clear cached game files if needed
-        util.clearGameCache()
+        util.clear_game_cache()
 
         # Get rid of generated maps
         util.clearGeneratedMaps()

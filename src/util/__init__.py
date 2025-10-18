@@ -217,13 +217,15 @@ def setAccessTime(file: str) -> None:
 
 
 # Get rid of cached files that are stored for too long
-def clearGameCache():
+def clear_game_cache() -> None:
     fmod_dir = os.path.join(CACHE_DIR, 'featured_mod')
 
     if not os.path.exists(fmod_dir):
         return
 
     max_storage_time = Settings.get("cache/store_duration", 30, type=int)
+    if max_storage_time >= 9999:
+        return
 
     curr_time = datetime.now()
     for _dir in ("bin", "gamedata"):
