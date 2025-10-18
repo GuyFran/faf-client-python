@@ -58,7 +58,7 @@ class GameUrl:
     def from_url(cls, u: str | QUrl, /) -> Self:
         try:
             url = QUrl(u)
-            query = QUrlQuery(u)
+            query = QUrlQuery(url)
             map_ = cls._get_query_item(query, "map")
             mod = cls._get_query_item(query, "mod")
             game_type = GameUrlType(url.scheme())
