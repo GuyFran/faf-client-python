@@ -56,7 +56,7 @@ jobs:
           jlink --add-modules "$ICE_ADAPTER_JAVA_MODULES,jdk.crypto.ec,jdk.unsupported" --strip-debug --no-man-pages --no-header-files --compress "zip-6" --output "build_setup/jre"
 
       - name: Install Zig
-        uses: mlugg/setup-zig@v1
+        uses: mlugg/setup-zig@v2
         with:
           version: ${{ env.ZIG_VERSION }}
 
@@ -161,7 +161,7 @@ jobs:
           jlink --add-modules "$ICE_ADAPTER_JAVA_MODULES,jdk.crypto.ec,jdk.unsupported" --strip-debug --no-man-pages --no-header-files --compress "zip-6" --output "build_setup/jre"
 
       - name: Install Zig
-        uses: mlugg/setup-zig@v1
+        uses: mlugg/setup-zig@v2
         with:
           version: ${{ env.ZIG_VERSION }}
 
