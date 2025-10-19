@@ -25,9 +25,9 @@ class MapDisplayType(Enum):
     INSTALLED = "Installed"
 
 
-class MapListItem(VaultListItem):
+class MapListItem(VaultListItem[Map]):
     def __init__(self, parent: QListWidget, item_data: Map) -> None:
-        VaultListItem.__init__(self, parent, item_data)
+        super().__init__(parent, item_data)
         self.item_data = item_data
         self.display_type = MapDisplayType.ALL
         self.sort_type = MapSortType.ALPHABETICAL
@@ -62,12 +62,12 @@ class MapListItem(VaultListItem):
     def _lt_games_played(self, other: MapListItem) -> bool:
         return self.item_data.games_played < other.item_data.games_played
 
-    def _less_than(self, other: VaultListItem) -> bool:
+    def _less_than(self, other: VaultListItem[Map]) -> bool:
         if not isinstance(other, MapListItem):
-            return VaultListItem._less_than(self, other)
+            return super()._less_than(other)
         match self.sort_type:
             case MapSortType.NONE:
-                return VaultListItem._less_than(self, other)
+                return super()._less_than(other)
             case MapSortType.ALPHABETICAL:
                 return self._lt_alphabetical(other)
             case MapSortType.RATING:

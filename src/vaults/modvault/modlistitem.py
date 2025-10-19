@@ -26,9 +26,9 @@ class ModDisplayType(Enum):
     UI = "UI Only"
 
 
-class ModListItem(VaultListItem):
+class ModListItem(VaultListItem[Mod]):
     def __init__(self, parent: QListWidget, item_data: Mod) -> None:
-        VaultListItem.__init__(self, parent, item_data)
+        super().__init__(parent, item_data)
         self.item_data = item_data
         self.display_type = ModDisplayType.ALL
         self.sort_type = ModSortType.ALPHABETICAL
@@ -59,10 +59,10 @@ class ModListItem(VaultListItem):
             case ModDisplayType.UI:
                 return self.item_version.modtype == ModType.UI
 
-    def _less_than(self, other: VaultListItem) -> bool:
+    def _less_than(self, other: VaultListItem[Mod]) -> bool:
         match self.sort_type:
             case ModSortType.NONE:
-                return VaultListItem._less_than(self, other)
+                return super()._less_than(other)
             case ModSortType.ALPHABETICAL:
                 return self._lt_alphabetical(other)
             case ModSortType.RATING:

@@ -382,7 +382,7 @@ class DetailsWidget[T: Map | Mod](QWidget):
         self._comments_initialized = True
         item_info = message["data"]
 
-        reviews = []
+        reviews: list[VersionReview] = []
         for version in item_info["versions"]:
             for review_dct in version["reviews"]:
                 if review_dct["text"] is None:

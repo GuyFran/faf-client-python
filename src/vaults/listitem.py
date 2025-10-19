@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 from PyQt6.QtWidgets import QListWidget
 from PyQt6.QtWidgets import QListWidgetItem
 
@@ -26,7 +28,7 @@ class VaultListItem[T: Map | Mod](QListWidgetItem):
     def set_display_type(self, index: int) -> None:
         raise NotImplementedError
 
-    def _less_than(self, other: VaultListItem) -> bool:
+    def _less_than(self, other: VaultListItem[T]) -> bool:
         return True
 
     def should_be_hidden(self) -> bool:
@@ -41,26 +43,26 @@ class VaultListItem[T: Map | Mod](QListWidgetItem):
     def __lt__(self, other: QListWidgetItem) -> bool:
         if not isinstance(other, VaultListItem):
             return QListWidgetItem.__lt__(self, other)
-        return self._less_than(other)
+        return self._less_than(cast(VaultListItem[T], other))
 
-    def _lt_date(self, other: VaultListItem) -> bool:
+    def _lt_date(self, other: VaultListItem[T]) -> bool:
         if self.item_version.create_time == other.item_version.create_time:
             if self.item_version.update_time == other.item_version.update_time:
                 return self._lt_alphabetical(other)
             return self.item_version.update_time < other.item_version.update_time
         return self.item_version.create_time < other.item_version.create_time
 
-    def _lt_alphabetical(self, other: VaultListItem) -> bool:
+    def _lt_alphabetical(self, other: VaultListItem[T]) -> bool:
         return self.item_data.display_name.lower() > other.item_data.display_name.lower()
 
-    def _lt_rating(self, other: VaultListItem) -> bool:
+    def _lt_rating(self, other: VaultListItem[T]) -> bool:
         review = self.item_data.reviews_summary
         other_review = other.item_data.reviews_summary
 
         if review is None:
             return other_review is not None
         if other_review is None:
-            return review is None
+            return False
 
         if review.average_score == other_review.average_score:
             if review.num_reviews == other_review.num_reviews:

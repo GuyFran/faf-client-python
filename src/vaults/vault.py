@@ -90,7 +90,7 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
         self.flowComboBox.addItems([flow.name for flow in self.itemList.Flow])
         self.flowComboBox.currentIndexChanged.connect(self.on_flow_type_changed)
 
-        self._items: dict[str, VaultListItem] = {}
+        self._items: dict[str, VaultListItem[T]] = {}
 
         self.UIButton.hide()
         self.uploadButton.hide()
@@ -177,7 +177,7 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
         self.apiConnector.request_data(self.searchQuery)
         self.update_visibilities()
 
-    def on_item_double_clicked(self, item: VaultListItem) -> None:
+    def on_item_double_clicked(self, item: VaultListItem[T]) -> None:
         dialog = QDialog(self)
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -198,7 +198,7 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
         widget.disconnect()
         dialog.deleteLater()
 
-    def on_item_selected(self, current: VaultListItem, previous: VaultListItem) -> None:
+    def on_item_selected(self, current: VaultListItem[T], previous: VaultListItem[T]) -> None:
         if not current or self.splitter.sizes()[1] == 0:
             return
         details_widget = self.create_details_widget(current.item_data)
@@ -207,7 +207,7 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
         details_widget.ask_file_size()
         self.show_details_widget(details_widget)
 
-    def show_details_widget(self, widget: DetailsWidget) -> None:
+    def show_details_widget(self, widget: DetailsWidget[T]) -> None:
         while self.detailStack.count() > 1:
             w = self.detailStack.widget(1)
             self.detailStack.removeWidget(w)
@@ -220,10 +220,10 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
     def create_item_widget(self, data: T) -> VaultListWidget:
         return VaultListWidget(data, util.CACHE_DIR)
 
-    def create_list_item(self, data: T) -> VaultListItem:
+    def create_list_item(self, data: T) -> VaultListItem[T]:
         return VaultListItem(self.itemList, data)
 
-    def create_details_widget(self, data: T) -> DetailsWidget:
+    def create_details_widget(self, data: T) -> DetailsWidget[T]:
         assert self.client.me.player is not None
         return DetailsWidget(data, util.CACHE_DIR, self.client.me.player)
 
