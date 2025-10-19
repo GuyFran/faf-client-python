@@ -1849,9 +1849,11 @@ class ClientWindow(FormClass, BaseClass):
             subFactions,
         )
         try:
-            self.games.matchmakerQueues.widget(0).subFactions = subFactions
-            self.games.matchmakerQueues.widget(0).setFactionIcons(subFactions)
-            self.games.matchmakerQueues.widget(0).startSearchRanked()
+            ladder_queue = self.games.matchmakerQueues.widget(0)
+            ladder_queue.subFactions = subFactions
+            ladder_queue.setFactionIcons(subFactions)
+            if not ladder_queue.searching:
+                ladder_queue.startSearchRanked()
         except Exception:
             QtWidgets.QMessageBox.information(
                 self, "Starting search failed",
@@ -2029,29 +2031,28 @@ class ClientWindow(FormClass, BaseClass):
         if not self.me.player:
             return
         self.matchmaker_info.emit(message)
-        if "queues" in message:
-            show = None
-            for q in message['queues']:
-                if q['queue_name'] == 'ladder1v1':
-                    show = False
-                    mu = self.me.player.ladder_rating_mean
-                    if self.me.player.ladder_rating_deviation < 100:
-                        key = 'boundary_80s'
-                    else:
-                        key = 'boundary_75s'
-                    for min, max in q[key]:
-                        if min < mu < max:
-                            show = True
-            if (
-                self.me.player.ladder_rating_deviation > 200
-                or self.games.searching.get("ladder1v1", False)
-            ):
-                return
-            if show is not None:
-                if show and not self.labelAutomatchInfo.isVisible():
-                    self.warningShow()
+        if "queues" not in message or self.me.player.ladder_rating_deviation > 200:
+            return
+        players_in_range = 0
+
+        for q in message["queues"]:
+            if q["queue_name"] == "ladder1v1":
+                mu = self.me.player.ladder_rating_mean
+                if self.me.player.ladder_rating_deviation < 100:
+                    key = "boundary_80s"
                 else:
-                    self.warningHide()
+                    key = "boundary_75s"
+                for min, max in q[key]:
+                    players_in_range += min < mu < max
+                break
+        else:
+            return
+
+        players_in_range -= self.games.searching.get("ladder1v1", 0)
+        if players_in_range > 0 and not self.labelAutomatchInfo.isVisible():
+            self.warningShow()
+        else:
+            self.warningHide()
 
     def handle_social(self, message: SocialCommand) -> None:
         if "channels" in message:
