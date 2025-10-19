@@ -376,6 +376,10 @@ class EventsTab(QWidget):
             while (line_item := player_line_layout.takeAt(0)) is not None:
                 if (widget := line_item.widget()) is not None:
                     widget.deleteLater()
+        for button in self.players_filter_group.buttons():
+            if button is self.ui.selectAllPlayersCheckBox:
+                continue
+            self.players_filter_group.removeButton(button)
 
     def add_events(self) -> None:
         sorted_last_coms = sorted(self.last_activity.items(), key=itemgetter(1))
