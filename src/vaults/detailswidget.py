@@ -285,6 +285,7 @@ class DetailsWidget[T: Map | Mod](QWidget):
     def init_ui(self) -> None:
         self.configure_download_buttons()
 
+        self.ui.viewFolderButton.setEnabled(self.is_installed())
         self.ui.viewFolderButton.clicked.connect(self.view_folder)
         self.ui.tabs.currentChanged.connect(self.on_tab_changed)
 

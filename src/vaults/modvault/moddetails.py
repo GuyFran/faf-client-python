@@ -1,5 +1,3 @@
-import os
-
 from PyQt6.QtWidgets import QLabel
 from PyQt6.QtWidgets import QWidget
 
@@ -80,5 +78,7 @@ class ModDetailsWidget(DetailsWidget[Mod]):
         utils.remove_mod_by_uid(self.item_version.uid)
 
     def view_folder(self) -> None:
-        full_path = os.path.join(utils.MODFOLDER, self.item_data.display_name)
-        util.showDirInFileBrowser(full_path)
+        for mod in utils.installedMods:
+            if mod.uid == self.item_version.uid:
+                util.showDirInFileBrowser(mod.absfolder)
+                return
