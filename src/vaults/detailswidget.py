@@ -8,7 +8,9 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtCore import QUrl
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QPixmap
+from PyQt6.QtNetwork import QNetworkAccessManager
 from PyQt6.QtNetwork import QNetworkReply
+from PyQt6.QtNetwork import QNetworkRequest
 from PyQt6.QtWidgets import QLabel
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtWidgets import QTableWidgetItem
@@ -75,6 +77,10 @@ class DetailsWidget[T: Map | Mod](QWidget):
         self.my_comment.delete_request.connect(self.delete_review)
         self.my_comment.edit_request.connect(self.add_review)
 
+        self._nam = QNetworkAccessManager()
+        self._nam.finished.connect(self.on_file_size)
+        self._size_request = QNetworkRequest()
+
         self.ui = DetailsWidgetUI()
         self.ui.setupUi(self)
         self.init_ui()
@@ -87,6 +93,19 @@ class DetailsWidget[T: Map | Mod](QWidget):
 
     def allow_review(self, response: ApiResponse) -> None:
         pass
+
+    def ask_file_size(self) -> None:
+        self._size_request.setUrl(QUrl(self.item_version.download_url))
+        self._nam.head(self._size_request)
+
+    def on_file_size(self, reply: QNetworkReply) -> None:
+        file_size_bytes = reply.header(self._size_request.KnownHeaders.ContentLengthHeader)
+        if file_size_bytes is None:
+            return
+        if (file_size_bytes // 1024 ** 2) > 0:
+            self.ui.fileSizeLabel.setText(f"File Size: {file_size_bytes / 1024 ** 2:.2f} MiB")
+        else:
+            self.ui.fileSizeLabel.setText(f"File Size: {file_size_bytes / 1024:.2f} KiB")
 
     def is_installed(self) -> bool:
         return False

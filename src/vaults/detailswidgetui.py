@@ -50,8 +50,13 @@ class DetailsWidgetUI:
 
         self.statsLayout = QVBoxLayout()
         self.additionalInfoLabel = QLabel()
+        self.additionalInfoLabel.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse,
+        )
+        self.fileSizeLabel = QLabel("File Size:")
 
         self.statsLayout.addWidget(self.additionalInfoLabel)
+        self.statsLayout.addWidget(self.fileSizeLabel)
         self.statsLayout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         self.headerLayout.addLayout(self.titleLayout, 7)

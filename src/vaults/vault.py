@@ -184,6 +184,7 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
         widget = self.create_details_widget(item.item_data)
         widget.item_availability_changed.connect(self.on_item_availability_changed)
         widget.ask_review()
+        widget.ask_file_size()
         layout.addWidget(widget)
         dialog.setLayout(layout)
         dialog.setWindowTitle(f"Details - {item.item_data.display_name}")
@@ -203,6 +204,7 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
         details_widget = self.create_details_widget(current.item_data)
         details_widget.item_availability_changed.connect(self.on_item_availability_changed)
         details_widget.ask_review()
+        details_widget.ask_file_size()
         self.show_details_widget(details_widget)
 
     def show_details_widget(self, widget: DetailsWidget) -> None:
