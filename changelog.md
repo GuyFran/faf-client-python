@@ -1,6 +1,33 @@
 0.x.x
 =====
 
+0.25.0
+* Features
+  - Add matchmaker veto support
+  - Allow watching replay alongside normal game
+  - Mark watched replays
+  - Add Game panel widget
+  - Replaycard:
+    + Add Events tab
+    + Add search and basic recipient filters to chat tab
+  - Allow to set custom maps/mods folder
+
+* Improvements
+  - Compress local replays with zstd
+  - Connect to replay server with websocket
+  - Create settings dialogs for cache and game settings
+  - Show file size in map/mod details
+  - Write game version and client version to `fa_path.lua`
+  - Add visual indication of modded games in game list
+
+* Updates
+  - Migrate to Hydra2 Oauth2 client id
+  - Update Zig to 0.15.2 and PyQt to 6.10.0
+
+* Fixes
+  - Fix matchmaker keyboard shortcuts
+  - Fix ignoring cache settings
+
 0.24.6
 * Force connecting with IPv4 protocol when IPv6 is available, because IPv6 does not work
 * Add ICE Adapter option to always force relay
