@@ -1,8 +1,9 @@
 import json
 import logging
 import os
+from io import BufferedReader
 
-import zstandard
+from compression import zstd
 from PyQt6 import QtCore
 from PyQt6 import QtWidgets
 
@@ -20,15 +21,11 @@ logger = logging.getLogger(__name__)
 __author__ = 'Thygrrr'
 
 
-def decompressReplayData(fileobj, compressionType):
-    if compressionType == "zstd":
-        decompressor = zstandard.ZstdDecompressor()
-        with decompressor.stream_reader(fileobj) as reader:
-            data = QtCore.QByteArray(reader.read())
+def decompress_replay(reader: BufferedReader, compression: str) -> QtCore.QByteArray:
+    if compression == "zstd":
+        return QtCore.QByteArray(zstd.decompress(reader.read()))
     else:
-        b_data = fileobj.read()
-        data = QtCore.qUncompress(QtCore.QByteArray().fromBase64(b_data))
-    return data
+        return QtCore.qUncompress(QtCore.QByteArray().fromBase64(reader.read()))
 
 
 def replay(source, detach=False):
@@ -52,7 +49,6 @@ def replay(source, detach=False):
     featured_mod_versions = None
     arg_string = None
     replay_id = None
-    compression_type = None
     sim_mods = None
     # Convert strings to URLs
     if isinstance(source, str):
@@ -60,9 +56,9 @@ def replay(source, detach=False):
             if source.endswith(".fafreplay"):
                 with open(source, "rb") as replay:
                     info = json.loads(replay.readline())
-                    compression_type = info.get("compression")
+                    compression_type = info.get("compression", "")
                     try:
-                        binary = decompressReplayData(replay, compression_type)
+                        binary = decompress_replay(replay, compression_type)
                     except Exception as e:
                         logger.error("Could not decompress replay: %s", e)
                         binary = QtCore.QByteArray()

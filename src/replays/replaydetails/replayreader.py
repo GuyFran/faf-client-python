@@ -35,7 +35,7 @@ from typing import Any
 from typing import NamedTuple
 from typing import cast
 
-import zstandard
+from compression import zstd
 from PyQt6.QtCore import QByteArray
 from PyQt6.QtCore import QDataStream
 from PyQt6.QtCore import QObject
@@ -69,9 +69,7 @@ except ImportError:
 
 def uncompress(compressed: bytes, compression: str = "base64") -> QByteArray:
     if compression == "zstd":
-        decompressor = zstandard.ZstdDecompressor()
-        with decompressor.stream_reader(compressed) as reader:
-            return QByteArray(reader.read())
+        return QByteArray(zstd.decompress(compressed))
     return qUncompress(QByteArray.fromBase64(compressed))
 
 

@@ -10,7 +10,7 @@ env:
   UID_VERSION: v4.0.6
   ICE_ADAPTER_VERSION: 3.3.12
   BUILD_VERSION: ${{ github.event.inputs.version }}
-  PYTHON_VERSION: 3.13
+  PYTHON_VERSION: 3.14
   ZIG_VERSION: 0.15.2
 
 jobs:

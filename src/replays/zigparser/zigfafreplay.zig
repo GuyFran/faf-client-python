@@ -122,7 +122,9 @@ var Methods = [_]py.PyMethodDef{
 var module = py.PyModuleDef{
     .m_base = py.PyModuleDef_Base{
         .ob_base = py.PyObject{
-            .unnamed_0 = .{ .ob_refcnt = 1 },
+            .unnamed_0 = .{
+                .unnamed_0 = .{ .ob_refcnt = 1 },
+            },
             .ob_type = null,
         },
         .m_init = null,
