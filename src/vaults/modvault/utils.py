@@ -438,6 +438,10 @@ def downloadMod(link: str, name: str) -> bool:
         return True
 
     if downloadVaultAsset(link, MODFOLDER, handle_exist, name, "mod", silent=False):
+        for modfolder, mod_info in reversed(modCache.items()):
+            if mod_info.name == name:
+                del modCache[modfolder]
+                break
         getInstalledMods()  # update modCache and installedMods list
         return True
     return False
