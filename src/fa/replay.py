@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-from io import BufferedReader
 
 from compression import zstd
 from PyQt6 import QtCore
@@ -21,11 +20,11 @@ logger = logging.getLogger(__name__)
 __author__ = 'Thygrrr'
 
 
-def decompress_replay(reader: BufferedReader, compression: str) -> QtCore.QByteArray:
+def uncompress(compressed: bytes, compression: str = "base64") -> QtCore.QByteArray:
     if compression == "zstd":
-        return QtCore.QByteArray(zstd.decompress(reader.read()))
+        return QtCore.QByteArray(zstd.decompress(compressed))
     else:
-        return QtCore.qUncompress(QtCore.QByteArray().fromBase64(reader.read()))
+        return QtCore.qUncompress(QtCore.QByteArray.fromBase64(compressed))
 
 
 def replay(source, detach=False):
@@ -58,7 +57,7 @@ def replay(source, detach=False):
                     info = json.loads(replay.readline())
                     compression_type = info.get("compression", "")
                     try:
-                        binary = decompress_replay(replay, compression_type)
+                        binary = uncompress(replay.read(), compression_type)
                     except Exception as e:
                         logger.error("Could not decompress replay: %s", e)
                         binary = QtCore.QByteArray()

@@ -35,16 +35,15 @@ from typing import Any
 from typing import NamedTuple
 from typing import cast
 
-from compression import zstd
 from PyQt6.QtCore import QByteArray
 from PyQt6.QtCore import QDataStream
 from PyQt6.QtCore import QObject
 from PyQt6.QtCore import QSize
 from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtCore import qUncompress
 from PyQt6.QtNetwork import QNetworkReply
 
 from src.fa.factions import Factions
+from src.fa.replay import uncompress
 from src.mapGenerator.mapgenUtils import isGeneratedMap
 from src.replays.replaydetails.chatnotifiers import ACU_UPGRADE_NOTIFIERS
 from src.replays.replaydetails.helpers import seconds_to_human
@@ -65,12 +64,6 @@ try:
 except ImportError:
     logger.warning("Zig replay parser not found")
     parse_replaydata = None
-
-
-def uncompress(compressed: bytes, compression: str = "base64") -> QByteArray:
-    if compression == "zstd":
-        return QByteArray(zstd.decompress(compressed))
-    return qUncompress(QByteArray.fromBase64(compressed))
 
 
 def qdata_stream(body: bytes) -> QDataStream:
