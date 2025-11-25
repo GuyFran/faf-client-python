@@ -180,7 +180,7 @@ def downloadVaultAssetNoMsg(
             return False, msg
 
     os.makedirs(target_dir, exist_ok=True)
-    dler = ZipDownloadExtract(target_dir, _global_nam, url, request_params)
+    dler = ZipDownloadExtract(target_dir, _global_nam, url, request_params, exist_ok=True)
     result = _download_asset(dler, capit_cat, silent, label or name)
 
     if result in [
