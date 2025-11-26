@@ -237,6 +237,7 @@ def getModInfoFromFolder(modfolder: str) -> ModInfo | None:  # modfolder must be
 
 
 ACTIVE_MODS_SECTION_PATTERN: Final = re.compile(r"active_mods\s*=\s*{.*?}", re.S)
+MOD_STATE_PATTERN: Final = re.compile(r"\['(.*?)']\s*=\s*(true|false)")
 
 
 # returns a list of ModInfo's containing information of the mods
@@ -257,8 +258,7 @@ def getActiveMods(uimods: bool | None = None, temporary: bool = True) -> list[Mo
             with open(PREFSFILENAME) as f:
                 data = f.read()
             if matched := ACTIVE_MODS_SECTION_PATTERN.search(data):
-                pat = r"\['(.*?)']\s*=\s*(true|false)"
-                uids = [uid for uid, b in re.findall(pat, matched[0]) if b == "true"]
+                uids = [uid for uid, b in MOD_STATE_PATTERN.findall(matched[0]) if b == "true"]
             else:
                 logger.warning("No 'active_mods' section found in game.prefs file")
                 return []
