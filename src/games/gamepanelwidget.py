@@ -218,6 +218,16 @@ class GamePanelWidget(QWidget):
         self.ui.summaryGroup.show()
         self.on_game_updated(game, game)
 
+    def on_game_closed(self) -> None:
+        self.ui.joinGameButton.setText("Game Closed")
+        self.ui.joinGameButton.setEnabled(False)
+        if self.game is not None and self.game_slot_conn is not None:
+            self.game.disconnect(self.game_slot_conn)
+        self.game = None
+        self.game_slot_conn = None
+        self.update_sim_mods()
+        self.update_teams()
+
     def set_map_icon(self) -> None:
         if self.game is None:
             return
@@ -235,7 +245,8 @@ class GamePanelWidget(QWidget):
 
     def on_game_updated(self, new: Game, old: Game) -> None:
         if new.state is GameState.CLOSED:
-            self.ui.joinGameButton.setText("Game Closed")
+            self.on_game_closed()
+            return
         elif new.state is GameState.PLAYING:
             self.ui.joinGameButton.setText("Game has Started")
         else:
@@ -272,10 +283,11 @@ class GamePanelWidget(QWidget):
         self.ui.simModsList.addItems(sorted(self.game.sim_mods.values()))
 
     def update_teams(self) -> None:
-        if self.game is None:
-            return
         for team_widget in self.ui.teams:
             team_widget.hide()
+
+        if self.game is None:
+            return
 
         for team, logins in self.game.playing_teams.items():
             team_widget = self.ui.teams[int(team) - 1]
