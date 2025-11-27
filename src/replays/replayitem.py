@@ -4,13 +4,17 @@ import re
 import time
 from datetime import datetime
 from datetime import timezone
+from functools import cache
 from typing import TYPE_CHECKING
+from typing import Any
 from typing import cast
 
 from PyQt6 import QtCore
 from PyQt6 import QtGui
 from PyQt6 import QtWidgets
 from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFontMetrics
 
 from src import util
 from src.api.models.Game import Game
@@ -123,7 +127,24 @@ class ReplayItemDelegate(QtWidgets.QStyledItemDelegate):
             return QtCore.QSize(215, 35)
 
 
+@cache
+def title_font_metrics() -> QFontMetrics:
+    title_font = QFont()
+    title_font.setPointSize(title_font.pointSize() + 1)
+    title_font.setBold(True)
+    return QFontMetrics(title_font)
+
+
+@cache
+def map_font_metrics() -> QFontMetrics:
+    map_font = QFont()
+    map_font.setPointSize(map_font.pointSize() - 1)
+    map_font.setBold(True)
+    return QFontMetrics(map_font)
+
+
 class ReplayItem(QtWidgets.QTreeWidgetItem):
+    TITLE_COLUMN_WIDTH = 250
     REPLAY_TREE_ITEM_FORMATTER = str(util.THEME.readfile("replays/formatters/replay.html"))
 
     def __init__(self, uid: int, parent: ReplaysWidget) -> None:
@@ -167,7 +188,7 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
         self.replay = replay
 
         self.client = client
-        self.name = replay["name"]
+        self.name = cast(str, replay["name"])
 
         if "id" in replay["mapVersion"]:
             self.mapid = replay["mapVersion"]["id"]
@@ -239,9 +260,20 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
             self.moddisplayname = self.mod
 
         availability = "" if self.game.replay_available else "ⓘ Unavailable"
+        elided_name = title_font_metrics().elidedText(
+            self.name,
+            QtCore.Qt.TextElideMode.ElideRight,
+            self.TITLE_COLUMN_WIDTH - 30,
+        )
+        elided_map = map_font_metrics().elidedText(
+            self.mapdisplayname,
+            QtCore.Qt.TextElideMode.ElideRight,
+            self.TITLE_COLUMN_WIDTH - 50,
+        )
         self.viewtext = self.REPLAY_TREE_ITEM_FORMATTER.format(
-            time=self.startHour, name=self.name, map=self.mapdisplayname,
+            time=self.startHour, name=elided_name, map=elided_map,
             duration=self.duration, mod=self.moddisplayname, availability=availability,
+            title_column_width=self.TITLE_COLUMN_WIDTH,
         )
 
     def _on_map_preview_downloaded(self, mapname: str, pixmap: QtGui.QPixmap) -> None:
@@ -336,17 +368,19 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
     def downloadReplay(self):
         QtGui.QDesktopServices.openUrl(QtCore.QUrl(self.url))
 
-    def display(self, column):
+    def display(self, column: int) -> str | None:
         if column == 0:
             return self.viewtext
         if column == 1:
             return self.viewtext
 
-    def data(self, column, role):
+    def data(self, column: int, role: int) -> Any:
         if role == QtCore.Qt.ItemDataRole.DisplayRole:
             return self.display(column)
         elif role == QtCore.Qt.ItemDataRole.UserRole:
             return self
+        elif role == QtCore.Qt.ItemDataRole.ToolTipRole:
+            return self.name
         return super().data(column, role)
 
     def __lt__(self, other):
