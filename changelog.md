@@ -1,6 +1,11 @@
 0.x.x
 =====
 
+0.25.1
+* Require 3.14+
+* Update pyqtgraph to 0.14.0
+* Fix passing `/subdivision` when it is empty
+
 0.25.0
 * Features
   - Add matchmaker veto support
