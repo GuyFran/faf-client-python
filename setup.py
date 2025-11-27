@@ -51,7 +51,7 @@ bdist_msi_options = {
 
 if sys.platform == "win32":
     include_mvcr = True
-    exe_base = "Win32Gui"
+    exe_base = "gui"
     exe_name = "FAForever.exe"
 else:
     include_mvcr = False

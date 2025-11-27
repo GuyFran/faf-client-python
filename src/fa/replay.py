@@ -2,9 +2,13 @@ import json
 import logging
 import os
 
-import zstandard
-from PyQt6 import QtCore
-from PyQt6 import QtWidgets
+from compression import zstd
+from PyQt6.QtCore import QByteArray
+from PyQt6.QtCore import QIODevice
+from PyQt6.QtCore import QUrl
+from PyQt6.QtCore import QUrlQuery
+from PyQt6.QtCore import qUncompress
+from PyQt6.QtWidgets import QMessageBox
 
 from src import fa
 from src import util
@@ -20,15 +24,11 @@ logger = logging.getLogger(__name__)
 __author__ = 'Thygrrr'
 
 
-def decompressReplayData(fileobj, compressionType):
-    if compressionType == "zstd":
-        decompressor = zstandard.ZstdDecompressor()
-        with decompressor.stream_reader(fileobj) as reader:
-            data = QtCore.QByteArray(reader.read())
+def uncompress(compressed: bytes, compression: str = "base64") -> QByteArray:
+    if compression == "zstd":
+        return QByteArray(zstd.decompress(compressed))
     else:
-        b_data = fileobj.read()
-        data = QtCore.qUncompress(QtCore.QByteArray().fromBase64(b_data))
-    return data
+        return qUncompress(QByteArray.fromBase64(compressed))
 
 
 def replay(source, detach=False):
@@ -52,7 +52,6 @@ def replay(source, detach=False):
     featured_mod_versions = None
     arg_string = None
     replay_id = None
-    compression_type = None
     sim_mods = None
     # Convert strings to URLs
     if isinstance(source, str):
@@ -60,12 +59,12 @@ def replay(source, detach=False):
             if source.endswith(".fafreplay"):
                 with open(source, "rb") as replay:
                     info = json.loads(replay.readline())
-                    compression_type = info.get("compression")
+                    compression_type = info.get("compression", "")
                     try:
-                        binary = decompressReplayData(replay, compression_type)
+                        binary = uncompress(replay.read(), compression_type)
                     except Exception as e:
                         logger.error("Could not decompress replay: %s", e)
-                        binary = QtCore.QByteArray()
+                        binary = QByteArray()
                     logger.info(
                         "Extracted %d bytes of binary data from "
                         ".fafreplay.", binary.size(),
@@ -73,7 +72,7 @@ def replay(source, detach=False):
 
                     if binary.size() == 0:
                         logger.info("Invalid replay")
-                        QtWidgets.QMessageBox.critical(
+                        QMessageBox.critical(
                             None,
                             "FA Forever Replay",
                             "Sorry, this replay is corrupted.",
@@ -81,10 +80,7 @@ def replay(source, detach=False):
                         return False
 
                 replay_path = os.path.join(util.CACHE_DIR, "temp.scfareplay")
-                open_mode = (
-                    QtCore.QIODevice.OpenModeFlag.WriteOnly
-                    | QtCore.QIODevice.OpenModeFlag.Truncate
-                )
+                open_mode = QIODevice.OpenModeFlag.WriteOnly | QIODevice.OpenModeFlag.Truncate
                 with qopen(replay_path, open_mode) as scfa_replay:
                     scfa_replay.write(binary)
 
@@ -122,7 +118,7 @@ def replay(source, detach=False):
                 mapname = replay_metadata["mapname"]
                 sim_mods = {mod["uid"]: mod["name"] for mod in replay_metadata["sim_mods"].values()}
             else:
-                QtWidgets.QMessageBox.critical(
+                QMessageBox.critical(
                     None,
                     "FA Forever Replay",
                     (
@@ -139,7 +135,7 @@ def replay(source, detach=False):
         else:
             # Try to interpret the string as an actual url, it may come
             # from the command line
-            source = QtCore.QUrl(source)
+            source = QUrl(source)
 
     if isinstance(source, GameUrl):
         url = source.to_url()
@@ -152,10 +148,10 @@ def replay(source, detach=False):
             # whip the URL into shape so ForgedAllianceForever.exe
             # understands it
             url.setScheme("gpgnet")
-            url.setQuery(QtCore.QUrlQuery(""))
+            url.setQuery(QUrlQuery(""))
             arg_string = url.toString()
         else:
-            QtWidgets.QMessageBox.critical(
+            QMessageBox.critical(
                 None,
                 "FA Forever Replay",
                 (
@@ -168,7 +164,7 @@ def replay(source, detach=False):
     # We couldn't construct a decent argument format to tell
     # ForgedAlliance for this replay
     if not arg_string:
-        QtWidgets.QMessageBox.critical(
+        QMessageBox.critical(
             None,
             "FA Forever Replay",
             (

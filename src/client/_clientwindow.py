@@ -1944,7 +1944,8 @@ class ClientWindow(FormClass, BaseClass):
             if league is not None:
                 division, subdivision = league
                 arguments.extend(("/division", division))
-                arguments.extend(("/subdivision", subdivision))
+                if subdivision:
+                    arguments.extend(("/subdivision", subdivision))
 
             # Launch the auto lobby
             lobby_mode = LobbyInitMode.AUTO

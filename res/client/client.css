@@ -809,18 +809,10 @@ QLabel#gameFiltersManagerDescription
 
 QGroupBox
 {
-    margin: 5px;
     border: 1px solid #353535;
-    border-radius: 5px;
     background-color: rgb(32, 32, 37);
     color: silver;
-    padding: 5px;
     padding-top: 15px;
-}
-
-QGroupBox#gamePanelGameSummary,#vaultSettingsGroupBox
-{
-    margin: 0px;
 }
 
 QLabel

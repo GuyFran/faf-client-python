@@ -54,11 +54,12 @@ class ModInfo:
         self.author = "Uknown author"
         self.version = 0
         self.folder = ""
+        self.localfolder = ""
         self.description = ""
         self.ui_only = False
         self.__dict__.update(kwargs)
 
-    def setFolder(self, localfolder):
+    def setFolder(self, localfolder: str) -> None:
         self.localfolder = localfolder
         self.absfolder = os.path.join(MODFOLDER, localfolder)
         self.mod_info = os.path.join(self.absfolder, "mod_info.lua")
@@ -73,38 +74,28 @@ class ModInfo:
         else:
             raise TypeError("version is not an int or float")
 
-    def to_dict(self):
-        out = {}
-        for k, v in list(self.__dict__.items()):
-            if isinstance(v, (str, int, float)) and not k[0] == '_':
-                out[k] = v
-        return out
-
     def __str__(self):
         return f'{self.totalname} in "{self.localfolder}"'
 
 
-def getAllModFolders():  # returns a list of names of installed mods
-    mods = []
-    if os.path.isdir(MODFOLDER):
-        mods = os.listdir(MODFOLDER)
-    return mods
+def getAllModFolders() -> list[str]:  # returns a list of names of installed mods
+    try:
+        return os.listdir(MODFOLDER)
+    except FileNotFoundError:
+        return []
 
 
 def getInstalledMods() -> list[ModInfo]:
     installedMods[:] = []
     for f in getAllModFolders():
         m = None
-        if os.path.isdir(os.path.join(MODFOLDER, f)):
-            try:
+        try:
+            if os.path.isdir(os.path.join(MODFOLDER, f)):
                 m = getModInfoFromFolder(f)
-            except Exception:
-                continue
-        else:
-            try:
+            else:
                 m = getModInfoFromZip(f)
-            except Exception:
-                continue
+        except Exception:
+            continue
         if m:
             installedMods.append(m)
     return installedMods
@@ -190,7 +181,7 @@ def parseModInfo(folder):
     return getModInfo(modinfofile)
 
 
-def getModInfoFromZip(zfile):
+def getModInfoFromZip(zfile: str) -> ModInfo | None:
     """get the mod info from a zip file"""
     if zfile in modCache:
         return modCache[zfile]
@@ -246,6 +237,7 @@ def getModInfoFromFolder(modfolder: str) -> ModInfo | None:  # modfolder must be
 
 
 ACTIVE_MODS_SECTION_PATTERN: Final = re.compile(r"active_mods\s*=\s*{.*?}", re.S)
+MOD_STATE_PATTERN: Final = re.compile(r"\['(.*?)']\s*=\s*(true|false)")
 
 
 # returns a list of ModInfo's containing information of the mods
@@ -266,8 +258,7 @@ def getActiveMods(uimods: bool | None = None, temporary: bool = True) -> list[Mo
             with open(PREFSFILENAME) as f:
                 data = f.read()
             if matched := ACTIVE_MODS_SECTION_PATTERN.search(data):
-                pat = r"\['(.*?)']\s*=\s*(true|false)"
-                uids = [uid for uid, b in re.findall(pat, matched[0]) if b == "true"]
+                uids = [uid for uid, b in MOD_STATE_PATTERN.findall(matched[0]) if b == "true"]
             else:
                 logger.warning("No 'active_mods' section found in game.prefs file")
                 return []
@@ -345,46 +336,6 @@ def setActiveMods(mods, keepuimods=True, temporary=True):
     return True
 
 
-def updateModInfo(mod, info):  # should probably not be used.
-    """
-    Updates a mod_info.lua file with new data.
-    Because those files can be random lua this function can fail if the file is
-    complicated enough. If every value however is on a seperate line, this
-    should work.
-    """
-    logger.warning("updateModInfo called. Probably not a good idea")
-    fname = mod.mod_info
-    try:
-        with open(fname) as f:
-            data = f.read()
-    except Exception:
-        logger.exception("Something went wrong reading %s", fname)
-        return False
-
-    for k, v in list(info.items()):
-        if type(v) in (bool, int):
-            val = str(v).lower()
-        if type(v) in (str, str):
-            val = '"' + v.replace('"', '\\"') + '"'
-        if re.search(r'^\s*' + k, data, re.M):
-            data = re.sub(
-                r'^\s*' + k + r'\s*=.*$', f"{k} = {val}",
-                data, 1, re.M,
-            )
-        else:
-            if data[-1] != '\n':
-                data += '\n'
-            data += f"{k} = {val}"
-    try:
-        with open(fname, 'w') as f:
-            f.write(data)
-    except Exception:
-        logger.exception("Something went wrong writing to %s", fname)
-        return False
-
-    return True
-
-
 def generateThumbnail(sourcename, destname):
     """
     Given a dds file, generates a png file (or whatever the extension
@@ -438,6 +389,10 @@ def downloadMod(link: str, name: str) -> bool:
         return True
 
     if downloadVaultAsset(link, MODFOLDER, handle_exist, name, "mod", silent=False):
+        for modfolder, mod_info in reversed(modCache.items()):
+            if mod_info.name == name:
+                del modCache[modfolder]
+                break
         getInstalledMods()  # update modCache and installedMods list
         return True
     return False

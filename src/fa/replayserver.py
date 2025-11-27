@@ -8,7 +8,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 from typing import Literal
 
-import zstandard
+from compression import zstd
 from PyQt6 import QtCore
 from PyQt6 import QtNetwork
 from PyQt6 import QtWidgets
@@ -227,9 +227,7 @@ class ReplayRecorder(QtCore.QObject):
 
         with qopen(filename, QtCore.QFile.OpenModeFlag.WriteOnly) as replay:
             replay.write(json.dumps(self.replayInfo).encode() + b"\n")
-            compressor = zstandard.ZstdCompressor()
-            with compressor.stream_writer(replay) as writer:  # type: ignore[arg-type]
-                writer.write(self.replay_data.data())
+            replay.write(zstd.compress(self.replay_data.data()))
 
 
 class ReplayServer(QtNetwork.QTcpServer):
