@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import json
 import logging
 import os
@@ -269,9 +267,6 @@ class GamesWidget(FormClass, BaseClass):
         ):
             return
         self.stopSearch()
-
-        if not fa.check.game(self.client):
-            return
 
         if fa.check.check(
             game.featured_mod, mapname=game.mapname,

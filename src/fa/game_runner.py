@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 from typing import TYPE_CHECKING
 from typing import NamedTuple
@@ -70,6 +68,5 @@ class GameRunner:
         logger.debug("Joining game from URL: " + gurl.to_url().toString())
         if fa.instance.available():
             add_mods = gurl.mods or {}
-            if fa.check.game(self):
-                if fa.check.check(gurl.mod, gurl.map, sim_mods=add_mods):
-                    self._client_window.join_game(gurl.uid)
+            if fa.check.check(gurl.mod, gurl.map, sim_mods=add_mods):
+                self._client_window.join_game(gurl.uid)
