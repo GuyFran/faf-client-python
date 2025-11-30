@@ -1,6 +1,9 @@
 0.x.x
 =====
 
+0.25.2
+* Fix joining custom games
+
 0.25.1
 * Require 3.14+
 * Update pyqtgraph to 0.14.0
