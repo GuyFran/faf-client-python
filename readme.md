@@ -11,7 +11,7 @@ Pre-requisites are:
 
 - Python 3.14+
 - PyQt >= 6.7
-- Requirements as in the [requirements](requirements.txt) (Linux) or [win_requirements](win_requirements.txt) (Windows) file.
+- Requirements as in the [requirements](requirements.txt) file.
 
 
     pip install -r requirements.txt
