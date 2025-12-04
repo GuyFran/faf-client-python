@@ -92,6 +92,71 @@ fn parse_file(_: [*c]py.PyObject, args: [*c]py.PyObject) callconv(.c) [*c]py.PyO
     return converter.convert_full(replay_parser, preprocessed.metadata.value);
 }
 
+fn chart_rolling_window(_: [*c]py.PyObject, args: [*c]py.PyObject) callconv(.c) [*c]py.PyObject {
+    var chart_data: *py.PyObject = undefined;
+    var ticks: c_long = undefined;
+    if (py.PyArg_ParseTuple(args, "Ol", &chart_data, &ticks) == 0) {
+        return null;
+    }
+    const allocator = std.heap.c_allocator;
+
+    const items = py.PyDict_Items(chart_data);
+    const num_items: usize = @intCast(py.PyList_Size(items));
+    const u_ticks: usize = @intCast(ticks);
+
+    var cpm: u32 = 0;
+    var max_cpm: u32 = 0;
+
+    const ret = py.PyDict_New();
+    const rolling_dict = py.PyDict_New();
+    for (0..num_items) |i| {
+        const pair = py.PyList_GetItem(items, @as(isize, @intCast(i)));
+        const player_id = py.PyTuple_GetItem(pair, 0);
+        const ticklist = py.PyTuple_GetItem(pair, 1);
+        const ticklist_size: usize = @intCast(py.PyList_Size(ticklist));
+        var actions_at_tick = std.ArrayList(u32).initCapacity(allocator, u_ticks + 600) catch {
+            return py.Py_BuildValue("");
+        };
+        defer actions_at_tick.deinit(allocator);
+
+        for (0..u_ticks + 600) |_| {
+            actions_at_tick.append(allocator, 0) catch return py.Py_BuildValue("");
+        }
+
+        for (0..ticklist_size) |index| {
+            const action_tick = py.PyLong_AsSize_t(
+                py.PyList_GetItem(
+                    ticklist,
+                    @as(isize, @intCast(index)),
+                ),
+            );
+            actions_at_tick.items[action_tick] += 1;
+            if (action_tick < 600) cpm += 1;
+        }
+
+        const rolling_list = py.PyList_New(ticks);
+        _ = py.PyList_SetItem(rolling_list, 0, py.Py_BuildValue("i", cpm));
+        for (1..u_ticks) |index| {
+            cpm = cpm + actions_at_tick.items[index + 599] - actions_at_tick.items[index - 1];
+
+            if (cpm > max_cpm) max_cpm = cpm;
+
+            _ = py.PyList_SetItem(
+                rolling_list,
+                @as(isize, @intCast(index)),
+                py.Py_BuildValue("i", cpm),
+            );
+        }
+        _ = py.PyDict_SetItem(rolling_dict, player_id, rolling_list);
+        py.Py_DecRef(player_id);
+        py.Py_DecRef(rolling_list);
+    }
+    _ = py.PyDict_SetItemString(ret, "cpm_data", rolling_dict);
+    py.Py_DecRef(rolling_dict);
+    _ = py.PyDict_SetItemString(ret, "max_cpm", py.Py_BuildValue("i", max_cpm));
+    return ret;
+}
+
 var Methods = [_]py.PyMethodDef{
     py.PyMethodDef{
         .ml_name = "parse_file",
@@ -108,6 +173,12 @@ var Methods = [_]py.PyMethodDef{
     py.PyMethodDef{
         .ml_name = "parse_replaydata",
         .ml_meth = parse_replaydata,
+        .ml_flags = py.METH_VARARGS,
+        .ml_doc = null,
+    },
+    py.PyMethodDef{
+        .ml_name = "chart_rolling_window",
+        .ml_meth = chart_rolling_window,
         .ml_flags = py.METH_VARARGS,
         .ml_doc = null,
     },

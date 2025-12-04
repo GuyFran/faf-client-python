@@ -46,8 +46,8 @@ class ChartWidget(QtWidgets.QWidget):
         self.ticks = 0
         self.max_h_val = 0
 
-        self.data: list[list[int]] = [[]]
-        self.colors: list[str] = []
+        self.data: dict[int, list[int]] = {}
+        self.colors: dict[int, str] = {}
 
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(600, 200)
@@ -66,10 +66,16 @@ class ChartWidget(QtWidgets.QWidget):
 
     def reset(self) -> None:
         self.max_h_val = 0
-        self.data = [[]]
-        self.colors = []
+        self.data = {}
+        self.colors = {}
 
-    def graph(self, data: list[list[int]], max_h_val: int, colors: list[str], ticks: int) -> None:
+    def graph(
+        self,
+        data: dict[int, list[int]],
+        max_h_val: int,
+        colors: dict[int, str],
+        ticks: int,
+    ) -> None:
         self.max_h_val = max_h_val
         self.data = data
         self.colors = colors
@@ -82,22 +88,21 @@ class ChartWidget(QtWidgets.QWidget):
             content_height = max_h - self.t_margin - self.b_margin
             content_width = max_w - self.l_margin - self.r_margin
 
-            num_of_sources = len(self.data)
-            num_of_data = len(self.data[0])
+            num_of_data = len(next(iter(self.data.values())))
             if num_of_data == 0:
                 return
 
             space_between_x_axis_text = 60
             space_between_y_axis_text = 30
 
-            small = [[] for _ in range(num_of_sources)]
+            small: dict[int, list[float]] = {i: [] for i in self.data}
             num_of_sample = max(1, num_of_data // content_width)
 
             self.selected_tick = self.mouse_pos * num_of_sample
 
             for i in range(content_width):
-                for j in range(num_of_sources):
-                    actions = sum(self.data[j][i*num_of_sample:(i+1)*num_of_sample]) / num_of_sample
+                for j, sample_data in self.data.items():
+                    actions = sum(sample_data[i*num_of_sample:(i+1)*num_of_sample]) / num_of_sample
                     small[j].append(actions)
 
             p = QtGui.QPainter()
@@ -113,7 +118,7 @@ class ChartWidget(QtWidgets.QWidget):
             else:
                 self.mouse_pos = 0
 
-            for i in range(num_of_sources):
+            for i in self.data:
                 path = QtGui.QPainterPath()
                 path.moveTo(self.l_margin, max_h - self.b_margin)
                 for j in range(content_width):
