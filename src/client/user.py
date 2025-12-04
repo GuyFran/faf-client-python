@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Iterable
 from collections.abc import Iterator
 from collections.abc import MutableSet
@@ -119,8 +117,11 @@ class User(QtCore.QObject):
 
     def league(self, rating_type: str) -> tuple[str, str] | None:
         score = self._leagues.get(rating_type)
-        if score is not None:
-            assert score.subdivision is not None and score.subdivision.division is not None
+        if (
+            score is not None
+            and score.subdivision is not None
+            and score.subdivision.division is not None
+        ):
             return score.subdivision.division.name, score.subdivision.name
 
 
