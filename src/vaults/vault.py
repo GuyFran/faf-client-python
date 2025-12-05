@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from enum import Enum
 from typing import TYPE_CHECKING
 
@@ -229,8 +227,8 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
         self.processMeta(message["meta"])
 
     def processMeta(self, message: dict) -> None:
-        self.totalPages = message['page']['totalPages']
-        self.totalRecords = message['page']['totalRecords']
+        self.totalPages = message['page']['totalPages'] or 1
+        self.totalRecords = message['page']['totalRecords'] or 1
         if self.totalPages < 1:
             self.totalPages = 1
         self.labelTotalPages.setText(str(self.totalPages))
