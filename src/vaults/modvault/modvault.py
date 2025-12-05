@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 import os
 from typing import TYPE_CHECKING
@@ -7,8 +5,10 @@ from typing import TYPE_CHECKING
 from PyQt6 import QtCore
 from PyQt6 import QtWidgets
 
+from src import util
 from src.api.models.Mod import Mod
 from src.api.vaults_api import ModApiConnector
+from src.downloadManager import ImageDownloader
 from src.vaults.modvault import utils
 from src.vaults.modvault.moddetails import ModDetailsWidget
 from src.vaults.modvault.modlistitem import ModDisplayType
@@ -31,6 +31,7 @@ class ModVault(Vault[Mod]):
     def __init__(self, client: ClientWindow) -> None:
         super().__init__(client)
         logger.debug("Mod Vault tab instantiating")
+        self.image_loader = ImageDownloader(util.MOD_PREVIEW_DIR)
         self.UIButton.clicked.connect(self.openUIModForm)
         self.uids = [mod.uid for mod in utils.getInstalledMods()]
 
@@ -50,7 +51,7 @@ class ModVault(Vault[Mod]):
         self.UIButton.show()
 
     def create_item_widget(self, data: Mod) -> ModListWidget:
-        return ModListWidget(data)
+        return ModListWidget(data, self.image_loader)
 
     def create_list_item(self, data: Mod) -> ModListItem:
         return ModListItem(self.itemList, data)

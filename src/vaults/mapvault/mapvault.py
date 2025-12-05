@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 import os
 from stat import S_IWRITE
@@ -8,8 +6,10 @@ from typing import TYPE_CHECKING
 from PyQt6 import QtCore
 from PyQt6 import QtWidgets
 
+from src import util
 from src.api.models.Map import Map
 from src.api.vaults_api import MapApiConnector
+from src.downloadManager import ImageDownloader
 from src.fa import maps
 from src.fa.maps_.map_utils import get_save_file
 from src.vaults import luaparser
@@ -30,6 +30,7 @@ class MapVault(Vault[Map]):
     def __init__(self, client: ClientWindow) -> None:
         logger.debug("Map Vault tab instantiating")
         super().__init__(client)
+        self.image_loader = ImageDownloader(util.MAP_PREVIEW_SMALL_DIR)
         self.installed_maps = maps.getUserMaps()
 
         for sort_type in MapSortType:
@@ -43,7 +44,7 @@ class MapVault(Vault[Map]):
         self.apiConnector = self.mapApiConnector
 
     def create_item_widget(self, data: Map) -> MapListWidget:
-        return MapListWidget(data)
+        return MapListWidget(data, self.image_loader)
 
     def create_list_item(self, data: Map) -> MapListItem:
         return MapListItem(self.itemList, data)

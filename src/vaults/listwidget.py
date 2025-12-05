@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from PyQt6.QtCore import Qt
 from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QPixmap
@@ -19,19 +17,19 @@ from src.vaults.starrating import StarRatingWidget
 STYLESHEET = util.THEME.readstylesheet("client/client.css")
 
 
-class VaultListWidget(QWidget):
+class VaultListWidget[T: Map | Mod](QWidget):
     def __init__(
-            self,
-            item_data: Map | Mod,
-            image_cache_dir: str,
-            parent: QWidget | None = None,
+        self,
+        item_data: T,
+        image_loader: ImageDownloader,
+        parent: QWidget | None = None,
     ) -> None:
-        QWidget.__init__(self, parent)
+        super().__init__(parent)
         self.item_data = item_data
         assert item_data.version is not None
         self.item_version = item_data.version
 
-        self.thumbnail_loader = ImageDownloader(image_cache_dir)
+        self.thumbnail_loader = image_loader
         self.thumbnail_dl_request = DownloadRequest()
         self.thumbnail_dl_request.done.connect(self.on_thumbnail_downloaded)
 
