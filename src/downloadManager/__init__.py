@@ -1,12 +1,9 @@
-from __future__ import annotations
-
 import logging
 import os
 import zipfile
 from io import BytesIO
 from typing import Any
 
-from PyQt6.QtCore import QByteArray
 from PyQt6.QtCore import QEventLoop
 from PyQt6.QtCore import QFile
 from PyQt6.QtCore import QIODevice
@@ -449,24 +446,27 @@ class ImageDownloader:
         if should_download:
             self._nam.get(QNetworkRequest(QUrl(url)))
 
+    def _pixmap_from_reply(self, reply: QNetworkReply) -> QPixmap:
+        pixmap = QPixmap()
+        pixmap.loadFromData(reply.readAll())
+        return pixmap
+
     def _image_download_finished(self, reply: QNetworkReply) -> None:
+        pixmap = self._pixmap_from_reply(reply)
         url_str = reply.url().toString()
-        avatar_name = self.image_name(reply.url())
-        avatar_path = self._save_image_to_cache(avatar_name, reply.readAll())
+        image_name = self.image_name(reply.url())
+        self._save_image_to_cache(image_name, pixmap)
 
         reqs = self._requests.pop(url_str, [])
         for req in reqs:
-            req.finished(url_str, QPixmap(avatar_path))
+            req.finished(url_str, pixmap)
 
-    def _save_image_to_cache(self, name: str, qbytes: QByteArray) -> str:
+    def _save_image_to_cache(self, name: str, pixmap: QPixmap) -> None:
         filepath = os.path.join(self.save_dir, name)
-        pixmap = QPixmap()
-        pixmap.loadFromData(qbytes)
         if self._size is not None:
             pixmap.scaled(self._size).save(filepath)
         else:
             pixmap.save(filepath)
-        return filepath
 
 
 class CachedImageDownloader(ImageDownloader):
@@ -491,11 +491,10 @@ class CachedImageDownloader(ImageDownloader):
             return
         self.download_image(url, req)
 
-    def _save_image_to_cache(self, name: str, qbytes: QByteArray) -> str:
-        filepath = ImageDownloader._save_image_to_cache(self, name, qbytes)
+    def _save_image_to_cache(self, name: str, pixmap: QPixmap) -> None:
+        super()._save_image_to_cache(name, pixmap)
         if name not in self.images:
-            self.images[name] = QPixmap(filepath)
-        return filepath
+            self.images[name] = pixmap
 
 
 class MapPreviewDownloader(ImageDownloader):
