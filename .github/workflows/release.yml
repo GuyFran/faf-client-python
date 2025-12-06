@@ -12,6 +12,8 @@ env:
   BUILD_VERSION: ${{ github.event.inputs.version }}
   PYTHON_VERSION: 3.14
   ZIG_VERSION: 0.15.2
+  JAVA_DISTRIBUTION: "oracle"
+  JAVA_VERSION: 25
 
 jobs:
   build-windows:
@@ -46,13 +48,13 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
-          distribution: "oracle"
-          java-version: "21"
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
 
       - name: Create JRE
         run: |
           $ICE_ADAPTER_JAVA_MODULES=((jdeps -s "setup_helpers/faf-ice-adapter.jar" | findstr "java" | ForEach-Object { $_.split(" ")[2] }) -join ",")
-          jlink --add-modules "$ICE_ADAPTER_JAVA_MODULES,jdk.crypto.ec,jdk.unsupported" --strip-debug --no-man-pages --no-header-files --compress "zip-6" --output "build_setup/jre"
+          jlink --add-modules "$ICE_ADAPTER_JAVA_MODULES,jdk.crypto.ec,jdk.unsupported" --strip-debug --no-man-pages --no-header-files --compress "zip-9" --output "build_setup/jre"
 
       - name: Install Zig
         uses: mlugg/setup-zig@v2
@@ -146,13 +148,13 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
-          distribution: "oracle"
-          java-version: "21"
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
 
       - name: Create JRE
         run: |
           ICE_ADAPTER_JAVA_MODULES=$(jdeps -s setup_helpers/faf-ice-adapter.jar | cut -d' ' -f 3 | grep java | xargs echo | tr ' ' ',')
-          jlink --add-modules "$ICE_ADAPTER_JAVA_MODULES,jdk.crypto.ec,jdk.unsupported" --strip-debug --no-man-pages --no-header-files --compress "zip-6" --output "build_setup/jre"
+          jlink --add-modules "$ICE_ADAPTER_JAVA_MODULES,jdk.crypto.ec,jdk.unsupported" --strip-debug --no-man-pages --no-header-files --compress "zip-9" --output "build_setup/jre"
 
       - name: Install Zig
         uses: mlugg/setup-zig@v2
