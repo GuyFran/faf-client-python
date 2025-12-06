@@ -1,12 +1,22 @@
 import pathlib
+import shutil
 import sys
 
 
 def remove_some_redundant_qt_files() -> None:
     current_dir = pathlib.Path(__file__).parent
-    build_dir = current_dir / "build"
-    app_dir, = build_dir.iterdir()
+    app_dir = current_dir / "build" / "faf_python_client"
     app_qt6 = app_dir / "lib" / "PyQt6" / "Qt6"
+
+    try:
+        translations = app_qt6 / "translations"
+        print(f"Removing '{translations}'...")
+        shutil.rmtree(translations)
+    except FileNotFoundError:
+        pass
+
+    if sys.platform == "win32":
+        return
 
     # cx_Freeze copies these into lib directory itself
     # and into every plugin directory for some reason
@@ -30,8 +40,6 @@ def remove_some_redundant_qt_files() -> None:
 
 
 def main() -> None:
-    if sys.platform == "win32":
-        return
     remove_some_redundant_qt_files()
 
 
