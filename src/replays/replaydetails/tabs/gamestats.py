@@ -42,29 +42,27 @@ class PlotsUI:
 
         score_tab = QWidget()
         self.scoreLayout = QVBoxLayout(score_tab)
-        self.scoreLayout.setContentsMargins(0, 0, 0, 0)
+        self.scoreLayout.setContentsMargins(0, 6, 0, 0)
         self.tabs.addTab(score_tab, "Scores")
 
         resource_tab = QWidget()
         self.resourceLayout = QGridLayout(resource_tab)
-        self.resourceLayout.setContentsMargins(0, 0, 0, 0)
+        self.resourceLayout.setContentsMargins(0, 6, 0, 0)
         self.tabs.addTab(resource_tab, "Resources")
 
+        units_widget = QWidget()
+        units_layout = QVBoxLayout(units_widget)
         self.unitsTab = QTabWidget()
+        units_layout.addWidget(self.unitsTab)
 
         general_units_tab = QWidget()
         self.unitsLayout = QGridLayout(general_units_tab)
         self.unitsLayout.setContentsMargins(0, 0, 0, 0)
         self.unitsTab.addTab(general_units_tab, "General")
 
-        units_breakdown_tab = QWidget()
-        units_scroll_layout = QVBoxLayout(units_breakdown_tab)
-        units_scroll_layout.setContentsMargins(0, 0, 0, 0)
-
         units_scroll = QScrollArea()
         units_scroll.setContentsMargins(0, 0, 0, 0)
         units_scroll.setWidgetResizable(True)
-        units_scroll_layout.addWidget(units_scroll)
 
         self.unitsBreakdownWidget = QWidget()
         self.unitsBreakdownWidget.setContentsMargins(0, 0, 0, 0)
@@ -72,12 +70,12 @@ class PlotsUI:
         self.unitsBreakdownLayout.setContentsMargins(0, 0, 0, 0)
         self.unitsBreakdownWidget.setObjectName("statisticsChartsScrollArea")
         units_scroll.setWidget(self.unitsBreakdownWidget)
-        self.unitsTab.addTab(units_breakdown_tab, "Breakdown")
-        self.tabs.addTab(self.unitsTab, "Units")
+        self.unitsTab.addTab(units_scroll, "Breakdown")
+        self.tabs.addTab(units_widget, "Units")
 
         balance_tab = QWidget()
         self.balanceLayout = QGridLayout(balance_tab)
-        self.balanceLayout.setContentsMargins(0, 0, 0, 0)
+        self.balanceLayout.setContentsMargins(0, 6, 0, 0)
         self.tabs.addTab(balance_tab, "Build vs Loss")
         main_layout.addWidget(self.tabs)
 
@@ -382,7 +380,6 @@ class GameStatsUI:
 
     def setupUi(self, widget: QWidget) -> None:
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(0, 0, 0, 0)
         self.stack = QStackedWidget()
         layout.addWidget(self.stack)
         self.stack.addWidget(self._no_data())
