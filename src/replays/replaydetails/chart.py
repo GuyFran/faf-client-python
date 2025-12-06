@@ -82,90 +82,91 @@ class ChartWidget(QtWidgets.QWidget):
         self.ticks = ticks
         self.update()
 
-    def paintEvent(self, e: QtGui.QPaintEvent) -> None:
-        if self.data:
-            max_h, max_w = self.geometry().height(), self.geometry().width()
-            content_height = max_h - self.t_margin - self.b_margin
-            content_width = max_w - self.l_margin - self.r_margin
+    def paintEvent(self, e: QtGui.QPaintEvent | None) -> None:  # type: ignore[override]
+        if not self.data or e is None:
+            return
+        max_h, max_w = self.geometry().height(), self.geometry().width()
+        content_height = max_h - self.t_margin - self.b_margin
+        content_width = max_w - self.l_margin - self.r_margin
 
-            num_of_data = len(next(iter(self.data.values())))
-            if num_of_data == 0:
-                return
+        num_of_data = len(next(iter(self.data.values())))
+        if num_of_data == 0:
+            return
 
-            space_between_x_axis_text = 60
-            space_between_y_axis_text = 30
+        space_between_x_axis_text = 60
+        space_between_y_axis_text = 30
 
-            small: dict[int, list[float]] = {i: [] for i in self.data}
-            num_of_sample = max(1, num_of_data // content_width)
+        small: dict[int, list[float]] = {i: [] for i in self.data}
+        num_of_sample = max(1, num_of_data // content_width)
 
-            self.selected_tick = self.mouse_pos * num_of_sample
+        self.selected_tick = self.mouse_pos * num_of_sample
 
-            for i in range(content_width):
-                for j, sample_data in self.data.items():
-                    actions = sum(sample_data[i*num_of_sample:(i+1)*num_of_sample]) / num_of_sample
-                    small[j].append(actions)
+        for i in range(content_width):
+            for j, sample_data in self.data.items():
+                actions = sum(sample_data[i*num_of_sample:(i+1)*num_of_sample]) / num_of_sample
+                small[j].append(actions)
 
-            p = QtGui.QPainter()
-            p.begin(self)
+        p = QtGui.QPainter()
+        p.begin(self)
 
-            if self.mouse_pos != self.prev_mouse_pos and self.mouse_pos < max_w - self.r_margin:
-                p.drawLine(
-                    self.l_margin + self.mouse_pos,
-                    self.t_margin,
-                    self.l_margin + self.mouse_pos,
-                    max_h - self.b_margin,
-                )
-            else:
-                self.mouse_pos = 0
+        if self.mouse_pos != self.prev_mouse_pos and self.mouse_pos < max_w - self.r_margin:
+            p.drawLine(
+                self.l_margin + self.mouse_pos,
+                self.t_margin,
+                self.l_margin + self.mouse_pos,
+                max_h - self.b_margin,
+            )
+        else:
+            self.mouse_pos = 0
 
-            for i in self.data:
-                path = QtGui.QPainterPath()
-                path.moveTo(self.l_margin, max_h - self.b_margin)
-                for j in range(content_width):
-                    y_norm = small[i][j] / self.max_h_val * content_height
-                    y = max_h - self.b_margin - y_norm
-                    path.lineTo(self.l_margin + j, y)
-                p.setPen(QtGui.QPen(QtGui.QColor(self.colors[i])))
-                p.drawPath(path)
+        for i in self.data:
+            path = QtGui.QPainterPath()
+            path.moveTo(self.l_margin, max_h - self.b_margin)
+            for j in range(content_width):
+                y_norm = small[i][j] / self.max_h_val * content_height
+                y = max_h - self.b_margin - y_norm
+                path.lineTo(self.l_margin + j, y)
+            p.setPen(QtGui.QPen(QtGui.QColor(self.colors[i])))
+            p.drawPath(path)
 
-            p.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.gray, 1, QtCore.Qt.PenStyle.SolidLine))
-            p.drawRect(self.l_margin, self.t_margin, content_width, content_height)
+        p.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.gray, 1, QtCore.Qt.PenStyle.SolidLine))
+        p.drawRect(self.l_margin, self.t_margin, content_width, content_height)
 
-            for i in range(content_width // space_between_x_axis_text + 1):
-                rect = QtCore.QRectF(
-                    self.l_margin - 50 + (i * space_between_x_axis_text),
-                    max_h - self.b_margin + 5,
-                    100,
-                    10,
-                )
-                seconds = round(i * space_between_x_axis_text * num_of_sample / 10)
-                text = seconds_to_human(seconds, sep="", full=False)
-                p.drawText(rect, text, QtGui.QTextOption(QtCore.Qt.AlignmentFlag.AlignCenter))
-                p.drawLine(
-                    self.l_margin + (i * space_between_x_axis_text),
-                    max_h - self.b_margin + 2,
-                    self.l_margin + (i * space_between_x_axis_text),
-                    max_h - self.b_margin - 2,
-                )
+        for i in range(content_width // space_between_x_axis_text + 1):
+            rect = QtCore.QRectF(
+                self.l_margin - 50 + (i * space_between_x_axis_text),
+                max_h - self.b_margin + 5,
+                100,
+                10,
+            )
+            seconds = round(i * space_between_x_axis_text * num_of_sample / 10)
+            text = seconds_to_human(seconds, sep="", full=False)
+            p.drawText(rect, text, QtGui.QTextOption(QtCore.Qt.AlignmentFlag.AlignCenter))
+            p.drawLine(
+                self.l_margin + (i * space_between_x_axis_text),
+                max_h - self.b_margin + 2,
+                self.l_margin + (i * space_between_x_axis_text),
+                max_h - self.b_margin - 2,
+            )
 
-            for i in range(content_height // space_between_y_axis_text + 1):
-                rect = QtCore.QRectF(
-                    self.l_margin - 40,
-                    max_h - self.b_margin - 5 - (i * space_between_y_axis_text),
-                    35,
-                    10,
-                )
-                label = (self.max_h_val * i * space_between_y_axis_text * 1.0 / content_height)
-                option = QtGui.QTextOption(
-                    QtCore.Qt.AlignmentFlag.AlignRight
-                    | QtCore.Qt.AlignmentFlag.AlignVCenter,
-                )
-                p.drawText(rect, f"{label:.2f}", option)
-                p.drawLine(
-                    self.l_margin - 2,
-                    max_h - self.b_margin - i * space_between_y_axis_text,
-                    self.l_margin + 2,
-                    max_h - self.b_margin - i * space_between_y_axis_text,
-                )
+        for i in range(content_height // space_between_y_axis_text + 1):
+            rect = QtCore.QRectF(
+                self.l_margin - 40,
+                max_h - self.b_margin - 5 - (i * space_between_y_axis_text),
+                35,
+                10,
+            )
+            label = (self.max_h_val * i * space_between_y_axis_text * 1.0 / content_height)
+            option = QtGui.QTextOption(
+                QtCore.Qt.AlignmentFlag.AlignRight
+                | QtCore.Qt.AlignmentFlag.AlignVCenter,
+            )
+            p.drawText(rect, f"{label:.2f}", option)
+            p.drawLine(
+                self.l_margin - 2,
+                max_h - self.b_margin - i * space_between_y_axis_text,
+                self.l_margin + 2,
+                max_h - self.b_margin - i * space_between_y_axis_text,
+            )
 
-            p.end()
+        p.end()
