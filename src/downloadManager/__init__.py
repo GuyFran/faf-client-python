@@ -460,6 +460,7 @@ class ImageDownloader:
         reqs = self._requests.pop(url_str, [])
         for req in reqs:
             req.finished(url_str, pixmap)
+        reply.deleteLater()
 
     def _save_image_to_cache(self, name: str, pixmap: QPixmap) -> None:
         filepath = os.path.join(self.save_dir, name)
