@@ -101,12 +101,13 @@ fn chart_rolling_window(_: [*c]py.PyObject, args: [*c]py.PyObject) callconv(.c) 
     const allocator = std.heap.c_allocator;
 
     const items = py.PyDict_Items(chart_data);
+    defer py.Py_DecRef(items);
+
     const num_items: usize = @intCast(py.PyList_Size(items));
     const u_ticks: usize = @intCast(ticks);
 
     var max_cpm: u32 = 0;
 
-    const ret = py.PyDict_New();
     const rolling_dict = py.PyDict_New();
     for (0..num_items) |i| {
         var cpm: u32 = 0;
@@ -115,12 +116,16 @@ fn chart_rolling_window(_: [*c]py.PyObject, args: [*c]py.PyObject) callconv(.c) 
         const ticklist = py.PyTuple_GetItem(pair, 1);
         const ticklist_size: usize = @intCast(py.PyList_Size(ticklist));
         var actions_at_tick = std.ArrayList(u32).initCapacity(allocator, u_ticks + 600) catch {
+            py.Py_DecRef(rolling_dict);
             return py.Py_BuildValue("");
         };
         defer actions_at_tick.deinit(allocator);
 
         for (0..u_ticks + 600) |_| {
-            actions_at_tick.append(allocator, 0) catch return py.Py_BuildValue("");
+            actions_at_tick.append(allocator, 0) catch {
+                py.Py_DecRef(rolling_dict);
+                return py.Py_BuildValue("");
+            };
         }
 
         for (0..ticklist_size) |index| {
@@ -148,12 +153,14 @@ fn chart_rolling_window(_: [*c]py.PyObject, args: [*c]py.PyObject) callconv(.c) 
             );
         }
         _ = py.PyDict_SetItem(rolling_dict, player_id, rolling_list);
-        py.Py_DecRef(player_id);
         py.Py_DecRef(rolling_list);
     }
+    const ret = py.PyDict_New();
+    const py_max_cpm = py.Py_BuildValue("i", max_cpm);
+    _ = py.PyDict_SetItemString(ret, "max_cpm", py_max_cpm);
     _ = py.PyDict_SetItemString(ret, "cpm_data", rolling_dict);
+    py.Py_DecRef(py_max_cpm);
     py.Py_DecRef(rolling_dict);
-    _ = py.PyDict_SetItemString(ret, "max_cpm", py.Py_BuildValue("i", max_cpm));
     return ret;
 }
 
