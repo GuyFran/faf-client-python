@@ -448,7 +448,11 @@ class ImageDownloader:
 
     def _pixmap_from_reply(self, reply: QNetworkReply) -> QPixmap:
         pixmap = QPixmap()
-        pixmap.loadFromData(reply.readAll())
+        if reply.error() == QNetworkReply.NetworkError.NoError:
+            if not pixmap.loadFromData(reply.readAll()):
+                logger.warning("Failed to load pixmap from reply for %s", reply.url().toString())
+        else:
+            logger.warning("Network error downloading image: %s", reply.errorString())
         return pixmap
 
     def _image_download_finished(self, reply: QNetworkReply) -> None:
