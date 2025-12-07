@@ -27,6 +27,9 @@ from src.replays.replaydetails.helpers import seconds_to_human
 
 
 class ChartWidget(QtWidgets.QWidget):
+    SPACE_BETWEEN_X_AXIS_TEXT = 60
+    SPACE_BETWEEN_Y_AXIS_TEXT = 30
+
     selected_tick_signal = QtCore.pyqtSignal(int)
 
     def __init__(self):
@@ -44,30 +47,42 @@ class ChartWidget(QtWidgets.QWidget):
         self.selected_tick = 0
 
         self.ticks = 0
+        self.max_w = 0
+        self.max_h = 0
         self.max_h_val = 0
+        self.content_width = 0
+        self.content_height = 0
+        self.num_of_data = 0
 
         self.data: dict[int, list[int]] = {}
+        self.small: dict[int, list[float]] = {}
         self.colors: dict[int, str] = {}
 
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(600, 200)
 
     def mouseMoveEvent(self, e: QtGui.QMouseEvent | None) -> None:
-        if e is None:
+        if e is None or not self.data:
             return
 
-        if self.data:
-            index = e.pos().x()
-            if self.l_margin <= index < self.geometry().width() - self.r_margin:
-                self.mouse_pos = index - self.l_margin
-                self.update()
-                if self.selected_tick < self.ticks:
-                    self.selected_tick_signal.emit(self.selected_tick)
+        index = e.pos().x()
+        if self.l_margin <= index < self.geometry().width() - self.r_margin:
+            self.mouse_pos = index - self.l_margin
+            self.selected_tick = self.mouse_pos * self.num_of_sample
+            self.update()
+            if self.selected_tick < self.ticks:
+                self.selected_tick_signal.emit(self.selected_tick)
 
     def reset(self) -> None:
+        self.max_w = 0
+        self.max_h = 0
         self.max_h_val = 0
+        self.num_of_data = 0
+        self.content_width = 0
+        self.content_height = 0
         self.data = {}
         self.colors = {}
+        self.small = {}
 
     def graph(
         self,
@@ -80,83 +95,80 @@ class ChartWidget(QtWidgets.QWidget):
         self.data = data
         self.colors = colors
         self.ticks = ticks
-        self.update()
+        self.num_of_data = len(next(iter(self.data.values())))
+        self.recalculate_small()
+
+    def recalculate_small(self) -> None:
+        self.max_h, self.max_w = self.geometry().height(), self.geometry().width()
+        self.content_height = self.max_h - self.t_margin - self.b_margin
+        self.content_width = self.max_w - self.l_margin - self.r_margin
+
+        self.num_of_sample = max(1, self.num_of_data // self.content_width)
+        self.small = {
+            j: [
+                sum(sample_data[i*self.num_of_sample:(i+1)*self.num_of_sample]) / self.num_of_sample
+                for i in range(self.content_width)
+            ] for j, sample_data in self.data.items()
+        }
+
+    def resizeEvent(self, event: QtGui.QResizeEvent | None) -> None:  # type: ignore[override]
+        self.recalculate_small()
+        super().resizeEvent(event)
 
     def paintEvent(self, e: QtGui.QPaintEvent | None) -> None:  # type: ignore[override]
-        if not self.data or e is None:
+        if not self.data or e is None or self.num_of_data == 0:
             return
-        max_h, max_w = self.geometry().height(), self.geometry().width()
-        content_height = max_h - self.t_margin - self.b_margin
-        content_width = max_w - self.l_margin - self.r_margin
-
-        num_of_data = len(next(iter(self.data.values())))
-        if num_of_data == 0:
-            return
-
-        space_between_x_axis_text = 60
-        space_between_y_axis_text = 30
-
-        small: dict[int, list[float]] = {i: [] for i in self.data}
-        num_of_sample = max(1, num_of_data // content_width)
-
-        self.selected_tick = self.mouse_pos * num_of_sample
-
-        for i in range(content_width):
-            for j, sample_data in self.data.items():
-                actions = sum(sample_data[i*num_of_sample:(i+1)*num_of_sample]) / num_of_sample
-                small[j].append(actions)
-
         p = QtGui.QPainter()
         p.begin(self)
 
-        if self.mouse_pos != self.prev_mouse_pos and self.mouse_pos < max_w - self.r_margin:
+        if self.mouse_pos != self.prev_mouse_pos and self.mouse_pos < self.max_w - self.r_margin:
             p.drawLine(
                 self.l_margin + self.mouse_pos,
                 self.t_margin,
                 self.l_margin + self.mouse_pos,
-                max_h - self.b_margin,
+                self.max_h - self.b_margin,
             )
         else:
             self.mouse_pos = 0
 
         for i in self.data:
             path = QtGui.QPainterPath()
-            path.moveTo(self.l_margin, max_h - self.b_margin)
-            for j in range(content_width):
-                y_norm = small[i][j] / self.max_h_val * content_height
-                y = max_h - self.b_margin - y_norm
+            path.moveTo(self.l_margin, self.max_h - self.b_margin)
+            for j in range(self.content_width):
+                y_norm = self.small[i][j] / self.max_h_val * self.content_height
+                y = self.max_h - self.b_margin - y_norm
                 path.lineTo(self.l_margin + j, y)
             p.setPen(QtGui.QPen(QtGui.QColor(self.colors[i])))
             p.drawPath(path)
 
         p.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.gray, 1, QtCore.Qt.PenStyle.SolidLine))
-        p.drawRect(self.l_margin, self.t_margin, content_width, content_height)
+        p.drawRect(self.l_margin, self.t_margin, self.content_width, self.content_height)
 
-        for i in range(content_width // space_between_x_axis_text + 1):
+        for i in range(self.content_width // self.SPACE_BETWEEN_X_AXIS_TEXT + 1):
             rect = QtCore.QRectF(
-                self.l_margin - 50 + (i * space_between_x_axis_text),
-                max_h - self.b_margin + 5,
+                self.l_margin - 50 + (i * self.SPACE_BETWEEN_X_AXIS_TEXT),
+                self.max_h - self.b_margin + 5,
                 100,
                 10,
             )
-            seconds = round(i * space_between_x_axis_text * num_of_sample / 10)
+            seconds = round(i * self.SPACE_BETWEEN_X_AXIS_TEXT * self.num_of_sample / 10)
             text = seconds_to_human(seconds, sep="", full=False)
             p.drawText(rect, text, QtGui.QTextOption(QtCore.Qt.AlignmentFlag.AlignCenter))
             p.drawLine(
-                self.l_margin + (i * space_between_x_axis_text),
-                max_h - self.b_margin + 2,
-                self.l_margin + (i * space_between_x_axis_text),
-                max_h - self.b_margin - 2,
+                self.l_margin + (i * self.SPACE_BETWEEN_X_AXIS_TEXT),
+                self.max_h - self.b_margin + 2,
+                self.l_margin + (i * self.SPACE_BETWEEN_X_AXIS_TEXT),
+                self.max_h - self.b_margin - 2,
             )
 
-        for i in range(content_height // space_between_y_axis_text + 1):
+        for i in range(self.content_height // self.SPACE_BETWEEN_Y_AXIS_TEXT + 1):
             rect = QtCore.QRectF(
                 self.l_margin - 40,
-                max_h - self.b_margin - 5 - (i * space_between_y_axis_text),
+                self.max_h - self.b_margin - 5 - (i * self.SPACE_BETWEEN_Y_AXIS_TEXT),
                 35,
                 10,
             )
-            label = (self.max_h_val * i * space_between_y_axis_text * 1.0 / content_height)
+            label = (self.max_h_val * i * self.SPACE_BETWEEN_Y_AXIS_TEXT / self.content_height)
             option = QtGui.QTextOption(
                 QtCore.Qt.AlignmentFlag.AlignRight
                 | QtCore.Qt.AlignmentFlag.AlignVCenter,
@@ -164,9 +176,9 @@ class ChartWidget(QtWidgets.QWidget):
             p.drawText(rect, f"{label:.2f}", option)
             p.drawLine(
                 self.l_margin - 2,
-                max_h - self.b_margin - i * space_between_y_axis_text,
+                self.max_h - self.b_margin - i * self.SPACE_BETWEEN_Y_AXIS_TEXT,
                 self.l_margin + 2,
-                max_h - self.b_margin - i * space_between_y_axis_text,
+                self.max_h - self.b_margin - i * self.SPACE_BETWEEN_Y_AXIS_TEXT,
             )
 
         p.end()
