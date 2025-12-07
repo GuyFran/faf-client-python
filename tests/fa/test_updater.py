@@ -1,6 +1,6 @@
 __author__ = 'Thygrrr'
 
-from typing import Callable
+from collections.abc import Callable
 
 import pytest
 from PyQt6 import QtCore
@@ -74,7 +74,7 @@ def test_updater_watch_finished_raises_error_on_watch_without_method_finished(
         u.watchFinished()
 
 
-def test_updater_hides_and_accepts_if_all_watches_are_finished(application):
+def test_updater_hides_and_accepts_if_all_watches_are_finished():
     u = UpdaterProgressDialog(None)
     t = NoOpThread()
 
@@ -82,10 +82,9 @@ def test_updater_hides_and_accepts_if_all_watches_are_finished(application):
     u.show()
     t.start()
 
-    while not t.isFinished():
-        pass
-
-    application.processEvents()
+    loop = QtCore.QEventLoop()
+    t.finished.connect(loop.exit)
+    loop.exec()
     assert not u.isVisible()
     assert u.result() == QtWidgets.QDialog.DialogCode.Accepted
 

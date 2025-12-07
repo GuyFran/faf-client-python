@@ -22,6 +22,7 @@ SOFTWARE."""
 import json
 import os
 from collections.abc import Generator
+from typing import cast
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtCore import QUrl
@@ -41,8 +42,14 @@ from src.replays.replaydetails.pixmaps import action_pixmaps
 from src.replays.replaydetails.pixmaps import units_pixmaps
 from src.replays.replaydetails.replayformat import cmdTypeToString
 from src.replays.replaydetails.replayreader import ReplayParser
+from src.replays.replaydetails.types import ChartRollingWindowData
 from src.replays.replaydetails.utils import ACTION_ICONS
 from src.replays.replaydetails.utils import PLAYER_COLORS
+
+try:
+    from zigfafreplay import chart_rolling_window
+except ImportError:
+    chart_rolling_window = None
 
 
 class ChartsTabUI:
@@ -108,31 +115,42 @@ class ChartsTab(QWidget):
         for name, pixmap_ in units_pixmaps().items():
             document.addResource(source_type, QUrl(name), pixmap_)
 
-    def gen_chart(self) -> None:
-        self.ui.actionsDisplay.clear()
-        self.add_resources()
-        players_number = len(self.replay.players)
+    def _rolling_window(self) -> int:
         ticks_number = self.replay.ticks
-        max_h_val = 0
-
-        self.cpmData = [[] for _ in range(players_number)]
-        for i in range(players_number):
-            if i not in self.replay.cpmChart:
-                continue
-            self.cpmData[i] = [0] * (ticks_number + 600)
-            for tick in self.replay.cpmChart[i]:
+        max_cpm = 0
+        self.cpmData = {i: [0] * (ticks_number + 600) for i in self.replay.cpmChart}
+        for i, ticklist in self.replay.cpmChart.items():
+            for tick in ticklist:
                 self.cpmData[i][tick] += 1
 
             num = sum(self.cpmData[i][0:600])
             prev_num = self.cpmData[i][0]
             for tick in range(1, ticks_number):
-                num = num - prev_num + self.cpmData[i][tick+600]
+                num = num - prev_num + self.cpmData[i][tick+599]
                 prev_num = self.cpmData[i][tick]
-                if num > max_h_val:
-                    max_h_val = num
+                if num > max_cpm:
+                    max_cpm = num
                 self.cpmData[i][tick] = num
 
             del self.cpmData[i][ticks_number:]
+        return max_cpm
+
+    def gen_chart(self) -> None:
+        self.ui.actionsDisplay.clear()
+        self.add_resources()
+        if (
+            chart_rolling_window is not None
+            and (
+                parsed := cast(
+                    ChartRollingWindowData | None,
+                    chart_rolling_window(self.replay.cpmChart, self.replay.ticks),
+                )
+            ) is not None
+        ):
+            max_h_val = parsed["max_cpm"]
+            self.cpmData = parsed["cpm_data"]
+        else:
+            max_h_val = self._rolling_window()
 
         if max_h_val == 0:
             self.ui.actionsDisplay.setText("<b>No actions</b>")
@@ -140,11 +158,11 @@ class ChartsTab(QWidget):
             self.ui.cpms.update()
             return
 
-        colors = [
-                PLAYER_COLORS[int(self.replay.army[i]["PlayerColor"]) - 1]
-                for i in range(players_number)
-        ]
-        self.ui.cpms.graph(self.cpmData, max_h_val, colors, ticks_number)
+        colors = {
+            i: PLAYER_COLORS[int(self.replay.army[i]["PlayerColor"]) - 1]
+            for i in self.cpmData
+        }
+        self.ui.cpms.graph(self.cpmData, max_h_val, colors, self.replay.ticks)
 
     def populate_player_selection(self) -> None:
         self.ui.showAllPlayers.checkStateChanged.connect(

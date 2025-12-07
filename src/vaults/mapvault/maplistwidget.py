@@ -5,15 +5,20 @@ from PyQt6.QtWidgets import QWidget
 
 from src import util
 from src.api.models.Map import Map
+from src.downloadManager import ImageDownloader
 from src.fa import maps
 from src.mapGenerator.mapgenUtils import isGeneratedMap
 from src.vaults.listwidget import VaultListWidget
 
 
-class MapListWidget(VaultListWidget):
-    def __init__(self, item_data: Map, parent: QWidget | None = None) -> None:
-        VaultListWidget.__init__(self, item_data, util.MAP_PREVIEW_SMALL_DIR, parent)
-        self.item_data = item_data
+class MapListWidget(VaultListWidget[Map]):
+    def __init__(
+        self,
+        item_data: Map,
+        image_loader: ImageDownloader,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(item_data, image_loader, parent)
         assert item_data.version is not None
         self.item_version = item_data.version
 

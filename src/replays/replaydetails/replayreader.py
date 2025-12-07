@@ -19,7 +19,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE."""
-from __future__ import annotations
 
 import html
 import json
@@ -123,7 +122,7 @@ class ReplayParser(QObject):
         self.filename = ""
         self.size = 0
 
-        self.cpmChart = defaultdict(list)
+        self.cpmChart: dict[int, list[int]] = defaultdict(list)
         self.commands: defaultdict[int, list[_ConvertedCommands]] = defaultdict(list)
         self.game_stats: GameStats = {}
 

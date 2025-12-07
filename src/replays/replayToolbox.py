@@ -43,7 +43,7 @@ filtersSettings = {
     "Player faction": dict(
         filterString="playerStats.faction",
         operators=["is", "is not"],
-        values=["AEON", "CYBRAN", "UEF", "SERAPHIM", "NOMAD", "CIVILIAN"],
+        values=["UEF", "AEON", "CYBRAN", "SERAPHIM", "NOMAD", "CIVILIAN"],
     ),
     "Player start position": dict(
         filterString="playerStats.startSpot",

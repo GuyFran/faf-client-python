@@ -208,17 +208,17 @@ pub fn convert_chart_data(replay_parser: parser.Parser) [*c]py.PyObject {
         const key = py_simple(u8, pair.key_ptr.*);
         const items = pair.value_ptr.*.items;
         const size: isize = @intCast(items.len);
-        const ticks_tuple = py.PyTuple_New(size);
+        const ticks_list = py.PyList_New(size);
         for (0.., items) |i, tick| {
-            _ = py.PyTuple_SetItem(
-                ticks_tuple,
+            _ = py.PyList_SetItem(
+                ticks_list,
                 @as(isize, @intCast(i)),
                 py_simple(u32, tick),
             );
         }
-        _ = py.PyDict_SetItem(dict, key, ticks_tuple);
+        _ = py.PyDict_SetItem(dict, key, ticks_list);
         py.Py_DecRef(key);
-        py.Py_DecRef(ticks_tuple);
+        py.Py_DecRef(ticks_list);
     }
     return dict;
 }

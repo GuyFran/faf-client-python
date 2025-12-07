@@ -28,10 +28,15 @@ class ParsedReplayBody(TypedDict):
     points: list[tuple[int, float, float, int, int]]
     chatlines: tuple[tuple[int, str, str, str, int], ...]
     lasttick: dict[int, int]
-    chart_data: dict[int, tuple[int, ...]]
+    chart_data: dict[int, list[int]]
     game_stats: GameStats
 
 
 class ParsedReplay(TypedDict):
     header: ParsedReplayHeader
     body: ParsedReplayBody
+
+
+class ChartRollingWindowData(TypedDict):
+    max_cpm: int
+    cpm_data: dict[int, list[int]]

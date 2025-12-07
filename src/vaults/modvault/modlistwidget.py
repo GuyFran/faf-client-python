@@ -2,16 +2,20 @@ from PyQt6.QtWidgets import QLabel
 from PyQt6.QtWidgets import QLayout
 from PyQt6.QtWidgets import QWidget
 
-from src import util
 from src.api.models.Mod import Mod
+from src.downloadManager import ImageDownloader
 from src.vaults.listwidget import VaultListWidget
 from src.vaults.modvault import utils
 
 
-class ModListWidget(VaultListWidget):
-    def __init__(self, item_data: Mod, parent: QWidget | None = None) -> None:
-        VaultListWidget.__init__(self, item_data, util.MOD_PREVIEW_DIR, parent)
-        self.item_data = item_data
+class ModListWidget(VaultListWidget[Mod]):
+    def __init__(
+        self,
+        item_data: Mod,
+        image_loader: ImageDownloader,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(item_data, image_loader, parent)
         self.item_version = item_data.version
 
     def is_installed(self) -> bool:
