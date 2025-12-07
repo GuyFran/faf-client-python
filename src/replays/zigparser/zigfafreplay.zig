@@ -104,12 +104,12 @@ fn chart_rolling_window(_: [*c]py.PyObject, args: [*c]py.PyObject) callconv(.c) 
     const num_items: usize = @intCast(py.PyList_Size(items));
     const u_ticks: usize = @intCast(ticks);
 
-    var cpm: u32 = 0;
     var max_cpm: u32 = 0;
 
     const ret = py.PyDict_New();
     const rolling_dict = py.PyDict_New();
     for (0..num_items) |i| {
+        var cpm: u32 = 0;
         const pair = py.PyList_GetItem(items, @as(isize, @intCast(i)));
         const player_id = py.PyTuple_GetItem(pair, 0);
         const ticklist = py.PyTuple_GetItem(pair, 1);
