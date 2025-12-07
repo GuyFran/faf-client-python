@@ -494,7 +494,7 @@ class CachedImageDownloader(ImageDownloader):
     def _save_image_to_cache(self, name: str, pixmap: QPixmap) -> None:
         super()._save_image_to_cache(name, pixmap)
         if name not in self.images:
-            self.images[name] = pixmap
+            self.images[name] = pixmap if self._size is None else pixmap.scaled(self._size)
 
 
 class MapPreviewDownloader(ImageDownloader):
