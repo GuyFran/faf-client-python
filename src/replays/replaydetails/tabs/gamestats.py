@@ -47,7 +47,7 @@ class PlotsUI:
 
         resource_tab = QWidget()
         self.resourceLayout = QGridLayout(resource_tab)
-        self.resourceLayout.setContentsMargins(0, 6, 0, 0)
+        self.resourceLayout.setContentsMargins(1, 6, 0, 0)
         self.tabs.addTab(resource_tab, "Resources")
 
         units_widget = QWidget()
@@ -75,7 +75,7 @@ class PlotsUI:
 
         balance_tab = QWidget()
         self.balanceLayout = QGridLayout(balance_tab)
-        self.balanceLayout.setContentsMargins(0, 6, 0, 0)
+        self.balanceLayout.setContentsMargins(1, 6, 0, 0)
         self.tabs.addTab(balance_tab, "Build vs Loss")
         main_layout.addWidget(self.tabs)
 
