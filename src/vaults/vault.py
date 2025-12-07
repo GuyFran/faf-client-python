@@ -68,7 +68,6 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
         self.pageBox.setValue(self.pageNumber)
         self.pageBox.valueChanged.connect(self.checkTotalPages)
         self.totalPages = None
-        self.totalRecords = None
         self.quantityBox.valueChanged.connect(self.checkPageSize)
         self.nextButton.clicked.connect(
             lambda: self.goToPage(self.pageBox.value() + 1),
@@ -228,7 +227,6 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
 
     def processMeta(self, message: dict) -> None:
         self.totalPages = message['page']['totalPages'] or 1
-        self.totalRecords = message['page']['totalRecords'] or 1
         if self.totalPages < 1:
             self.totalPages = 1
         self.labelTotalPages.setText(str(self.totalPages))
