@@ -1,6 +1,11 @@
 0.x.x
 =====
 
+0.25.3
+* Fix starting ladder games with 'unlisted' league score
+* Reduce installation size
+* Update JRE's Java from 21 to 25
+
 0.25.2
 * Fix joining custom games
 
