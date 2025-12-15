@@ -1,7 +1,6 @@
-from __future__ import annotations
-
 from collections.abc import Callable
 from enum import IntEnum
+from functools import cache
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import Self
@@ -22,6 +21,13 @@ class TabInfo(IntEnum):
     IDLE = 0
     NEW_MESSAGES = 1
     IMPORTANT = 2
+
+
+@cache
+def channel_ping_sound(theme: ThemeSet) -> QSoundEffect:
+    sound = QSoundEffect()
+    sound.setSource(theme.sound("chat/sfx/query.wav"))
+    return sound
 
 
 class ChannelTab:
@@ -47,9 +53,6 @@ class ChannelTab:
         self._ping_timer = QTimer()
         self._ping_timer.setSingleShot(True)
         self._ping_timer.setInterval(self._chat_config.channel_ping_timeout)
-
-        self._ping_sound = QSoundEffect()
-        self._ping_sound.setSource(self._theme.sound("chat/sfx/query.wav"))
 
     def _config_updated(self, option):
         c = self._chat_config
@@ -103,7 +106,8 @@ class ChannelTab:
         if self._ping_timer.isActive():
             return
         self._ping_timer.start()
-        self._ping_sound.play()
+        if channel_ping_sound().isLoaded():
+            channel_ping_sound().play()
 
     def _stop_blinking(self):
         self._timer.stop()

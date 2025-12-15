@@ -1,6 +1,5 @@
 import logging
 import os
-from typing import TYPE_CHECKING
 
 from PyQt6 import QtCore
 from PyQt6 import QtWidgets
@@ -21,16 +20,13 @@ from src.vaults.vault import Vault
 from .uimodwidget import UIModWidget
 from .uploadwidget import UploadModWidget
 
-if TYPE_CHECKING:
-    from src.client._clientwindow import ClientWindow
-
 logger = logging.getLogger(__name__)
 
 
 class ModVault(Vault[Mod]):
-    def __init__(self, client: ClientWindow) -> None:
-        super().__init__(client)
+    def setup(self) -> None:
         logger.debug("Mod Vault tab instantiating")
+        super().setup()
         self.image_loader = ImageDownloader(util.MOD_PREVIEW_DIR)
         self.UIButton.clicked.connect(self.openUIModForm)
         self.uids = [mod.uid for mod in utils.getInstalledMods()]
