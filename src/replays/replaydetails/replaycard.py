@@ -19,7 +19,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE."""
-from __future__ import annotations
 
 import json
 import os
@@ -87,6 +86,8 @@ class ReplayLoader(QtCore.QThread):
 
 
 class ReplayDetailsCard(QtWidgets.QDialog):
+    downloader = QtNetwork.QNetworkAccessManager()
+
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         window_flags = (
@@ -106,7 +107,6 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.loader.replayLoaded.connect(self.populatePages)
         self.loader.replayException.connect(self.show_replay_exception_msg)
 
-        self.downloader = QtNetwork.QNetworkAccessManager(self)
         self.downloader.finished.connect(self.on_download_finished)
 
         self.setWindowTitle("Replay Details")
