@@ -1,7 +1,5 @@
 from itertools import product
 
-import numpy as np
-import pyqtgraph as pg
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QGridLayout
 from PyQt6.QtWidgets import QLabel
@@ -11,6 +9,8 @@ from PyQt6.QtWidgets import QTabWidget
 from PyQt6.QtWidgets import QVBoxLayout
 from PyQt6.QtWidgets import QWidget
 
+from src.heavy_modules import np
+from src.heavy_modules import pg
 from src.qt.graphics.labeledbargraphitem import LabeledBarGraphItem
 from src.replays.replaydetails.replayreader import ReplayParser
 from src.replays.replaydetails.tabs.gamestats_types import GameStats
@@ -150,7 +150,7 @@ class PlotsWidget(QWidget):
                     brush=color,
                     name=stat.title(),
                 )
-                plot.addItem(bar)
+                plot.addItem(bar.item)
             plot.getAxis("bottom").setTicks(
                 [[(i, name) for i, name in enumerate(player_names)]],
             )
@@ -187,7 +187,7 @@ class PlotsWidget(QWidget):
                     brush=colors[resource][i],
                     name=name,
                 )
-                plot.addItem(bar)
+                plot.addItem(bar.item)
             plot.getAxis("bottom").setTicks([[(i, name) for i, name in enumerate(player_names)]])
             plots.append(plot)
         return plots
@@ -224,7 +224,7 @@ class PlotsWidget(QWidget):
                     brush=colors[resource][i],
                     name=name,
                 )
-                plot.addItem(bar)
+                plot.addItem(bar.item)
             plot.getAxis("bottom").setTicks(
                 [[(i, name) for i, name in enumerate(player_names)]],
             )
@@ -282,7 +282,7 @@ class PlotsWidget(QWidget):
                     brush=colors[unit_cat],
                     name=unit_cat,
                 )
-                plot.addItem(bar)
+                plot.addItem(bar.item)
             plot.getAxis("bottom").setTicks([[(i, name) for i, name in enumerate(player_names)]])
             self.ui.unitsLayout.addWidget(plot, index // 2, index % 2)
 
@@ -307,7 +307,7 @@ class PlotsWidget(QWidget):
             brush="b",
             name="KD ratio",
         )
-        kd_plot.addItem(kd_bar)
+        kd_plot.addItem(kd_bar.item)
         kd_plot.getAxis("bottom").setTicks([[(i, name) for i, name in enumerate(player_names)]])
 
         line = pg.InfiniteLine(
@@ -340,7 +340,7 @@ class PlotsWidget(QWidget):
                     brush=color,
                     name=stat.title(),
                 )
-                plot.addItem(bar)
+                plot.addItem(bar.item)
             plot.getAxis("bottom").setTicks(
                 [[(i, name) for i, name in enumerate(player_names)]],
             )
@@ -363,7 +363,7 @@ class PlotsWidget(QWidget):
             brush=(0, 150, 255),
             name="Score",
         )
-        score_plot.addItem(score_bar)
+        score_plot.addItem(score_bar.item)
         score_plot.getAxis("bottom").setTicks([[(i, name) for i, name in enumerate(player_names)]])
         self.ui.scoreLayout.addWidget(score_plot)
 

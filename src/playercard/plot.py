@@ -1,14 +1,11 @@
-from __future__ import annotations
-
 from bisect import bisect_left
 
-import numpy as np
-import numpy.typing as npt
-import pyqtgraph as pg
 from PyQt6.QtCore import QDateTime
 from PyQt6.QtCore import QPointF
 from PyQt6.QtGui import QColor
-from pyqtgraph.graphicsItems.DateAxisItem import DateAxisItem
+
+from src.heavy_modules import np
+from src.heavy_modules import pg
 
 
 class Crosshairs:
@@ -63,7 +60,7 @@ class Crosshairs:
     def is_visible(self) -> bool:
         return self._visible
 
-    def _closest_index(self, lst: npt.NDArray[np.float64], value: float) -> int:
+    def _closest_index(self, lst: np.typing.NDArray[np.float64], value: float) -> int:
         pos = bisect_left(lst, value)
         if pos == 0:
             return pos
@@ -138,13 +135,13 @@ class Crosshairs:
 
 class LineSeries:
     def __init__(self, size: int = 0) -> None:
-        self._x: npt.NDArray[np.float64] = np.zeros(size)
-        self._y: npt.NDArray[np.float64] = np.zeros(size)
+        self._x: np.typing.NDArray[np.float64] = np.zeros(size)
+        self._y: np.typing.NDArray[np.float64] = np.zeros(size)
 
-    def x(self) -> npt.NDArray[np.float64]:
+    def x(self) -> np.typing.NDArray[np.float64]:
         return self._x
 
-    def y(self) -> npt.NDArray[np.float64]:
+    def y(self) -> np.typing.NDArray[np.float64]:
         return self._y
 
     def set_point(self, index: int, point: QPointF) -> None:
@@ -167,7 +164,7 @@ class PlotController:
     def __init__(self, widget: pg.PlotWidget) -> None:
         self.widget = widget
         self.widget.setBackground("#202025")
-        self.widget.setAxisItems({"bottom": DateAxisItem()})
+        self.widget.setAxisItems({"bottom": pg.graphicsItems.DateAxisItem.DateAxisItem()})
         self.series = LineSeries()
         self.crosshairs = Crosshairs(self.widget, self.series)
         self.hide_scene_actions()

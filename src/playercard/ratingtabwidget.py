@@ -1,6 +1,3 @@
-from __future__ import annotations
-
-import pyqtgraph as pg
 from PyQt6.QtCore import QDateTime
 from PyQt6.QtCore import QObject
 from PyQt6.QtCore import QPointF
@@ -14,6 +11,7 @@ from PyQt6.QtWidgets import QTabWidget
 from src.api.ApiBase import PreProcessedApiResponse
 from src.api.models.LeaderboardRating import LeaderboardRating
 from src.api.stats_api import LeaderboardRatingJournalApiConnector
+from src.heavy_modules import pg
 from src.model.rating import Rating
 from src.playercard.plot import LineSeries
 from src.playercard.plot import PlotController

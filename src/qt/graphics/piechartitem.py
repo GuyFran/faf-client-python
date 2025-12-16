@@ -1,13 +1,14 @@
-from typing import Sequence
+from collections.abc import Sequence
 
-import numpy as np
-import pyqtgraph as pg
 from PyQt6.QtCore import QRectF
 from PyQt6.QtGui import QPainter
 from PyQt6.QtWidgets import QGraphicsEllipseItem
 from PyQt6.QtWidgets import QGraphicsRectItem
 from PyQt6.QtWidgets import QStyleOptionGraphicsItem
 from PyQt6.QtWidgets import QWidget
+
+from src.heavy_modules import np
+from src.heavy_modules import pg
 
 type Color = (
         # Qt defines integers in tuples as optionals so do we
@@ -16,7 +17,7 @@ type Color = (
 )
 
 
-class PieChartItem(pg.GraphicsObject):
+class PieChartItem:
     def __init__(
         self,
         values: Sequence[float],
@@ -26,7 +27,10 @@ class PieChartItem(pg.GraphicsObject):
         start_angle: int = 0,
         parent_item: pg.GraphicsObject | None = None,
     ) -> None:
-        pg.GraphicsObject.__init__(self, parent_item)
+        self.item = pg.GraphicsObject(parent_item)
+        self.item.boundingRect = self.boundingRect
+        self.item.paint = self.paint
+
         self.values = values
         self.total = sum(values) or len(values) or 1
         self.labels = labels if labels is not None else [f"Slice {i}" for i in range(len(values))]
@@ -50,7 +54,7 @@ class PieChartItem(pg.GraphicsObject):
         start_angle = self.startAngle
         for i, value in enumerate(self.values):
             angle = 360 * value / self.total
-            sector = QGraphicsEllipseItem(0, 0, 2*self.radius, 2*self.radius, self)
+            sector = QGraphicsEllipseItem(0, 0, 2*self.radius, 2*self.radius, self.item)
             sector.setStartAngle(int(start_angle * 16))
             sector.setSpanAngle(int(angle * 16))
             sector.setPen(pg.mkPen(self.colors[i]))
@@ -62,7 +66,7 @@ class PieChartItem(pg.GraphicsObject):
 
     def create_legend(self) -> None:
         for i, label in enumerate(self.labels):
-            rect = QGraphicsRectItem(-5, -5, 10, 10, self)
+            rect = QGraphicsRectItem(-5, -5, 10, 10, self.item)
             rect.setPen(pg.mkPen(self.colors[i]))
             rect.setBrush(pg.mkBrush(self.colors[i]))
             rect.setPos(self.radius + 20, i * 20)
@@ -70,7 +74,7 @@ class PieChartItem(pg.GraphicsObject):
 
             text = pg.TextItem(text=f"{label}: {self.values[i]} ({self.values[i]/self.total:.1%})")
             text.setAnchor((0.0, 0.5))
-            text.setParentItem(self)
+            text.setParentItem(self.item)
             text.setPos(self.radius + 35, i * 20)
             self.legend_labels.append(text)
 
@@ -90,10 +94,10 @@ class PieChartItem(pg.GraphicsObject):
         )
 
     def paint(
-            self,
-            painter: QPainter | None,
-            option: QStyleOptionGraphicsItem | None,
-            widget: QWidget | None = None,
+        self,
+        painter: QPainter | None,
+        option: QStyleOptionGraphicsItem | None,
+        widget: QWidget | None = None,
     ) -> None:
         # This method is left empty because it has to be overriden
         # and the sectors are drawn as child items

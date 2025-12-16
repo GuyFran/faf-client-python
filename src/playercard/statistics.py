@@ -1,11 +1,10 @@
 from collections.abc import Generator
 from collections.abc import Iterable
 
-import numpy as np
-import pyqtgraph as pg
-
 from src.api.models.LeaderboardRating import LeaderboardRating
 from src.api.models.PlayerEvent import PlayerEvent
+from src.heavy_modules import np
+from src.heavy_modules import pg
 from src.playercard.events import BUILT_LOST_METRICS
 from src.playercard.events import EXPERIMENTALS_BUILT_LOST_METRICS
 from src.playercard.events import FACTION_PLAYS_METRICS
@@ -48,7 +47,7 @@ class StatsCharts:
                 brush=color,
                 name=name,
             )
-            plot.addItem(bar)
+            plot.addItem(bar.item)
         plot.getAxis("bottom").setTicks([[(i, name) for i, name in enumerate(categories)]])
         return plot
 
@@ -87,7 +86,7 @@ class StatsCharts:
         plot.addLegend()
         plot.setMinimumHeight(300)
         pie = PieChartItem(values, labels, radius=100)
-        plot.addItem(pie)
+        plot.addItem(pie.item)
         plot.hideAxis("left")
         plot.hideAxis("bottom")
         plot.setRange(xRange=(-300, 300), yRange=(-100, 100))
@@ -95,7 +94,7 @@ class StatsCharts:
 
     def player_events_charts(
             self, events: list[PlayerEvent],
-    ) -> Generator[pg.PlotWidget, None, None]:
+    ) -> Generator[pg.PlotWidget]:
         mapping = {
             player_event.event.xd: player_event
             for player_event in events

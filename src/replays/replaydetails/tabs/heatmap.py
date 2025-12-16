@@ -1,10 +1,11 @@
 import os
+import sys
 from collections import Counter
+from collections.abc import Callable
 from functools import partial
 from typing import NamedTuple
 from typing import Self
 
-import pyqtgraph as pg
 from PyQt6.QtCore import QSize
 from PyQt6.QtCore import Qt
 from PyQt6.QtCore import QTimer
@@ -26,16 +27,20 @@ from PyQt6.QtWidgets import QWidget
 from src.config import Settings
 from src.fa.maps import folderForMap
 from src.fa.maps_.preview import create_large_preview
+from src.heavy_modules import pg
+from src.heavy_modules import scipy_ndimage
 from src.qt.utils import block_signals
 from src.replays.replaydetails.helpers import seconds_to_human
 from src.replays.replaydetails.rangeslider import RangeSlider
 from src.replays.replaydetails.replayformat import cmdTypeToString
 from src.replays.replaydetails.replayreader import ReplayParser
 
-try:
-    from scipy_ndimage.ndimage._filters import gaussian_filter
-except ImportError:
-    from scipy.ndimage import gaussian_filter
+
+def gaussian_filter() -> Callable[..., pg.numpy.ndarray]:
+    if "scipy_ndimage.ndimage._filters" in sys.modules:
+        return scipy_ndimage.gaussian_filter
+    else:
+        return scipy_ndimage.ndimage.gaussian_filter
 
 
 def create_colorbar_hist() -> pg.HistogramLUTWidget:
@@ -370,7 +375,7 @@ class Heatmap(QWidget):
         img = self.make_image_data(filtered_pts)
 
         if self.smooth_check_box.isChecked() and not self.debounce_timer.isActive():
-            img = gaussian_filter(img, (self.x_sigma.value(), self.y_sigma.value()))
+            img = gaussian_filter()(img, (self.x_sigma.value(), self.y_sigma.value()))
             self.heatmap.setImage(img)
         else:
             mx = max(filtered_pts.values() or [255])
