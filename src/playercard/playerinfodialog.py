@@ -1,7 +1,6 @@
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
+from PyQt6.QtCore import QSize
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtWidgets import QTableWidgetItem
@@ -81,6 +80,8 @@ class PlayerInfoDialog(FormClass, BaseClass):
         self.stats_charts = StatsCharts()
 
         self.achievements_handler = AchievementsHandler(self.verticalLayout_2, self.player_id)
+        self.leauges_img_dler = CachedImageDownloader(util.DIVISIONS_CACHE_DIR, QSize(160, 80))
+
         self._restore_geometry_from_settings()
 
     def _restore_geometry_from_settings(self) -> None:
@@ -103,7 +104,12 @@ class PlayerInfoDialog(FormClass, BaseClass):
 
     def process_player_ratings(self, ratings: dict[str, list[LeaderboardRating]]) -> None:
         for rating in ratings["values"]:
-            widget = league_formatter_factory(self.player_id, rating, self.leagues_api)
+            widget = league_formatter_factory(
+                self.player_id,
+                rating,
+                self.leagues_api,
+                self.leauges_img_dler,
+            )
             self.leaguesLayout.addWidget(widget)
         pie_chart = self.stats_charts.game_types_played(ratings["values"])
         self.tab_widget_ctrl.setup(ratings["values"])
