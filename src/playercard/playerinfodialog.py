@@ -86,6 +86,7 @@ class PlayerInfoDialog(FormClass, BaseClass):
         self.player_events: list[PlayerEvent] = []
 
         self._restore_geometry_from_settings()
+        self._loaded_tabs: set[int] = set()
 
     def _restore_geometry_from_settings(self) -> None:
         with Settings.group("playercard") as settings:
@@ -99,6 +100,8 @@ class PlayerInfoDialog(FormClass, BaseClass):
         self.exec()
 
     def on_tab_changed(self, index: int) -> None:
+        if index in self._loaded_tabs:
+            return
         if self.mainTabWidget.currentWidget() == self.achievementsTab:
             self.achievements_handler.run()
         elif self.mainTabWidget.currentWidget() == self.statsTab:
@@ -108,6 +111,7 @@ class PlayerInfoDialog(FormClass, BaseClass):
                 self.statsChartsLayout.addWidget(chartview)
         elif self.mainTabWidget.currentWidget() == self.clan_tab and self.player is not None:
             self.clan_tab.set_membership(self.player.custom_clan_membership)
+        self._loaded_tabs.add(index)
 
     def process_player_ratings(self, ratings: dict[str, list[LeaderboardRating]]) -> None:
         for rating in ratings["values"]:
