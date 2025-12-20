@@ -179,7 +179,7 @@ class ClientWindow(FormClass, BaseClass):
         tray_menu = QtWidgets.QMenu()
         tray_menu.addAction("Open Client", self.show_normal)
         tray_menu.addSeparator()
-        tray_menu.addAction("Kill FA process", fa.instance.kill_if_running)
+        tray_menu.addAction("Kill FA process", fa.kill_all_if_running)
         tray_menu.addAction("Quit Client", self.close)
         self.tray.setContextMenu(tray_menu)
         # Mouse down on tray icon deactivates the application.

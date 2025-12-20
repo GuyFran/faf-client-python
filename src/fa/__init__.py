@@ -11,6 +11,7 @@ from . import mods
 from . import replayserver
 from . import wizards
 from .game_process import instance
+from .game_process import kill_all_if_running
 from .game_process import replay_instance
 from .play import run
 from .replay import replay
@@ -20,6 +21,7 @@ __all__ = (
     "factions",
     "game_updater",
     "instance",
+    "kill_all_if_running",
     "maps",
     "mods",
     "replay",
