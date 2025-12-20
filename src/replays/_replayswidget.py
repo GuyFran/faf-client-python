@@ -139,8 +139,8 @@ class LiveReplayItem(QtWidgets.QTreeWidgetItem):
         playerid = client.instance.players.getID(name)
         return client.instance.user_relations.model.is_friend(playerid)
 
-    def _is_online(self, name):
-        return name in client.instance.players
+    def _is_online(self, name: str) -> bool:
+        return client.instance.players.get_by_name(name) is not None
 
     def _set_color(self, game):
         my_game = any(self._is_me(p) for p in game.players)
