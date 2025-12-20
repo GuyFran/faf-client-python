@@ -2,6 +2,8 @@ import importlib.util
 import sys
 from types import ModuleType
 
+from PyQt6.QtCore import QThread
+
 
 def lazy_import(name: str, backup_name: str = "") -> ModuleType:
     try:
@@ -23,3 +25,14 @@ def lazy_import(name: str, backup_name: str = "") -> ModuleType:
 np = lazy_import("numpy")
 pg = lazy_import("pyqtgraph")
 scipy_ndimage = lazy_import("scipy_ndimage.ndimage._filters", "scipy")
+
+
+class _BackgroundImporter(QThread):
+    def run(self) -> None:
+        dir(pg)
+        dir(np)
+        dir(scipy_ndimage)
+        self.quit()
+
+
+BackgroundImporter = _BackgroundImporter()
