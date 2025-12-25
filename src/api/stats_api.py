@@ -64,6 +64,7 @@ class LeaderboardRatingJournalApiConnector(ApiAccessor):
             ),
             "sort": "-gamePlayerStats.scoreTime",
         }
+        self.replies: list[QNetworkReply] = []
 
     def handle_page(self, message: PreProcessedApiResponse) -> None:
         self.ratings_ready.emit(message)
@@ -74,10 +75,18 @@ class LeaderboardRatingJournalApiConnector(ApiAccessor):
             "page[number]": page,
             "page[totals]": "",
         })
-        self.get_by_query(self.query, self.handle_page, self.on_error)
+        self.replies.append(self.get_by_query(self.query, self.handle_page, self.on_error))
 
     def on_error(self, reply: QNetworkReply) -> None:
         self.api_error.emit(reply.errorString())
+
+    def abort(self) -> None:
+        for reply in self.replies:
+            try:
+                reply.abort()
+            except RuntimeError:
+                pass
+        self.replies.clear()
 
 
 class LeagueSeasonScoreApiConnector(DataApiAccessor):
@@ -100,9 +109,6 @@ class LeagueSeasonScoreApiConnector(DataApiAccessor):
             f"leagueSeason.startDate=le={utc_str}",
             f"leagueSeason.endDate=ge={utc_str}",
         )
-
-    def prepare_data(self,  message: dict) -> dict[str, list[LeagueSeasonScore]]:
-        return {"values": [LeagueSeasonScore(**entry) for entry in message["data"]]}
 
     def handle_score(self, message: dict) -> None:
         if message["data"]:

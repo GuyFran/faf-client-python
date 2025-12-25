@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 from typing import TYPE_CHECKING
 
@@ -9,6 +7,7 @@ from src import config
 from src import fa
 from src import util
 from src.fa.game_updater.misc import UpdaterResult
+from src.fa.game_updater.updater import FilesObtainer
 from src.fa.game_updater.updater import Updater
 from src.fa.game_updater.worker import UpdaterWorker
 from src.fa.mods import checkMods
@@ -119,8 +118,9 @@ def check(
     )
 
     # Spawn an update for the required mod
-    worker = UpdaterWorker(target_dir, featured_mod, version, mod_versions)
-    game_updater = Updater(client.instance, worker)
+    files_obtainer = FilesObtainer(featured_mod, version, mod_versions)
+    worker = UpdaterWorker(target_dir, featured_mod, version)
+    game_updater = Updater(client.instance, files_obtainer, worker)
     result = game_updater.run()
 
     if result != UpdaterResult.SUCCESS:

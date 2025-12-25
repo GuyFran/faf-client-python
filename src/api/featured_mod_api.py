@@ -1,9 +1,10 @@
 import logging
 
+from PyQt6.QtCore import pyqtSignal
+
 from src.api.ApiAccessors import DataApiAccessor
 from src.api.models.FeaturedMod import FeaturedMod
 from src.api.models.FeaturedModFile import FeaturedModFile
-from src.api.parsers.FeaturedModFileParser import FeaturedModFileParser
 from src.api.parsers.FeaturedModParser import FeaturedModParser
 
 logger = logging.getLogger(__name__)
@@ -16,28 +17,24 @@ class FeaturedModApiConnector(DataApiAccessor):
     def prepare_data(self, message: dict) -> dict[str, list[FeaturedMod]]:
         return {"values": FeaturedModParser.parse_many(message["data"])}
 
-    def handle_featured_mod(self, message: dict) -> None:
-        self.featured_mod = FeaturedModParser.parse(message["data"][0])
-
     def request_fmod_by_name(self, technical_name: str) -> None:
         queryDict = {"filter": f"technicalName=={technical_name}"}
-        self.get_by_query(queryDict, self.handle_featured_mod)
-
-    def request_and_get_fmod_by_name(self, technical_name: str) -> FeaturedMod:
-        self.request_fmod_by_name(technical_name)
-        self.waitForCompletion()
-        return self.featured_mod
+        self.reply = self.requestData(queryDict)
 
 
 class FeaturedModFilesApiConnector(DataApiAccessor):
-    def __init__(self, mod_id: str, version: str) -> None:
-        super().__init__(f"/featuredMods/{mod_id}/files/{version}")
-        self.featured_mod_files = []
+    main_ready = pyqtSignal(dict)
+    mod_ready = pyqtSignal(dict)
 
-    def handle_response(self, message: dict) -> None:
-        self.featured_mod_files = FeaturedModFileParser.parse_many(message["data"])
+    def prepare_data(self, message: dict) -> dict:
+        return {"values": [FeaturedModFile(**file) for file in message["data"]]}
 
-    def get_files(self) -> list[FeaturedModFile]:
-        self.requestData()
-        self.waitForCompletion()
-        return self.featured_mod_files
+    def endpoint(self, mod_id: str, version: int | None = None) -> str:
+        version_str = str(version) if version else "latest"
+        return f"/featuredMods/{mod_id}/files/{version_str}"
+
+    def get_main_files(self, mod_id: str, version: int | None = None) -> None:
+        self.get_by_endpoint(self.endpoint(mod_id, version), self.main_ready.emit)
+
+    def get_mod_files(self, mod_id: str, version: int | None = None) -> None:
+        self.get_by_endpoint(self.endpoint(mod_id, version), self.mod_ready.emit)

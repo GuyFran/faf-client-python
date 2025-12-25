@@ -44,7 +44,7 @@ class VaultsApiConnector(DataApiAccessor):
     def request_data(self, query_options: QueryOptions | None = None) -> None:
         query = self._copy_query_options(query_options)
         self._extend_query_options(query)
-        self.get_by_query(query, self.handle_response)
+        self.requestData(query)
 
     def _add_default_includes(self, query_options: QueryOptions) -> QueryOptions:
         if not self._includes:

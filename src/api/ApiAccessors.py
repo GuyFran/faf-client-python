@@ -1,28 +1,28 @@
 import logging
 from collections.abc import Callable
 from typing import Any
-from typing import cast
 
+from PyQt6.QtCore import QByteArray
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtNetwork import QNetworkReply
 
-from src.api.ApiBase import ApiBase
 from src.api.ApiBase import ApiResourceObject
 from src.api.ApiBase import ApiResponse
+from src.api.ApiBase import JsonApiBase
 from src.api.ApiBase import PreParsedApiResponse
-from src.api.ApiBase import PreProcessedApiResponse
 from src.api.ApiBase import QueryOptions
+from src.api.ApiBase import _do_nothing
 
 logger = logging.getLogger(__name__)
 
 
-class ApiAccessor(ApiBase):
+class ApiAccessor(JsonApiBase):
     def __init__(self, route: str = "") -> None:
         super().__init__(route)
         self.host_config_key = "api"
 
 
-class UserApiAccessor(ApiBase):
+class UserApiAccessor(JsonApiBase):
     def __init__(self, route: str = "") -> None:
         super().__init__(route)
         self.host_config_key = "user_api"
@@ -30,6 +30,55 @@ class UserApiAccessor(ApiBase):
 
 class DataApiAccessor(ApiAccessor):
     data_ready = pyqtSignal(dict)
+
+    def parse_response(self, response: ApiResponse) -> dict[str, Any]:
+        return self.prepare_data(self.parse_message(response))
+
+    def _parse_and_handle(
+        self,
+        handler: Callable[[dict[str, Any]], Any],
+    ) -> Callable[[ApiResponse], None]:
+        def handle(response: ApiResponse) -> None:
+            handler(self.parse_response(response))
+        return handle
+
+    def get_by_query(
+        self,
+        query: QueryOptions,
+        response_handler: Callable[[dict[str, Any]], None],
+        error_handler: Callable[[QNetworkReply], None] = _do_nothing,
+    ) -> QNetworkReply:  # type: ignore[override]
+        return super().get_by_query(
+            query,
+            self._parse_and_handle(response_handler),
+            error_handler,
+        )
+
+    def get_by_endpoint(
+        self,
+        endpoint: str,
+        response_handler: Callable[[dict[str, Any]], None],
+        error_handler: Callable[[QNetworkReply], None] = _do_nothing,
+    ) -> QNetworkReply:  # type: ignore[override]
+        return super().get_by_endpoint(
+            endpoint,
+            self._parse_and_handle(response_handler),
+            error_handler,
+        )
+
+    def post(
+        self,
+        endpoint: str,
+        data: QByteArray,
+        response_handler: Callable[[dict[str, Any]], None] = _do_nothing,
+        error_handler: Callable[[QNetworkReply], None] = _do_nothing,
+    ) -> QNetworkReply:  # type: ignore[override]
+        return super().post(
+            endpoint,
+            data,
+            self._parse_and_handle(response_handler),
+            error_handler,
+        )
 
     def parse_message(self, message: ApiResponse) -> PreParsedApiResponse:
         included = self.parseIncluded(message)
@@ -61,9 +110,9 @@ class DataApiAccessor(ApiAccessor):
         return result
 
     def parseData(
-            self,
-            message: ApiResponse,
-            included: dict[str, Any],
+        self,
+        message: ApiResponse,
+        included: dict[str, Any],
     ) -> dict[str, Any] | list[dict[str, Any]]:
         if "data" in message:
             if isinstance(message["data"], (list)):
@@ -106,18 +155,15 @@ class DataApiAccessor(ApiAccessor):
         return {}
 
     def requestData(
-            self,
-            query_dict: QueryOptions | None = None,
-            error_handler: Callable[[QNetworkReply], None] | None = None,
-    ) -> None:
+        self,
+        query_dict: QueryOptions | None = None,
+        error_handler: Callable[[QNetworkReply], None] | None = None,
+    ) -> QNetworkReply:
         query_dict = query_dict or {}
         if error_handler is None:
-            self.get_by_query(query_dict, self.handle_response)
+            return self.get_by_query(query_dict, self.data_ready.emit)
         else:
-            self.get_by_query(query_dict, self.handle_response, error_handler)
+            return self.get_by_query(query_dict, self.data_ready.emit, error_handler)
 
-    def prepare_data(self, message: PreProcessedApiResponse) -> dict[str, Any]:
-        return cast(dict[str, Any], message)
-
-    def handle_response(self, message: PreProcessedApiResponse) -> None:
-        self.data_ready.emit(self.prepare_data(message))
+    def prepare_data(self, message: PreParsedApiResponse) -> dict[str, Any]:
+        return dict(message)

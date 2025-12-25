@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 import os
 import shutil
@@ -13,9 +11,6 @@ from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtNetwork import QNetworkAccessManager
 
 from src import util
-from src.api.featured_mod_api import FeaturedModApiConnector
-from src.api.featured_mod_api import FeaturedModFilesApiConnector
-from src.api.models.FeaturedMod import FeaturedMod
 from src.api.models.FeaturedModFile import FeaturedModFile
 from src.config import Settings
 from src.downloadManager import FileDownload
@@ -59,12 +54,10 @@ class UpdaterWorker(QObject):
         target_base_dir: str,
         featured_mod: str,
         version: int | None,
-        modversions: dict[str, int] | None,
     ) -> None:
         super().__init__()
         self.featured_mod = featured_mod
         self.version = version
-        self.modversions = modversions
 
         self.nam = QNetworkAccessManager(self)
         self.result = UpdaterResult.NONE
@@ -78,12 +71,6 @@ class UpdaterWorker(QObject):
         self.base_dir = target_base_dir
         self.bin_dir = os.path.join(self.base_dir, "bin")
         self.gamedata_dir = os.path.join(self.base_dir, "gamedata")
-
-    def get_files_to_update(self, mod_id: str, version: str) -> list[FeaturedModFile]:
-        return FeaturedModFilesApiConnector(mod_id, version).get_files()
-
-    def get_featured_mod_by_name(self, technical_name: str) -> FeaturedMod:
-        return FeaturedModApiConnector().request_and_get_fmod_by_name(technical_name)
 
     @staticmethod
     def _filter_files_to_update(
@@ -258,16 +245,8 @@ class UpdaterWorker(QObject):
                 return
 
     @check_interruption
-    def update_featured_mod(self, modname: str, modversion: str) -> list[FeaturedModFile]:
-        fmod = self.get_featured_mod_by_name(modname)
-        files = self.get_files_to_update(fmod.xd, modversion)
+    def update_featured_mod(self, files: list[FeaturedModFile]) -> None:
         self.update_files(files)
-        return files
-
-    def _resolve_modversion(self) -> str:
-        if self.modversions:
-            return str(max(self.modversions.values()))
-        return "latest"
 
     def _resolve_base_version(self, exe_info: FeaturedModFile | None = None) -> str:
         if self.version:
@@ -276,22 +255,23 @@ class UpdaterWorker(QObject):
             return str(exe_info.version)
         return "latest"
 
-    def do_update(self) -> None:
+    def do_update(self, files: tuple[list[FeaturedModFile], list[FeaturedModFile]]) -> None:
         """ The core function that does most of the actual update work."""
         try:
             # Prepare FAF directory & all necessary files
             self.prepare_bin_FAF()
             # Update the mod if it's requested
-            if self.featured_mod in ("faf", "fafbeta", "fafdevelop", "ladder1v1"):
-                self.current_mod.emit(ProgressInfo(1, 1, self.featured_mod))
-                self.update_featured_mod(self.featured_mod, self._resolve_base_version())
-            else:
+            main_files, fmod_files = files
+            if fmod_files:
                 # update faf first
                 self.current_mod.emit(ProgressInfo(1, 2, "FAF"))
-                self.update_featured_mod("faf", self._resolve_base_version())
+                self.update_featured_mod(main_files)
                 # update featured mod then
                 self.current_mod.emit(ProgressInfo(2, 2, self.featured_mod))
-                self.update_featured_mod(self.featured_mod, self._resolve_modversion())
+                self.update_featured_mod(fmod_files)
+            else:
+                self.current_mod.emit(ProgressInfo(1, 1, self.featured_mod))
+                self.update_featured_mod(main_files)
         except UpdaterCancellation as e:
             log(f"CANCELLED: {e}", logger)
             self.result = UpdaterResult.CANCEL
