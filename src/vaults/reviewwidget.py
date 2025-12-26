@@ -314,8 +314,8 @@ class ReviewDialog(QDialog):
             self.review = klass.model_construct(id="null", score=0, text="", version=item.version)
         else:
             self.review = review
-        self._rating = 0
-        self._hovered_rating = 0
+        self._rating = self.review.score
+        self._hovered_rating = self._rating
 
         self.star_rating = StarRatingWidget(self.review.score)
         self.star_rating.setMouseTracking(True)
@@ -351,6 +351,7 @@ class ReviewDialog(QDialog):
 
     def update_appearance(self) -> None:
         self.star_rating.set_rating(self.review.score)
+        self.ui.submitButton.setEnabled(self.review.score > 0)
         self.ui.commentTextEdit.setText(self.review.text)
         cursor = self.ui.commentTextEdit.textCursor()
         cursor.movePosition(cursor.MoveOperation.End)
