@@ -1,10 +1,9 @@
-from __future__ import annotations
-
 import re
 import time
 from datetime import datetime
 from datetime import timezone
 from functools import cache
+from operator import itemgetter
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import cast
@@ -335,11 +334,12 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
         if len(self.teams) == 1 or len(self.teams) == len(playersList):
             self.winner = mvp
         elif len(scores) > 0:  # team highscore
-            mvt = 0
-            for team in scores:
-                if scores[team] > mvt:
-                    self.teamWin = team
-                    mvt = scores[team]
+            sorted_scores = sorted(scores.items(), key=itemgetter(1), reverse=True)
+            self.teamWin, mvt = sorted_scores[0]
+            for team, score in sorted_scores[1:]:
+                if score >= mvt:
+                    self.teamWin = None
+                    break
 
     def generate_scoreboard(self) -> Scoreboard:
         if not self.extra_info_loaded:
