@@ -842,7 +842,7 @@ class ClientWindow(FormClass, BaseClass):
         )
 
         # warning setup
-        self.labelAutomatchInfo.hide()
+        self.labelStatusBarInfo.hide()
         self.warning = QtWidgets.QHBoxLayout()
 
         self.warnPlayer = QtWidgets.QLabel(self)
@@ -1807,6 +1807,8 @@ class ClientWindow(FormClass, BaseClass):
             self.game_session.gameFullSignal.connect(self.game_full.emit)
             self.game_session.game_launched.connect(lambda mode: self.game_launched.emit(mode))
             self.game_session.ready.connect(self.launch_game)
+            self.game_session.ice_poll_started.connect(self.on_ice_poll_started)
+            self.game_session.ice_poll_finished.connect(self.on_ice_poll_finished)
         elif self.game_session.game_uid is not None:
             self.lobby_connection.send({
                 'command': 'restore_game_session',
@@ -1850,8 +1852,8 @@ class ClientWindow(FormClass, BaseClass):
         logger.info("Handling match_found via JSON %s", message)
         self.warningHide()
         match_found_text = f"Match found! Pending game launch... [{message['queue_name']}]"
-        self.labelAutomatchInfo.setText(match_found_text)
-        self.labelAutomatchInfo.show()
+        self.labelStatusBarInfo.setText(match_found_text)
+        self.labelStatusBarInfo.show()
         self.games.handle_match_found(message)
         self.lobby_connection.send(dict(command="match_ready"))
 
@@ -1861,8 +1863,8 @@ class ClientWindow(FormClass, BaseClass):
         if self.game_session is None or message["game_id"] != self.game_session.game_uid:
             return
 
-        self.labelAutomatchInfo.setText("")
-        self.labelAutomatchInfo.hide()
+        self.labelStatusBarInfo.setText("")
+        self.labelStatusBarInfo.hide()
         fa.instance.kill_if_running()
         QtWidgets.QMessageBox.information(self, "Cancelled", "Automatch was cancelled by server")
 
@@ -1913,7 +1915,7 @@ class ClientWindow(FormClass, BaseClass):
         arguments: list[str] = []
         if message["game_type"] == GameType.MATCHMAKER.value:
             self.launching_ladder.emit(message)
-            self.labelAutomatchInfo.setText("Launching the game...")
+            self.labelStatusBarInfo.setText("Launching the game...")
             rating_type = message.get("rating_type", RatingType.GLOBAL.value)
             queue_name = MatchmakerQueueType.from_rating_type(rating_type)
             factionSubset = config.Settings.get_list(
@@ -1988,6 +1990,7 @@ class ClientWindow(FormClass, BaseClass):
         self.game_session.start_ice_adapter(message["uid"], lobby_mode)
 
     def launch_game(self, gpg_port: int) -> None:
+        self.labelStatusBarInfo.setText("Starting game process...")
         assert self.game_session is not None
         assert self.replayServer is not None
         self._game_runner.run_game_with_arguments(
@@ -2028,7 +2031,7 @@ class ClientWindow(FormClass, BaseClass):
             return
 
         players_in_range -= self.games.searching.get("ladder1v1", 0)
-        if players_in_range > 0 and not self.labelAutomatchInfo.isVisible():
+        if players_in_range > 0 and not self.labelStatusBarInfo.isVisible():
             self.warningShow()
         else:
             self.warningHide()
@@ -2166,3 +2169,11 @@ class ClientWindow(FormClass, BaseClass):
             "Game join failed",
             f"Failed to join game {message['uid']}: {pretty_reason}",
         )
+
+    def on_ice_poll_started(self) -> None:
+        self.labelStatusBarInfo.setText("Getting ICE Servers...")
+        self.warningHide()
+        self.labelStatusBarInfo.show()
+
+    def on_ice_poll_finished(self) -> None:
+        self.labelStatusBarInfo.setText("Launching ICE Adapter...")
