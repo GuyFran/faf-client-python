@@ -1,4 +1,5 @@
 from src.api.ApiAccessors import DataApiAccessor
+from src.api.ApiBase import ParsedApiResponse
 from src.api.models.CoopResult import CoopResult
 from src.api.models.CoopScenario import CoopScenario
 from src.api.parsers.CoopResultParser import CoopResultParser
@@ -12,8 +13,11 @@ class CoopApiAccessor(DataApiAccessor):
     def request_coop_scenarios(self) -> None:
         self.requestData({"include": "maps"})
 
-    def prepare_data(self, message: dict) -> dict[str, list[CoopScenario]]:
-        return {"values": CoopScenarioParser.parse_many(message["data"])}
+    def convert_parsed(
+        self,
+        parsed: ParsedApiResponse,
+    ) -> dict[str, list[CoopScenario]]:
+        return {"values": CoopScenarioParser.parse_many(parsed["data"])}
 
 
 class CoopResultApiAccessor(DataApiAccessor):
@@ -52,7 +56,10 @@ class CoopResultApiAccessor(DataApiAccessor):
             unique_teams.add(players_tuple)
         return unique_results
 
-    def prepare_data(self, message: dict) -> dict[str, list[CoopResult]]:
-        parsed = CoopResultParser.parse_many(message["data"])
+    def convert_parsed(
+        self,
+        parsed: ParsedApiResponse,
+    ) -> dict[str, list[CoopResult]]:
+        parsed = CoopResultParser.parse_many(parsed["data"])
         distinct = self.filter_unique_teams(parsed)
         return {"values": distinct}

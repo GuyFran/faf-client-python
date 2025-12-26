@@ -2,6 +2,7 @@ import json
 import logging
 from collections.abc import Callable
 from typing import Any
+from typing import Literal
 from typing import NotRequired
 from typing import TypedDict
 from typing import cast
@@ -31,15 +32,15 @@ class ApiResourceObject(TypedDict):
 class ApiResponse(TypedDict):
     data: ApiResourceObject | list[ApiResourceObject]
     included: NotRequired[list[ApiResourceObject]]
-    meta: NotRequired[dict[str, dict[str, int]]]
+    meta: NotRequired[dict[Literal["page"], dict[str, int]]]
 
 
-class PreParsedApiResponse(TypedDict):
+class ParsedApiResponse(TypedDict):
     data: dict[str, Any] | list[dict[str, Any]]
-    meta: NotRequired[dict[str, dict[str, int]]]
+    meta: NotRequired[dict[Literal["page"], dict[str, int]]]
 
 
-type PreProcessedApiResponse = ApiResponse | PreParsedApiResponse
+type PreProcessedApiResponse = ApiResponse | ParsedApiResponse
 type QueryOptions = dict[str, str | float]
 
 DO_NOT_ENCODE = QByteArray(b":/?&=.,")

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from operator import attrgetter
 
 from PyQt6.QtCore import QByteArray
@@ -17,8 +15,7 @@ from PyQt6.QtWidgets import QTableWidgetItem
 from PyQt6.QtWidgets import QWidget
 
 from src import util
-from src.api.ApiBase import ApiResponse
-from src.api.ApiBase import PreParsedApiResponse
+from src.api.ApiBase import ParsedApiResponse
 from src.api.ApiBase import PreProcessedApiResponse
 from src.api.models.Map import Map
 from src.api.models.MapVersion import MapVersion
@@ -91,7 +88,7 @@ class DetailsWidget[T: Map | Mod](QWidget):
     def ask_review(self) -> None:
         pass
 
-    def allow_review(self, response: ApiResponse) -> None:
+    def allow_review(self, response: ParsedApiResponse) -> None:
         pass
 
     def ask_file_size(self) -> None:
@@ -379,7 +376,7 @@ class DetailsWidget[T: Map | Mod](QWidget):
         self.item_availability_changed.emit()
         self.update_download_buttons_layout()
 
-    def on_reviews_data(self, message: PreParsedApiResponse) -> None:
+    def on_reviews_data(self, message: ParsedApiResponse) -> None:
         self._comments_initialized = True
         item_info = message["data"]
 

@@ -3,6 +3,7 @@ import logging
 from PyQt6.QtCore import pyqtSignal
 
 from src.api.ApiAccessors import DataApiAccessor
+from src.api.ApiBase import ParsedApiResponse
 from src.api.models.FeaturedMod import FeaturedMod
 from src.api.models.FeaturedModFile import FeaturedModFile
 from src.api.parsers.FeaturedModParser import FeaturedModParser
@@ -14,8 +15,11 @@ class FeaturedModApiConnector(DataApiAccessor):
     def __init__(self) -> None:
         super().__init__("/data/featuredMod")
 
-    def prepare_data(self, message: dict) -> dict[str, list[FeaturedMod]]:
-        return {"values": FeaturedModParser.parse_many(message["data"])}
+    def convert_parsed(
+        self,
+        parsed: ParsedApiResponse,
+    ) -> dict[str, list[FeaturedMod]]:
+        return {"values": FeaturedModParser.parse_many(parsed["data"])}
 
     def request_fmod_by_name(self, technical_name: str) -> None:
         queryDict = {"filter": f"technicalName=={technical_name}"}
@@ -26,15 +30,18 @@ class FeaturedModFilesApiConnector(DataApiAccessor):
     main_ready = pyqtSignal(dict)
     mod_ready = pyqtSignal(dict)
 
-    def prepare_data(self, message: dict) -> dict:
-        return {"values": [FeaturedModFile(**file) for file in message["data"]]}
+    def convert_parsed(
+        self,
+        parsed: ParsedApiResponse,
+    ) -> dict[str, list[FeaturedModFile]]:
+        return {"values": [FeaturedModFile(**file) for file in parsed["data"]]}
 
     def endpoint(self, mod_id: str, version: int | None = None) -> str:
         version_str = str(version) if version else "latest"
         return f"/featuredMods/{mod_id}/files/{version_str}"
 
     def get_main_files(self, mod_id: str, version: int | None = None) -> None:
-        self.get_by_endpoint(self.endpoint(mod_id, version), self.main_ready.emit)
+        self.get_by_endpoint_converted(self.endpoint(mod_id, version), self.main_ready.emit)
 
     def get_mod_files(self, mod_id: str, version: int | None = None) -> None:
-        self.get_by_endpoint(self.endpoint(mod_id, version), self.mod_ready.emit)
+        self.get_by_endpoint_converted(self.endpoint(mod_id, version), self.mod_ready.emit)

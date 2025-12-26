@@ -27,7 +27,7 @@ class PlayerApiConnector(DataApiAccessor):
             'fields[player]': 'login,names',
             'fields[nameRecord]': 'name,changeTime,player',
         }
-        self.get_by_query(queryDict, self.handleDataForAliasViewer)
+        self.get_by_query_parsed(queryDict, self.handleDataForAliasViewer)
 
     def handleDataForAliasViewer(self, message: dict) -> None:
         self.alias_info.emit(message)
@@ -37,7 +37,7 @@ class PlayerApiConnector(DataApiAccessor):
             "include": "avatarAssignments.avatar,names,clanMembership.clan.memberships.player",
             "filter": f"id=={player_id}",
         }
-        self.get_by_query(query, self.handle_player)
+        self.get_by_query_parsed(query, self.handle_player)
 
     def handle_player(self, message: PreProcessedApiResponse) -> None:
         player_dict, = message["data"]

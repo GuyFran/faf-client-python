@@ -270,14 +270,14 @@ class FilesObtainer(QObject):
         for group in self.fgroups:
             self.mod_api.request_fmod_by_name(group.name)
 
-    def process_fmod(self, data: dict[Literal["values"], list[FeaturedMod]]) -> None:
+    def process_fmod(self, data: dict[str, list[FeaturedMod]]) -> None:
         mod, = data["values"]
         if mod.name == self.fgroups[0].name:
             self.files_api.get_main_files(mod.xd, self.fgroups[0].version)
         else:
             self.files_api.get_mod_files(mod.xd, self.fgroups[1].version)
 
-    def process_main_files(self, data: dict[Literal["values"], list[FeaturedModFile]]) -> None:
+    def process_main_files(self, data: dict[str, list[FeaturedModFile]]) -> None:
         self.main_files = data["values"]
         self.check_finish()
 

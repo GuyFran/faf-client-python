@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Callable
 from typing import Any
+from typing import Literal
 
 from PyQt6.QtCore import QByteArray
 from PyQt6.QtCore import pyqtSignal
@@ -9,7 +10,7 @@ from PyQt6.QtNetwork import QNetworkReply
 from src.api.ApiBase import ApiResourceObject
 from src.api.ApiBase import ApiResponse
 from src.api.ApiBase import JsonApiBase
-from src.api.ApiBase import PreParsedApiResponse
+from src.api.ApiBase import ParsedApiResponse
 from src.api.ApiBase import QueryOptions
 from src.api.ApiBase import _do_nothing
 
@@ -31,58 +32,87 @@ class UserApiAccessor(JsonApiBase):
 class DataApiAccessor(ApiAccessor):
     data_ready = pyqtSignal(dict)
 
-    def parse_response(self, response: ApiResponse) -> dict[str, Any]:
-        return self.prepare_data(self.parse_message(response))
-
     def _parse_and_handle(
         self,
-        handler: Callable[[dict[str, Any]], Any],
+        handler: Callable[[ParsedApiResponse], Any],
     ) -> Callable[[ApiResponse], None]:
         def handle(response: ApiResponse) -> None:
-            handler(self.parse_response(response))
+            handler(self.parse_message(response))
         return handle
 
-    def get_by_query(
+    def get_by_query_parsed(
         self,
         query: QueryOptions,
-        response_handler: Callable[[dict[str, Any]], None],
+        response_handler: Callable[[ParsedApiResponse], None],
         error_handler: Callable[[QNetworkReply], None] = _do_nothing,
-    ) -> QNetworkReply:  # type: ignore[override]
-        return super().get_by_query(
+    ) -> QNetworkReply:
+        return self.get_by_query(
             query,
             self._parse_and_handle(response_handler),
             error_handler,
         )
 
-    def get_by_endpoint(
+    def get_by_endpoint_parsed(
         self,
         endpoint: str,
-        response_handler: Callable[[dict[str, Any]], None],
+        response_handler: Callable[[ParsedApiResponse], None],
         error_handler: Callable[[QNetworkReply], None] = _do_nothing,
-    ) -> QNetworkReply:  # type: ignore[override]
-        return super().get_by_endpoint(
+    ) -> QNetworkReply:
+        return self.get_by_endpoint(
             endpoint,
             self._parse_and_handle(response_handler),
             error_handler,
         )
 
-    def post(
+    def post_and_parse(
         self,
         endpoint: str,
         data: QByteArray,
-        response_handler: Callable[[dict[str, Any]], None] = _do_nothing,
+        response_handler: Callable[[ParsedApiResponse], None] = _do_nothing,
         error_handler: Callable[[QNetworkReply], None] = _do_nothing,
-    ) -> QNetworkReply:  # type: ignore[override]
-        return super().post(
+    ) -> QNetworkReply:
+        return self.post(
             endpoint,
             data,
             self._parse_and_handle(response_handler),
             error_handler,
         )
 
-    def parse_message(self, message: ApiResponse) -> PreParsedApiResponse:
+    def _convert_and_handle(
+        self,
+        handler: Callable[[dict[str, Any]], None],
+    ) -> Callable[[ApiResponse], None]:
+        def handle(response: ApiResponse) -> None:
+            handler(self.convert_parsed(self.parse_message(response)))
+        return handle
+
+    def get_by_query_converted(
+        self,
+        query: QueryOptions,
+        response_handler: Callable[[dict[str, Any]], None],
+        error_handler: Callable[[QNetworkReply], None] = _do_nothing,
+    ) -> QNetworkReply:
+        return self.get_by_query(
+            query,
+            self._convert_and_handle(response_handler),
+            error_handler,
+        )
+
+    def get_by_endpoint_converted(
+        self,
+        endpoint: str,
+        response_handler: Callable[[dict[str, Any]], None],
+        error_handler: Callable[[QNetworkReply], None] = _do_nothing,
+    ) -> QNetworkReply:
+        return self.get_by_endpoint(
+            endpoint,
+            self._convert_and_handle(response_handler),
+            error_handler,
+        )
+
+    def parse_message(self, message: ApiResponse) -> ParsedApiResponse:
         included = self.parseIncluded(message)
-        result: PreParsedApiResponse = {"data": {}}
+        result: ParsedApiResponse = {"data": {}}
         result["data"] = self.parseData(message, included)
         result["meta"] = self.parseMeta(message)
         return result
@@ -149,10 +179,10 @@ class DataApiAccessor(ApiAccessor):
             logger.error("Erorr parsing %s: %s", data, e)
         return result
 
-    def parseMeta(self, message: ApiResponse) -> dict[str, float]:
+    def parseMeta(self, message: ApiResponse) -> dict[Literal["page"], dict[str, int]]:
         if "meta" in message:
             return message["meta"]
-        return {}
+        return {"page": {}}
 
     def requestData(
         self,
@@ -161,9 +191,9 @@ class DataApiAccessor(ApiAccessor):
     ) -> QNetworkReply:
         query_dict = query_dict or {}
         if error_handler is None:
-            return self.get_by_query(query_dict, self.data_ready.emit)
+            return self.get_by_query_converted(query_dict, self.data_ready.emit)
         else:
-            return self.get_by_query(query_dict, self.data_ready.emit, error_handler)
+            return self.get_by_query_converted(query_dict, self.data_ready.emit, error_handler)
 
-    def prepare_data(self, message: PreParsedApiResponse) -> dict[str, Any]:
-        return dict(message)
+    def convert_parsed(self, parsed: ParsedApiResponse) -> dict[str, Any]:
+        raise NotImplementedError

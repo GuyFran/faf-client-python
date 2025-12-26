@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import QTextEdit
 from PyQt6.QtWidgets import QVBoxLayout
 from PyQt6.QtWidgets import QWidget
 
-from src.api.ApiBase import PreParsedApiResponse
+from src.api.ApiBase import ParsedApiResponse
 from src.api.models.Map import Map
 from src.api.models.MapVersionReview import MapVersionReview
 from src.api.models.Mod import Mod
@@ -327,7 +327,7 @@ class ReviewDialog(QDialog):
         self.ui = ReviewDialogUi()
         self.init_ui()
 
-    def on_reviews_data(self, message: PreParsedApiResponse) -> None:
+    def on_reviews_data(self, message: ParsedApiResponse) -> None:
         self.setEnabled(True)
         if not (data := message["data"]):
             return

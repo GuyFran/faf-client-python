@@ -2,14 +2,13 @@ import logging
 from collections.abc import Callable
 from collections.abc import Sequence
 from typing import Any
-from typing import Literal
 from typing import cast
 
 from PyQt6.QtCore import QByteArray
 from PyQt6.QtNetwork import QNetworkReply
 
 from src.api.ApiAccessors import DataApiAccessor
-from src.api.ApiBase import PreProcessedApiResponse
+from src.api.ApiBase import ParsedApiResponse
 from src.api.ApiBase import QueryOptions
 from src.api.models.Map import Map
 from src.api.models.MapVersion import MapVersion
@@ -78,10 +77,10 @@ class ModApiConnector(VaultsApiConnector):
         self._extend_includes(query_options, ["uploader"])
         return query_options
 
-    def prepare_data(self, message: PreProcessedApiResponse) -> dict[str, Any]:
+    def convert_parsed(self, parsed: ParsedApiResponse) -> dict[str, Any]:
         return {
-            "values": ModParser.parse_many(message["data"]),
-            "meta": message["meta"],
+            "values": ModParser.parse_many(parsed["data"]),
+            "meta": parsed["meta"],
         }
 
 
@@ -93,10 +92,10 @@ class MapApiConnector(VaultsApiConnector):
         super()._extend_query_options(query_options)
         return self._extend_includes(query_options, ["author"])
 
-    def prepare_data(self, message: PreProcessedApiResponse) -> dict[str, Any]:
+    def convert_parsed(self, parsed: ParsedApiResponse) -> dict[str, Any]:
         return {
-            "values": MapParser.parse_many(message["data"]),
-            "meta": message["meta"],
+            "values": MapParser.parse_many(parsed["data"]),
+            "meta": parsed["meta"],
         }
 
 
@@ -115,12 +114,12 @@ class MapPoolApiConnector(VaultsApiConnector):
         self._filters = (f"matchmakerQueue.technicalName=={name!r}",)
         self.request_data()
 
-    def prepare_data(
+    def convert_parsed(
         self,
-        message: PreProcessedApiResponse,
-    ) -> dict[Literal["values"], list[MatchmakerQueueMapPool]]:
+        parsed: ParsedApiResponse,
+    ) -> dict[str, list[MatchmakerQueueMapPool]]:
         return {
-            "values": [MatchmakerQueueMapPool(**pool_data) for pool_data in message["data"]],
+            "values": [MatchmakerQueueMapPool(**pool_data) for pool_data in parsed["data"]],
         }
 
 
@@ -129,6 +128,11 @@ class ReviewsApiConnector(VaultsApiConnector):
         super().__init__("")
         self._includes: tuple[str, ...] = tuple()
         self._filters: tuple[str, ...] = tuple()
+
+    def request_data(self, query_options: QueryOptions | None = None) -> None:
+        query = self._copy_query_options(query_options)
+        self._extend_query_options(query)
+        self.get_by_query_parsed(query, self.data_ready.emit)
 
     def request_reviews(self, item: Map | Mod) -> None:
         self.route = f"/data/{item.__class__.__name__.lower()}/{item.xd}"
@@ -163,15 +167,15 @@ class ReviewsApiConnector(VaultsApiConnector):
         self.request_data(cast(QueryOptions, query))
 
     def submit_review(
-            self,
-            version: MapVersion | ModVersion,
-            payload: QByteArray,
-            handler: Callable[[PreProcessedApiResponse], None],
-            error_handler: Callable[[QNetworkReply], None],
+        self,
+        version: MapVersion | ModVersion,
+        payload: QByteArray,
+        handler: Callable[[dict[str, Any]], None],
+        error_handler: Callable[[QNetworkReply], None],
     ) -> None:
         json_api_name = decapitalize(version.__class__.__name__)
         endpoint = f"/data/{json_api_name}/{version.xd}/reviews"
-        self.post(endpoint, payload, handler, error_handler)
+        self.post_and_parse(endpoint, payload, handler, error_handler)
 
     def delete_review(
             self,

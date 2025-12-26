@@ -1,6 +1,7 @@
 import logging
 
 from src.api.ApiAccessors import DataApiAccessor
+from src.api.ApiBase import ParsedApiResponse
 
 logger = logging.getLogger(__name__)
 
@@ -9,13 +10,12 @@ class MatchmakerQueueApiConnector(DataApiAccessor):
     def __init__(self) -> None:
         super().__init__('/data/matchmakerQueue')
 
-    def prepare_data(self, message: dict) -> None:
-        prepared_data = {
-            "command": "matchmaker_queue_info",
-            "values": [],
-            "meta": message["meta"],
-        }
-        for queue in message["data"]:
+    def convert_parsed(
+        self,
+        parsed: ParsedApiResponse,
+    ) -> dict[str, list[dict[str, str | int]]]:
+        prepared_data = {"values": []}
+        for queue in parsed["data"]:
             preparedQueue = {
                 "technicalName": queue["technicalName"],
                 "ratingType": queue["leaderboard"]["technicalName"],
