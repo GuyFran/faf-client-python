@@ -84,7 +84,6 @@ QTabWidget
     background-color:#383838;
     color: silver;
     min-width: 80px;
-    padding:4px;
 }
 
 QTabWidget::pane
