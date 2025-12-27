@@ -496,8 +496,9 @@ class CachedImageDownloader(ImageDownloader):
     def _try_load_from_disk(self, name: str) -> QPixmap | None:
         try:
             pix = QPixmap(self._images_index[name])
-            self.images[name] = pix if self._size is None else pix.scaled(self._size)
-            return pix
+            scaled = pix if self._size is None else pix.scaled(self._size)
+            self.images[name] = scaled
+            return scaled
         except KeyError:
             return None
 
