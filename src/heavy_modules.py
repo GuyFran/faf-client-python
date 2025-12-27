@@ -32,7 +32,7 @@ class _BackgroundImporter(QThread):
         dir(pg)
         dir(np)
         dir(scipy_ndimage)
-        self.quit()
 
 
 BackgroundImporter = _BackgroundImporter()
+BackgroundImporter.finished.connect(BackgroundImporter.deleteLater)

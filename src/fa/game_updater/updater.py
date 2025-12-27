@@ -183,6 +183,7 @@ class Updater(QObject):
 
         self.worker_thread = QThread()
         self.worker.moveToThread(self.worker_thread)
+        self.worker_thread.finished.connect(self.worker.deleteLater)
 
         self.files_obtainer = obtainer
         self.files_obtainer.finished.connect(self.progress.on_started)
