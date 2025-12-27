@@ -83,7 +83,7 @@ class PlayerInfoDialog(FormClass, BaseClass):
         self.stats_charts = StatsCharts()
 
         self.achievements_handler = AchievementsHandler(self.verticalLayout_2, self.player_id)
-        self.leauges_img_dler = CachedImageDownloader(util.DIVISIONS_CACHE_DIR, QSize(160, 80))
+        self.leagues_img_dler = CachedImageDownloader(util.DIVISIONS_CACHE_DIR, QSize(160, 80))
 
         self.player: Player | None = None
         self.player_ratings: list[LeaderboardRating] = []
@@ -123,7 +123,7 @@ class PlayerInfoDialog(FormClass, BaseClass):
                 self.player_id,
                 rating,
                 self.leagues_api,
-                self.leauges_img_dler,
+                self.leagues_img_dler,
             )
             self.leaguesLayout.addWidget(widget)
         self.tab_widget_ctrl.setup(ratings["values"])
