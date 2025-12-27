@@ -17,8 +17,6 @@ from src.api.models.MatchmakerQueueMapPool import MatchmakerQueueMapPool
 from src.api.models.Mod import Mod
 from src.api.models.ModVersion import ModVersion
 from src.api.models.ModVersionReview import ModVersionReview
-from src.api.parsers.MapParser import MapParser
-from src.api.parsers.ModParser import ModParser
 from src.model.player import Player
 from src.util import decapitalize
 
@@ -79,7 +77,7 @@ class ModApiConnector(VaultsApiConnector):
 
     def convert_parsed(self, parsed: ParsedApiResponse) -> dict[str, Any]:
         return {
-            "values": ModParser.parse_many(parsed["data"]),
+            "values": [Mod(**entry) for entry in parsed["data"]],
             "meta": parsed["meta"],
         }
 
@@ -92,9 +90,17 @@ class MapApiConnector(VaultsApiConnector):
         super()._extend_query_options(query_options)
         return self._extend_includes(query_options, ["author"])
 
+    def _convert_mapversion(self, map_info: dict[str, Any], version_info: dict[str, Any]) -> Map:
+        map_model = Map(**map_info)
+        map_model.version = MapVersion(**version_info)
+        return map_model
+
     def convert_parsed(self, parsed: ParsedApiResponse) -> dict[str, Any]:
         return {
-            "values": MapParser.parse_many(parsed["data"]),
+            "values": [
+                self._convert_mapversion(info, info["latestVersion"])
+                for info in parsed["data"]
+            ],
             "meta": parsed["meta"],
         }
 

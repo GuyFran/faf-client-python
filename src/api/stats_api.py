@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Iterator
+from operator import methodcaller
 from typing import cast
 
 from PyQt6.QtCore import QDateTime
@@ -14,11 +15,10 @@ from src.api.ApiBase import PreProcessedApiResponse
 from src.api.ApiBase import QueryOptions
 from src.api.models.Achievement import Achievement
 from src.api.models.Leaderboard import Leaderboard
+from src.api.models.LeaderboardRating import LeaderboardRating
 from src.api.models.LeagueSeasonScore import LeagueSeasonScore
 from src.api.models.PlayerAchievement import PlayerAchievement
 from src.api.models.PlayerEvent import PlayerEvent
-from src.api.parsers.LeaderboardParser import LeaderboardParser
-from src.api.parsers.LeaderboardRatingParser import LeaderboardRatingParser
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +36,12 @@ class LeaderboardRatingApiConnector(DataApiAccessor):
         }
         self.get_by_query_parsed(query, self.handle_player_ratings)
 
-    def handle_player_ratings(self, message: dict) -> None:
-        ratings = {"values": LeaderboardRatingParser.parse_many(message)}
-        self.player_ratings_ready.emit(ratings)
+    def handle_player_ratings(self, message: ParsedApiResponse) -> None:
+        ratings = sorted(
+            [LeaderboardRating(**entry) for entry in message["data"]],
+            key=lambda rating: rating.leaderboard.order() if rating.leaderboard is not None else 0,
+        )
+        self.player_ratings_ready.emit({"values": ratings})
 
 
 class LeaderboardApiConnector(DataApiAccessor):
@@ -49,7 +52,12 @@ class LeaderboardApiConnector(DataApiAccessor):
         self,
         parsed: ParsedApiResponse,
     ) -> dict[str, list[Leaderboard]]:
-        return {"values": LeaderboardParser.parse_many(parsed)}
+        return {
+            "values": sorted(
+                [Leaderboard(**entry) for entry in parsed["data"]],
+                key=methodcaller("order"),
+            ),
+        }
 
 
 class LeaderboardRatingJournalApiConnector(ApiAccessor):

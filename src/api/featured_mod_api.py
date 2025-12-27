@@ -6,7 +6,6 @@ from src.api.ApiAccessors import DataApiAccessor
 from src.api.ApiBase import ParsedApiResponse
 from src.api.models.FeaturedMod import FeaturedMod
 from src.api.models.FeaturedModFile import FeaturedModFile
-from src.api.parsers.FeaturedModParser import FeaturedModParser
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +18,7 @@ class FeaturedModApiConnector(DataApiAccessor):
         self,
         parsed: ParsedApiResponse,
     ) -> dict[str, list[FeaturedMod]]:
-        return {"values": FeaturedModParser.parse_many(parsed["data"])}
+        return {"values": [FeaturedMod(**modinfo) for modinfo in parsed["data"]]}
 
     def request_fmod_by_name(self, technical_name: str) -> None:
         queryDict = {"filter": f"technicalName=={technical_name}"}
