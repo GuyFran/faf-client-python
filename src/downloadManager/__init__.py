@@ -425,6 +425,9 @@ class ImageDownloader:
         self._nam.finished.connect(self._image_download_finished)
         self.save_dir = save_dir
 
+    def image_size(self) -> QSize | None:
+        return self._size
+
     def image_path(self, url: QUrl | str) -> str:
         return os.path.join(self.save_dir, self.image_name(url))
 

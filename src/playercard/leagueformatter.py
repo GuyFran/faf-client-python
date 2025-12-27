@@ -90,7 +90,8 @@ class LeagueFormatter(FormClass, BaseClass):
         self._downloader.download_if_needed(url, self._images_dl_request)
 
     def on_image_downloaded(self, _: str, pixmap: QPixmap) -> None:
-        self.set_league_icon(pixmap)
+        size = self._downloader.image_size()
+        self.set_league_icon(pixmap.scaled(size) if size else pixmap)
 
 
 class GlobalLeagueFormatter(LeagueFormatter):
