@@ -164,7 +164,7 @@ class PlotController:
     def __init__(self, widget: pg.PlotWidget) -> None:
         self.widget = widget
         self.widget.setBackground("#202025")
-        self.widget.setAxisItems({"bottom": pg.graphicsItems.DateAxisItem.DateAxisItem()})
+        self.widget.setAxisItems({"bottom": pg.DateAxisItem()})
         self.series = LineSeries()
         self.crosshairs = Crosshairs(self.widget, self.series)
         self.hide_scene_actions()
