@@ -23,6 +23,6 @@ class SimModFiles(DataApiAccessor):
 
     def request_and_get_sim_mod_url_by_id(self, uid: str) -> str:
         query_dict = {"filter": f"uid=={uid}"}
-        self.get_by_query_parsed(query_dict, self.get_url_from_message)
+        self.get_by_query_parsed(query_dict, self.get_url_from_message, self.ready.emit)
         self.wait_loop.exec()
         return self.mod_url
