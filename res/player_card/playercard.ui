@@ -353,7 +353,34 @@
            <item>
             <widget class="QLabel" name="label_8">
              <property name="text">
-              <string>Due to API restrictions, max 10 pages are loaded at first. Here is the button to try more:</string>
+              <string>Due to API restrictions, max</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QSpinBox" name="defaultRatingPagesSpinBox">
+             <property name="minimum">
+              <number>1</number>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_9">
+             <property name="text">
+              <string>pages are loaded at first. Here are the buttons to try more:</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="loadNextRatingHistoryPageButton">
+             <property name="minimumSize">
+              <size>
+               <width>120</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>Load next page</string>
              </property>
             </widget>
            </item>
@@ -366,7 +393,7 @@
               </size>
              </property>
              <property name="text">
-              <string>Load more</string>
+              <string>Load all</string>
              </property>
             </widget>
            </item>

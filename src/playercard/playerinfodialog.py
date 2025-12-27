@@ -42,6 +42,8 @@ class PlayerInfoDialog(FormClass, BaseClass):
     ) -> None:
         BaseClass.__init__(self, parent)
         self.setupUi(self)
+        rating_history_pages = Settings.get("playercard/defaultRatingPages", default=10, type=int)
+        self.defaultRatingPagesSpinBox.setValue(rating_history_pages)
         window_flags = (
             self.windowFlags()
             | Qt.WindowType.WindowMaximizeButtonHint
@@ -59,7 +61,9 @@ class PlayerInfoDialog(FormClass, BaseClass):
         self.tab_widget_ctrl = RatingTabWidgetController(
             player_id,
             self.ratingsTabWidget,
+            self.loadNextRatingHistoryPageButton,
             self.loadMoreRatingHistoryButton,
+            self.defaultRatingPagesSpinBox,
         )
         self.avatar_handler = AvatarHandler(self.avatarList, avatar_dler)
 
@@ -162,5 +166,6 @@ class PlayerInfoDialog(FormClass, BaseClass):
     def closeEvent(self, event: QCloseEvent) -> None:
         with Settings.group("playercard") as settings:
             settings.setValue("geometry", self.saveGeometry())
+            settings.setValue("defaultRatingPages", self.defaultRatingPagesSpinBox.value())
         self.tab_widget_ctrl.close()
         BaseClass.closeEvent(self, event)
