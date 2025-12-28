@@ -326,15 +326,8 @@ class ChatLineFormatter:
         if meta.player.avatar and meta.player.avatar():
             yield "avatar"
 
-    def _wrap_me(self, data: ChatLineMetadata) -> str:
-        text = data.line.text
-        if mention := data.meta.my_mention():
-            return text.replace(
-                data.meta.my_mention(),
-                f"<span class=\"my_mention\">{mention}</span>",
-            )
-        else:
-            return text
+    def _wrap_me(self, text: str, me: str) -> str:
+        return text.replace(me, f"<span class=\"my_mention\">{me}</span>")
 
     def format(self, data):
         tags = " ".join(self._line_tags(data))
@@ -351,10 +344,11 @@ class ChatLineFormatter:
         if data.line.type == ChatLineType.RAW:
             return text
 
+        mention = data.meta.my_mention()
         return self._chatline_template.format(
             time=stamp,
             sender=self._sender_name(data),
-            text=self._wrap_me(data),
+            text=self._wrap_me(text, mention) if mention else text,
             avatar=avatar,
             tags=tags,
         )
