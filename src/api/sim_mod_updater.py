@@ -19,7 +19,11 @@ class SimModFiles(DataApiAccessor):
         self.ready.connect(self.wait_loop.quit)
 
     def get_url_from_message(self, message: ParsedApiResponse) -> None:
-        self.mod_url = message["data"][0]["downloadUrl"]
+        assert isinstance(message["data"], list)
+        try:
+            self.mod_url = message["data"][0]["downloadUrl"]
+        except IndexError:
+            logger.warning("Mod was not found in the vault. Possibly custom and not uploaded")
         self.ready.emit()
 
     def request_and_get_sim_mod_url_by_id(self, uid: str) -> str:
