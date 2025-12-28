@@ -4,6 +4,7 @@ from PyQt6.QtCore import QEventLoop
 from PyQt6.QtCore import pyqtSignal
 
 from src.api.ApiAccessors import DataApiAccessor
+from src.api.ApiBase import ParsedApiResponse
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ class SimModFiles(DataApiAccessor):
         self.wait_loop = QEventLoop()
         self.ready.connect(self.wait_loop.quit)
 
-    def get_url_from_message(self, message: dict) -> str:
+    def get_url_from_message(self, message: ParsedApiResponse) -> None:
         self.mod_url = message["data"][0]["downloadUrl"]
         self.ready.emit()
 

@@ -11,7 +11,6 @@ from PyQt6.QtNetwork import QNetworkReply
 from src.api.ApiAccessors import ApiAccessor
 from src.api.ApiAccessors import DataApiAccessor
 from src.api.ApiBase import ParsedApiResponse
-from src.api.ApiBase import PreProcessedApiResponse
 from src.api.ApiBase import QueryOptions
 from src.api.models.Achievement import Achievement
 from src.api.models.Leaderboard import Leaderboard
@@ -77,16 +76,13 @@ class LeaderboardRatingJournalApiConnector(ApiAccessor):
         }
         self.replies: list[QNetworkReply] = []
 
-    def handle_page(self, message: PreProcessedApiResponse) -> None:
-        self.ratings_ready.emit(message)
-
     def get_history_page(self, page: int) -> None:
         self.query.update({
             "page[size]": 10000,
             "page[number]": page,
             "page[totals]": "",
         })
-        self.replies.append(self.get_by_query(self.query, self.handle_page, self.on_error))
+        self.replies.append(self.get_by_query(self.query, self.ratings_ready.emit, self.on_error))
 
     def on_error(self, reply: QNetworkReply) -> None:
         self.api_error.emit(reply.errorString())
