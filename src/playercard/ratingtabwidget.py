@@ -128,6 +128,8 @@ class RatingsPlotTab(QObject):
         return self._current_page >= self._default_pages
 
     def load_next_rating_page(self) -> None:
+        if self._current_page >= self._total_pages:
+            return
         if self._loaded:
             self._default_pages = self._current_page + 1
         self.load_ratings()
