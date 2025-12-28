@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import html
 import time
 from collections.abc import Callable
@@ -328,6 +326,16 @@ class ChatLineFormatter:
         if meta.player.avatar and meta.player.avatar():
             yield "avatar"
 
+    def _wrap_me(self, data: ChatLineMetadata) -> str:
+        text = data.line.text
+        if mention := data.meta.my_mention():
+            return text.replace(
+                data.meta.my_mention(),
+                f"<span class=\"my_mention\">{mention}</span>",
+            )
+        else:
+            return text
+
     def format(self, data):
         tags = " ".join(self._line_tags(data))
         avatar = self._avatar(data)
@@ -346,7 +354,7 @@ class ChatLineFormatter:
         return self._chatline_template.format(
             time=stamp,
             sender=self._sender_name(data),
-            text=text,
+            text=self._wrap_me(data),
             avatar=avatar,
             tags=tags,
         )
