@@ -1,7 +1,6 @@
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
+from PyQt6.QtCore import QSize
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtWidgets import QTableWidgetItem
@@ -35,21 +34,22 @@ FormClass, BaseClass = util.THEME.loadUiType("player_card/playercard.ui")
 
 class PlayerInfoDialog(FormClass, BaseClass):
     def __init__(
-            self,
-            avatar_dler: CachedImageDownloader,
-            player_id: str,
-            ctx_menu: PlayerContextMenu,
-            parent: QWidget | None = None,
+        self,
+        avatar_dler: CachedImageDownloader,
+        player_id: str,
+        ctx_menu: PlayerContextMenu,
+        parent: QWidget | None = None,
     ) -> None:
         BaseClass.__init__(self, parent)
         self.setupUi(self)
+        rating_history_pages = Settings.get("playercard/defaultRatingPages", default=10, type=int)
+        self.defaultRatingPagesSpinBox.setValue(rating_history_pages)
         window_flags = (
             self.windowFlags()
             | Qt.WindowType.WindowMaximizeButtonHint
             | Qt.WindowType.WindowCloseButtonHint
         )
         self.setWindowFlags(window_flags)
-        self.load_stylesheet()
 
         self.clan_tab = ClanMembershipTab(ctx_menu)
         self.mainTabWidget.addTab(self.clan_tab, "Clan")
@@ -61,7 +61,9 @@ class PlayerInfoDialog(FormClass, BaseClass):
         self.tab_widget_ctrl = RatingTabWidgetController(
             player_id,
             self.ratingsTabWidget,
+            self.loadNextRatingHistoryPageButton,
             self.loadMoreRatingHistoryButton,
+            self.defaultRatingPagesSpinBox,
         )
         self.avatar_handler = AvatarHandler(self.avatarList, avatar_dler)
 
@@ -81,15 +83,19 @@ class PlayerInfoDialog(FormClass, BaseClass):
         self.stats_charts = StatsCharts()
 
         self.achievements_handler = AchievementsHandler(self.verticalLayout_2, self.player_id)
+        self.leagues_img_dler = CachedImageDownloader(util.DIVISIONS_CACHE_DIR, QSize(160, 80))
+
+        self.player: Player | None = None
+        self.player_ratings: list[LeaderboardRating] = []
+        self.player_events: list[PlayerEvent] = []
+
         self._restore_geometry_from_settings()
+        self._loaded_tabs: set[int] = set()
 
     def _restore_geometry_from_settings(self) -> None:
         with Settings.group("playercard") as settings:
             self.restoreGeometry(settings.value("geometry", self.saveGeometry()))
             center_widget_on_screen(self)
-
-    def load_stylesheet(self) -> None:
-        self.setStyleSheet(util.THEME.readstylesheet("client/client.css"))
 
     def run(self) -> None:
         self.ratings_api.get_player_ratings(self.player_id)
@@ -98,16 +104,30 @@ class PlayerInfoDialog(FormClass, BaseClass):
         self.exec()
 
     def on_tab_changed(self, index: int) -> None:
+        if index in self._loaded_tabs:
+            return
         if self.mainTabWidget.currentWidget() == self.achievementsTab:
             self.achievements_handler.run()
+        elif self.mainTabWidget.currentWidget() == self.statsTab:
+            pie_chart = self.stats_charts.game_types_played(self.player_ratings)
+            self.statsChartsLayout.addWidget(pie_chart)
+            for chartview in self.stats_charts.player_events_charts(self.player_events):
+                self.statsChartsLayout.addWidget(chartview)
+        elif self.mainTabWidget.currentWidget() == self.clan_tab and self.player is not None:
+            self.clan_tab.set_membership(self.player.custom_clan_membership)
+        self._loaded_tabs.add(index)
 
     def process_player_ratings(self, ratings: dict[str, list[LeaderboardRating]]) -> None:
         for rating in ratings["values"]:
-            widget = league_formatter_factory(self.player_id, rating, self.leagues_api)
+            widget = league_formatter_factory(
+                self.player_id,
+                rating,
+                self.leagues_api,
+                self.leagues_img_dler,
+            )
             self.leaguesLayout.addWidget(widget)
-        pie_chart = self.stats_charts.game_types_played(ratings["values"])
         self.tab_widget_ctrl.setup(ratings["values"])
-        self.statsChartsLayout.addWidget(pie_chart)
+        self.player_ratings = ratings["values"]
 
     def process_player(self, player: Player) -> None:
         self.setWindowTitle(player.login)
@@ -125,7 +145,7 @@ class PlayerInfoDialog(FormClass, BaseClass):
             name = player.custom_clan_membership.custom_clan.name
             self.clanNameLabel.setText(f"[{tag}] ({name})")
             self.clanJoinedLabel.setText(util.utctolocal(player.custom_clan_membership.create_time))
-        self.clan_tab.set_membership(player.custom_clan_membership)
+        self.player = player
 
     def add_names(self, names: list[NameRecord] | None) -> None:
         if names is None:
@@ -141,11 +161,11 @@ class PlayerInfoDialog(FormClass, BaseClass):
         self.avatar_handler.populate_avatars(avatar_assignments)
 
     def process_player_events(self, events: list[PlayerEvent]) -> None:
-        for chartview in self.stats_charts.player_events_charts(events):
-            self.statsChartsLayout.addWidget(chartview)
+        self.player_events = events
 
     def closeEvent(self, event: QCloseEvent) -> None:
         with Settings.group("playercard") as settings:
             settings.setValue("geometry", self.saveGeometry())
+            settings.setValue("defaultRatingPages", self.defaultRatingPagesSpinBox.value())
         self.tab_widget_ctrl.close()
         BaseClass.closeEvent(self, event)

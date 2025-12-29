@@ -193,3 +193,8 @@ class ReplayProcess(GameProcess):
 
 instance = GameProcess()
 replay_instance = ReplayProcess()
+
+
+def kill_all_if_running() -> None:
+    instance.kill_if_running()
+    replay_instance.kill_if_running()

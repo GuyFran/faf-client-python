@@ -1,6 +1,3 @@
-from __future__ import annotations
-
-import pyqtgraph as pg
 from PyQt6.QtCore import QDateTime
 from PyQt6.QtCore import QObject
 from PyQt6.QtCore import QPointF
@@ -9,11 +6,13 @@ from PyQt6.QtCore import QThread
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtWidgets import QPushButton
+from PyQt6.QtWidgets import QSpinBox
 from PyQt6.QtWidgets import QTabWidget
 
 from src.api.ApiBase import PreProcessedApiResponse
 from src.api.models.LeaderboardRating import LeaderboardRating
 from src.api.stats_api import LeaderboardRatingJournalApiConnector
+from src.heavy_modules import pg
 from src.model.rating import Rating
 from src.playercard.plot import LineSeries
 from src.playercard.plot import PlotController
@@ -82,6 +81,7 @@ class RatingsPlotTab(QObject):
             player_id: str,
             rating: LeaderboardRating,
             plot: PlotController,
+            default_pages_box: QSpinBox,
     ) -> None:
         super().__init__()
         self.index = index
@@ -101,7 +101,9 @@ class RatingsPlotTab(QObject):
         self._total_pages = 1
         self._running = False
 
-        self._default_pages = 10
+        self.default_pages_box = default_pages_box
+        self.default_pages_box.valueChanged.connect(self.on_default_pages_changed)
+        self._default_pages = default_pages_box.value()
 
     def __del__(self) -> None:
         self.close()
@@ -113,6 +115,10 @@ class RatingsPlotTab(QObject):
         except RuntimeError:
             pass
 
+    def on_default_pages_changed(self, new_default: int) -> None:
+        if self._current_page == 0:
+            self._default_pages = new_default
+
     def enter(self) -> None:
         if self._current_page == 0:
             self.load_ratings()
@@ -120,6 +126,13 @@ class RatingsPlotTab(QObject):
     @property
     def _loaded(self) -> bool:
         return self._current_page >= self._default_pages
+
+    def load_next_rating_page(self) -> None:
+        if self._current_page >= self._total_pages:
+            return
+        if self._loaded:
+            self._default_pages = self._current_page + 1
+        self.load_ratings()
 
     def load_more_ratings(self) -> None:
         if self._loaded:
@@ -181,24 +194,38 @@ class RatingTabWidgetController:
         self,
         player_id: str,
         tab_widget: QTabWidget,
+        load_next_button: QPushButton,
         load_more_button: QPushButton,
+        default_pages_box: QSpinBox,
     ) -> None:
         self.player_id = player_id
         self.widget = tab_widget
         self.widget.currentChanged.connect(self.on_tab_changed)
+        load_next_button.clicked.connect(self.load_next_rating_page)
         load_more_button.clicked.connect(self.load_more_ratings)
+        self.default_pages_box = default_pages_box
 
         self.tabs: dict[int, RatingsPlotTab] = {}
 
     def setup(self, ratings: list[LeaderboardRating]) -> None:
         for index, rating in enumerate(ratings):
             widget = pg.PlotWidget()
-            tab = RatingsPlotTab(index, self.player_id, rating, PlotController(widget))
+            tab = RatingsPlotTab(
+                index,
+                self.player_id,
+                rating,
+                PlotController(widget),
+                self.default_pages_box,
+            )
             tab.name_changed.connect(self.widget.setTabText)
             tab.api_error.connect(self.on_api_error)
             self.tabs[index] = tab
             assert rating.leaderboard is not None
             self.widget.insertTab(index, widget, rating.leaderboard.pretty_name)
+
+    def load_next_rating_page(self) -> None:
+        index = self.widget.currentIndex()
+        self.tabs[index].load_next_rating_page()
 
     def load_more_ratings(self) -> None:
         index = self.widget.currentIndex()

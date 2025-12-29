@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import QWidget
 
 from src import util
 from src.api.ApiAccessors import DataApiAccessor
-from src.api.ApiBase import ApiResponse
+from src.api.ApiBase import ParsedApiResponse
 from src.api.models.Map import Map
 from src.fa import maps
 from src.fa.maps_.preview import create_largest_preview
@@ -31,17 +31,19 @@ class MapDetailsWidget(DetailsWidget[Map]):
         self.ui.thumbnailLabel.clicked.connect(self.preview_map_large)
 
         self.games_api = DataApiAccessor("/data/game")
-        self.games_api.data_ready.connect(self.allow_review)
 
     def _ask_if_played_map(self) -> None:
-        self.games_api.requestData({
-            "include": "playerStats",
-            "filter": (
-                f"playerStats.player.id=={self.player.id};"
-                f"mapVersion.id=={self.item_version.xd}"
-            ),
-            "page[size]": 1,
-        })
+        self.games_api.get_by_query_parsed(
+            {
+                "include": "playerStats",
+                "filter": (
+                    f"playerStats.player.id=={self.player.id};"
+                    f"mapVersion.id=={self.item_version.xd}"
+                ),
+                "page[size]": 1,
+            },
+            self.allow_review,
+        )
 
     def ask_review(self) -> None:
         if self.item_data.author is not None and self.item_data.author.login == self.player.login:
@@ -50,7 +52,7 @@ class MapDetailsWidget(DetailsWidget[Map]):
         else:
             self._ask_if_played_map()
 
-    def allow_review(self, response: ApiResponse) -> None:
+    def allow_review(self, response: ParsedApiResponse) -> None:
         map_played = len(response["data"]) > 0
         self.ui.addReviewButton.setEnabled(map_played)
         self.ui.detailedReviews.addCommentButton.setEnabled(map_played)

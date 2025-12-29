@@ -35,8 +35,11 @@ FormClass, BaseClass = util.THEME.loadUiType("vaults/vault.ui")
 class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
     def __init__(self, client: ClientWindow) -> None:
         BaseClass.__init__(self)
-        self.setupUi(self)
         self.client = client
+        self._loaded = False
+
+    def setup(self) -> None:
+        self.setupUi(self)
 
         self.searchButton.clicked.connect(self.search)
         self.searchInput.returnPressed.connect(self.search)
@@ -253,6 +256,9 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
 
     @QtCore.pyqtSlot()
     def busy_entered(self):
+        if not self._loaded:
+            self.setup()
+            self._loaded = True
         if not self._items:
             self.goToPage(self.pageNumber)
 

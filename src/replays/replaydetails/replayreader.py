@@ -460,6 +460,8 @@ class ReplayParser(QObject):
                 if country := self.army[id].get("Country", ""):
                     flagfile = self.get_country_img_path(country)
                     yield f"<td><img src=\"{flagfile}\" title=\"{country}\"/></td>"
+                else:
+                    yield "<td></td>"
                 yield f"<td><b>{self.army[id]["PlayerName"]}</b><br/>"
                 if "MEAN" in self.army[id] and "DEV" in self.army[id]:
                     rating = int(self.army[id]["MEAN"] - 3*self.army[id]["DEV"])

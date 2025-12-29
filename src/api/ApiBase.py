@@ -1,15 +1,13 @@
-from __future__ import annotations
-
 import json
 import logging
 from collections.abc import Callable
 from typing import Any
+from typing import Literal
 from typing import NotRequired
 from typing import TypedDict
+from typing import cast
 
-from PyQt6 import QtWidgets
 from PyQt6.QtCore import QByteArray
-from PyQt6.QtCore import QEventLoop
 from PyQt6.QtCore import QObject
 from PyQt6.QtCore import QUrl
 from PyQt6.QtCore import QUrlQuery
@@ -34,46 +32,42 @@ class ApiResourceObject(TypedDict):
 class ApiResponse(TypedDict):
     data: ApiResourceObject | list[ApiResourceObject]
     included: NotRequired[list[ApiResourceObject]]
-    meta: NotRequired[dict[str, dict[str, int]]]
+    meta: NotRequired[dict[Literal["page"], dict[str, int]]]
 
 
-class PreParsedApiResponse(TypedDict):
+class ParsedApiResponse(TypedDict):
     data: dict[str, Any] | list[dict[str, Any]]
-    meta: NotRequired[dict[str, dict[str, int]]]
+    meta: NotRequired[dict[Literal["page"], dict[str, int]]]
 
 
-type PreProcessedApiResponse = ApiResponse | PreParsedApiResponse
+type PreProcessedApiResponse = ApiResponse | ParsedApiResponse
 type QueryOptions = dict[str, str | float]
 
 DO_NOT_ENCODE = QByteArray(b":/?&=.,")
 
 
-class ApiBase(QObject):
-    oauth: OAuth2Flow = OAuth2FlowInstance
+def _do_nothing(*args: Any, **kwargs: Any) -> None:
+    pass
 
-    def __do_nothing(*args: Any, **kwargs: Any) -> None:
-        pass
 
+class JsonApiBase(QObject):
     def __init__(self, route: str = "") -> None:
-        QObject.__init__(self)
+        super().__init__()
         self.route = route
         self.host_config_key = ""
-        self.manager = QNetworkAccessManager()
-        self.manager.finished.connect(self.onRequestFinished)
-        self._running = False
-        self.handlers: dict[QNetworkReply, Callable[[PreProcessedApiResponse], Any]] = {}
-        self.non_get_handlers: dict[QNetworkReply, Callable[[QNetworkReply], Any]] = {}
-        self.error_handlers: dict[QNetworkReply, Callable[[QNetworkReply], Any]] = {}
+        self.api = ApiAccessManagerInstance
 
-    def set_route(self, route: str) -> None:
-        self.route = route
+    def _decode_and_handle(
+        self,
+        handler: Callable[[ApiResponse], Any],
+    ) -> Callable[[QNetworkReply], None]:
+        def handle(reply: QNetworkReply) -> None:
+            handler(self.decode_reply(reply))
+        return handle
 
-    def set_host_config_key(self, host_config_key: str) -> None:
-        self.host_config_key = host_config_key
-
-    @classmethod
-    def set_oauth(cls, oauth: OAuth2Flow) -> None:
-        cls.oauth = oauth
+    def decode_reply(self, reply: QNetworkReply) -> ApiResponse:
+        message_bytes = reply.readAll().data()
+        return cast(ApiResponse, json.loads(message_bytes.decode("utf-8")))
 
     def build_query_url(self, query_dict: QueryOptions) -> QUrl:
         query = QUrlQuery()
@@ -95,24 +89,73 @@ class ApiBase(QObject):
     def _url_from_endpoint(self, endpoint: str) -> QUrl:
         return self._get_host_url().resolved(QUrl(endpoint))
 
-    # query arguments like filter=login==Rhyza
     def get_by_query(
-            self,
-            query_dict: QueryOptions,
-            response_handler: Callable[[PreProcessedApiResponse], None],
-            error_handler: Callable[[QNetworkReply], None] = __do_nothing,
-    ) -> None:
-        url = self.build_query_url(query_dict)
-        self.get(url, response_handler, error_handler)
+        self,
+        query: QueryOptions,
+        response_handler: Callable[[ApiResponse], None],
+        error_handler: Callable[[QNetworkReply], None] = _do_nothing,
+    ) -> QNetworkReply:
+        url = self.build_query_url(query)
+        return self.api.get(url, self._decode_and_handle(response_handler), error_handler)
 
     def get_by_endpoint(
-            self,
-            endpoint: str,
-            response_handler: Callable[[PreProcessedApiResponse], None],
-            error_handler: Callable[[QNetworkReply], None] = __do_nothing,
-    ) -> None:
+        self,
+        endpoint: str,
+        response_handler: Callable[[ApiResponse], None],
+        error_handler: Callable[[QNetworkReply], None] = _do_nothing,
+    ) -> QNetworkReply:
         url = self._url_from_endpoint(endpoint)
-        self.get(url, response_handler, error_handler)
+        return self.api.get(url, self._decode_and_handle(response_handler), error_handler)
+
+    def post(
+        self,
+        endpoint: str,
+        data: QByteArray,
+        response_handler: Callable[[ApiResponse], None] = _do_nothing,
+        error_handler: Callable[[QNetworkReply], None] = _do_nothing,
+    ) -> QNetworkReply:
+        return self.api.post(
+            self._url_from_endpoint(endpoint),
+            data,
+            self._decode_and_handle(response_handler),
+            error_handler,
+        )
+
+    def delete(
+        self,
+        endpoint: str,
+        response_handler: Callable[[QNetworkReply], None] = _do_nothing,
+        error_handler: Callable[[QNetworkReply], None] = _do_nothing,
+    ) -> QNetworkReply:
+        url = self._url_from_endpoint(endpoint)
+        return self.api.delete(url, response_handler, error_handler)
+
+    def patch(
+        self,
+        endpoint: str,
+        data: QByteArray,
+        response_handler: Callable[[QNetworkReply], None] = _do_nothing,
+        error_handler: Callable[[QNetworkReply], None] = _do_nothing,
+        patch_property: Any | None = None,
+    ) -> QNetworkReply:
+        return self.api.patch(
+            self._url_from_endpoint(endpoint),
+            data,
+            response_handler,
+            error_handler,
+            patch_property,
+        )
+
+
+class ApiAccessManager(QObject):
+    oauth: OAuth2Flow = OAuth2FlowInstance
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.manager: QNetworkAccessManager = QNetworkAccessManager()
+        self.manager.finished.connect(self.on_request_finished)
+        self.handlers: dict[QNetworkReply, Callable[[QNetworkReply], Any]] = {}
+        self.error_handlers: dict[QNetworkReply, Callable[[QNetworkReply], Any]] = {}
 
     def prepare_request(self, url: QUrl | None) -> QNetworkRequest:
         request = QNetworkRequest(url) if url else QNetworkRequest()
@@ -121,71 +164,62 @@ class ApiBase(QObject):
         return request
 
     def get(
-            self,
-            url: QUrl,
-            response_handler: Callable[[PreProcessedApiResponse], None],
-            error_handler: Callable[[QNetworkReply], None] = __do_nothing,
-    ) -> None:
-        self._running = True
+        self,
+        url: QUrl,
+        response_handler: Callable[[QNetworkReply], None],
+        error_handler: Callable[[QNetworkReply], None] = _do_nothing,
+    ) -> QNetworkReply:
         logger.debug("Sending GET API request with URL: %s", url.toString())
         reply = self.manager.get(self.prepare_request(url))
         if reply is None:
-            # in C++ this case is not even possible
-            # but PyQt decided, that `get` returns an optional (maybe it still never happens)
             logger.error("Error sending GET request to: '%s'", url.toString())
-            self._running = False
-            return
+            raise RuntimeError("QNetworkAccessManager failed to create a QNetworkReply instance!")
         self.handlers[reply] = response_handler
         self.error_handlers[reply] = error_handler
+        return reply
 
     def post(
-            self,
-            endpoint: str,
-            data: QByteArray,
-            response_handler: Callable[[PreProcessedApiResponse], None] = __do_nothing,
-            error_handler: Callable[[QNetworkReply], None] = __do_nothing,
-    ) -> None:
-        self._running = True
-        url = self._url_from_endpoint(endpoint)
+        self,
+        url: QUrl,
+        data: QByteArray,
+        response_handler: Callable[[QNetworkReply], None] = _do_nothing,
+        error_handler: Callable[[QNetworkReply], None] = _do_nothing,
+    ) -> QNetworkReply:
         logger.debug("Sending POST API request with URL: %s", url.toString())
         request = self.prepare_request(url)
         request.setRawHeader(b"Content-Type", b"application/vnd.api+json;charset=utf-8")
         reply = self.manager.post(request, data)
         if reply is None:
             logger.error("Error sending POST request to: '%s' with %s", url.toString(), data.data())
-            self._running = False
-            return
+            raise RuntimeError("QNetworkAccessManager failed to create a QNetworkReply instance!")
         self.handlers[reply] = response_handler
         self.error_handlers[reply] = error_handler
+        return reply
 
     def delete(
-            self,
-            endpoint: str,
-            response_handler: Callable[[QNetworkReply], None] = __do_nothing,
-            error_handler: Callable[[QNetworkReply], None] = __do_nothing,
-    ) -> None:
-        self._running = True
-        url = self._url_from_endpoint(endpoint)
+        self,
+        url: QUrl,
+        response_handler: Callable[[QNetworkReply], None] = _do_nothing,
+        error_handler: Callable[[QNetworkReply], None] = _do_nothing,
+    ) -> QNetworkReply:
         logger.debug("Sending DELETE API request with URL: %s", url.toString())
         request = self.prepare_request(url)
         reply = self.manager.deleteResource(request)
         if reply is None:
-            self._running = False
             logger.error("Error sending DELETE request to: %s", url.toString())
-            return
-        self.non_get_handlers[reply] = response_handler
+            raise RuntimeError("QNetworkAccessManager failed to create a QNetworkReply instance!")
+        self.handlers[reply] = response_handler
         self.error_handlers[reply] = error_handler
+        return reply
 
     def patch(
-            self,
-            endpoint: str,
-            data: QByteArray,
-            response_handler: Callable[[QNetworkReply], None] = __do_nothing,
-            error_handler: Callable[[QNetworkReply], None] = __do_nothing,
-            patch_property: Any | None = None,
-    ) -> None:
-        self._running = True
-        url = self._url_from_endpoint(endpoint)
+        self,
+        url: QUrl,
+        data: QByteArray,
+        response_handler: Callable[[QNetworkReply], None] = _do_nothing,
+        error_handler: Callable[[QNetworkReply], None] = _do_nothing,
+        patch_property: Any | None = None,
+    ) -> QNetworkReply:
         logger.debug("Sending PATCH API request with URL: %s", url.toString())
         request = self.prepare_request(url)
         request.setRawHeader(b"Content-Type", b"application/vnd.api+json;charset=utf-8")
@@ -193,18 +227,14 @@ class ApiBase(QObject):
 
         if reply is None:
             logger.error("Error sending PATCH request to: %s", url.toString())
-            self._running = False
-            return
+            raise RuntimeError("QNetworkAccessManager failed to create a QNetworkReply instance!")
 
         reply.setProperty("patch_property", patch_property)
-        self.non_get_handlers[reply] = response_handler
+        self.handlers[reply] = response_handler
         self.error_handlers[reply] = error_handler
+        return reply
 
-    def parse_message(self, message: ApiResponse) -> ApiResponse | PreParsedApiResponse:
-        return message
-
-    def onRequestFinished(self, reply: QNetworkReply) -> None:
-        self._running = False
+    def on_request_finished(self, reply: QNetworkReply) -> None:
         if reply.error() != QNetworkReply.NetworkError.NoError:
             logger.error(
                 "API request error. URL: %s. Error: %s (%s). [%s]",
@@ -214,30 +244,14 @@ class ApiBase(QObject):
                 reply.readAll().data().decode(),
             )
             self.error_handlers[reply](reply)
-        elif (
-                reply.operation() in (
-                    self.manager.Operation.DeleteOperation,
-                    self.manager.Operation.CustomOperation,
-                )
-        ):
+        else:
             url = reply.request().url().toString()
             logger.debug("%s operation succeeded: %s", reply.operation(), url)
-            self.non_get_handlers[reply](reply)
-            self.non_get_handlers.pop(reply)
-        else:
-            message_bytes = reply.readAll().data()
-            message = json.loads(message_bytes.decode('utf-8'))
-            result = self.parse_message(message)
-            self.handlers[reply](result)
-            self.handlers.pop(reply)
+            self.handlers[reply](reply)
 
+        self.handlers.pop(reply)
         self.error_handlers.pop(reply)
         reply.deleteLater()
-
-    def waitForCompletion(self):
-        waitFlag = QEventLoop.ProcessEventsFlag.WaitForMoreEvents
-        while self._running:
-            QtWidgets.QApplication.processEvents(waitFlag)
 
     def abort(self) -> None:
         for reply in self.handlers.copy():
@@ -247,3 +261,6 @@ class ApiBase(QObject):
                 # wrapped C++ object has been deleted: may happen when dialog window
                 # which performed some network requests was closed before they finished
                 logger.warning("%s", e)
+
+
+ApiAccessManagerInstance = ApiAccessManager()

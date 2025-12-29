@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import QTextEdit
 from PyQt6.QtWidgets import QVBoxLayout
 from PyQt6.QtWidgets import QWidget
 
-from src.api.ApiBase import PreParsedApiResponse
+from src.api.ApiBase import ParsedApiResponse
 from src.api.models.Map import Map
 from src.api.models.MapVersionReview import MapVersionReview
 from src.api.models.Mod import Mod
@@ -314,8 +314,8 @@ class ReviewDialog(QDialog):
             self.review = klass.model_construct(id="null", score=0, text="", version=item.version)
         else:
             self.review = review
-        self._rating = 0
-        self._hovered_rating = 0
+        self._rating = self.review.score
+        self._hovered_rating = self._rating
 
         self.star_rating = StarRatingWidget(self.review.score)
         self.star_rating.setMouseTracking(True)
@@ -327,7 +327,7 @@ class ReviewDialog(QDialog):
         self.ui = ReviewDialogUi()
         self.init_ui()
 
-    def on_reviews_data(self, message: PreParsedApiResponse) -> None:
+    def on_reviews_data(self, message: ParsedApiResponse) -> None:
         self.setEnabled(True)
         if not (data := message["data"]):
             return
@@ -351,6 +351,7 @@ class ReviewDialog(QDialog):
 
     def update_appearance(self) -> None:
         self.star_rating.set_rating(self.review.score)
+        self.ui.submitButton.setEnabled(self.review.score > 0)
         self.ui.commentTextEdit.setText(self.review.text)
         cursor = self.ui.commentTextEdit.textCursor()
         cursor.movePosition(cursor.MoveOperation.End)

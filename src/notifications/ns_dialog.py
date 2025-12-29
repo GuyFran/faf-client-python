@@ -2,6 +2,7 @@
 The UI popup of the notification system
 """
 import time
+from functools import cache
 
 from PyQt6 import QtCore
 from PyQt6.QtMultimedia import QSoundEffect
@@ -11,6 +12,16 @@ from src import util
 from .ns_settings import NotificationPosition
 
 FormClass, BaseClass = util.THEME.loadUiType("notification_system/dialog.ui")
+
+
+# can't use @cached_property inside class, because
+# with the approach of (FormClass, BaseClass) it is evaluated
+# at init stage
+@cache
+def sound_effect() -> QSoundEffect:
+    effect = QSoundEffect()
+    effect.setSource(util.THEME.sound("chat/sfx/query.wav"))
+    return effect
 
 
 class NotificationDialog(FormClass, BaseClass):
@@ -41,8 +52,6 @@ class NotificationDialog(FormClass, BaseClass):
             lambda: self.acceptPartyInvite(sender_id=self.sender_id),
         )
 
-        self.sound_effect = QSoundEffect()
-        self.sound_effect.setSource(util.THEME.sound("chat/sfx/query.wav"))
         # TODO: integrate into client.css
         # self.setStyleSheet(self.client.styleSheet())
 
@@ -72,8 +81,8 @@ class NotificationDialog(FormClass, BaseClass):
 
         self.labelTime.setText(time.strftime("%H:%M:%S", time.localtime()))
         QtCore.QTimer.singleShot(lifetime * 1000, self.hide)
-        if sound:
-            self.sound_effect.play()
+        if sound and sound_effect().isLoaded():
+            sound_effect().play()
         self.setFixedHeight(height or self.baseHeight)
         self.setFixedWidth(width or self.baseWidth)
 

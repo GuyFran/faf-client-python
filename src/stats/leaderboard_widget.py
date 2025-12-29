@@ -1,11 +1,10 @@
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from PyQt6 import QtCore
 from PyQt6 import QtWidgets
 
 from src import util
+from src.api.ApiBase import ParsedApiResponse
 from src.api.player_api import PlayerApiConnector
 from src.api.stats_api import LeaderboardRatingApiConnector
 from src.config import Settings
@@ -43,7 +42,6 @@ class LeaderboardWidget(BaseClass, FormClass):
         self.parent = parent
         self.leaderboardName = leaderboardName
         self.apiConnector = LeaderboardRatingApiConnector()
-        self.apiConnector.data_ready.connect(self.process_rating_info)
         self.playerApiConnector = PlayerApiConnector()
         self.onlyActive = True
         self.pageNumber = 1
@@ -162,9 +160,9 @@ class LeaderboardWidget(BaseClass, FormClass):
                     self.showColumnCheckBoxes[index].setEnabled(True)
                     self.showColumnCheckBoxes[index].setChecked(isShown)
 
-    def process_rating_info(self, message: dict) -> None:
-        self.createLeaderboard(message)
-        self.processMeta(message["meta"])
+    def process_rating_info(self, parsed: ParsedApiResponse) -> None:
+        self.createLeaderboard(parsed)
+        self.processMeta(parsed["meta"])
         self.resetLoading()
         self.timer.stop()
 
@@ -210,10 +208,10 @@ class LeaderboardWidget(BaseClass, FormClass):
 
     def searchPlayer(self) -> None:
         query = {
-            "filter": 'login=="{}*"'.format(self.searchPlayerLine.text()),
+            "filter": f'login=="{self.searchPlayerLine.text()}*"',
             "page[size]": 10,
         }
-        self.playerApiConnector.get_by_query(query, self.createPlayerCompleter)
+        self.playerApiConnector.get_by_query_parsed(query, self.createPlayerCompleter)
 
     def createPlayerCompleter(self, message: dict) -> None:
         logins = [player["login"] for player in message["data"]]
@@ -243,7 +241,7 @@ class LeaderboardWidget(BaseClass, FormClass):
 
     def prepareFilters(self):
         filters = [
-            'leaderboard.technicalName=="{}"'.format(self.leaderboardName),
+            f'leaderboard.technicalName=="{self.leaderboardName}"',
         ]
 
         if self.onlyActive:
@@ -284,13 +282,13 @@ class LeaderboardWidget(BaseClass, FormClass):
 
     def searchPlayerInLeaderboard(self, player=None):
         filters = [
-            'leaderboard.technicalName=="{}"'.format(self.leaderboardName),
+            f'leaderboard.technicalName=="{self.leaderboardName}"',
         ]
         if player:
             self.searchPlayerLine.setText(player.login)
         if self.searchPlayerLine.text() != "":
             filters.append(
-                'player.login=="{}"'.format(self.searchPlayerLine.text()),
+                f'player.login=="{self.searchPlayerLine.text()}"',
             )
             self.query["filter"] = "({})".format(";".join(filters))
             self.getPage(1)
@@ -313,7 +311,7 @@ class LeaderboardWidget(BaseClass, FormClass):
             self.query["page[number]"] = number
             self.query["page[totals]"] = "yes"
 
-            self.apiConnector.requestData(self.query)
+            self.apiConnector.get_by_query_parsed(self.query, self.process_rating_info)
             self.labelLoading.setText("Loading...")
             self.loading = True
             self.timer.start(40000)

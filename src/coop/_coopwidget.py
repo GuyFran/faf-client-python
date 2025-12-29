@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 import os
 from typing import TYPE_CHECKING
@@ -45,19 +43,20 @@ class CoopWidget(FormClass, BaseClass, BusyWidget):
             gameview_builder: GameViewBuilder,
             game_launcher: GameLauncher,
     ) -> None:
-
         BaseClass.__init__(self)
+        self.client = client
 
-        self.setupUi(self)
-
-        self.client = client  # type - ClientWindow
         self._game_model = CoopGameFilterModel(self.client.user_relations, game_model)
         self._game_launcher = game_launcher
         self._gameview_builder = gameview_builder
 
+        self.ui_loaded = False
+        self.scenarios_loaded = False
+
+    def setup(self) -> None:
+        self.setupUi(self)
         # Ranked search UI
         self.ispassworded = False
-        self.loaded = False
 
         self.coop = {}
         self.cooptypes = {}
@@ -145,7 +144,10 @@ class CoopWidget(FormClass, BaseClass, BusyWidget):
         self.leaderBoard.setVisible(True)
 
     def busy_entered(self) -> None:
-        if not self.loaded:
+        if not self.ui_loaded:
+            self.setup()
+            self.ui_loaded = True
+        if not self.scenarios_loaded:
             self.coop_api.request_coop_scenarios()
         self.gamelist_update_timer.start(1000)
 
@@ -218,7 +220,7 @@ class CoopWidget(FormClass, BaseClass, BusyWidget):
                 root_item.addChild(item_coop)
 
             self.coop[mission.xd] = item_coop
-        self.loaded = True
+        self.scenarios_loaded = True
 
     def game_double_clicked(self, game: Game) -> None:
         """

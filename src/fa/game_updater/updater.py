@@ -7,9 +7,9 @@ installed
 
 @author thygrrr
 """
-from __future__ import annotations
-
 import logging
+from typing import Literal
+from typing import NamedTuple
 
 from PyQt6.QtCore import QEventLoop
 from PyQt6.QtCore import QObject
@@ -20,6 +20,10 @@ from PyQt6.QtGui import QTextCursor
 from PyQt6.QtWidgets import QDialog
 
 from src import util
+from src.api.featured_mod_api import FeaturedModApiConnector
+from src.api.featured_mod_api import FeaturedModFilesApiConnector
+from src.api.models.FeaturedMod import FeaturedMod
+from src.api.models.FeaturedModFile import FeaturedModFile
 from src.downloadManager import FileDownload
 from src.fa.game_updater.misc import ProgressInfo
 from src.fa.game_updater.misc import UpdaterResult
@@ -88,6 +92,9 @@ class UpdaterProgressDialog(FormClass, BaseClass):
         # equivalent to self.accept(), but clearer
         self.done(QDialog.DialogCode.Accepted)
 
+    def on_started(self) -> None:
+        self.label.setText("Updating Game Data...")
+
     def on_processed_mod_changed(self, info: ProgressInfo) -> None:
         text = f"Updating {info.description.upper()}... ({info.progress}/{info.total})"
         self.currentModLabel.setText(text)
@@ -154,7 +161,7 @@ class Updater(QObject):
 
     finished = pyqtSignal()
 
-    def __init__(self, parent: QObject, worker: UpdaterWorker) -> None:
+    def __init__(self, parent: QObject, obtainer: FilesObtainer, worker: UpdaterWorker) -> None:
         """
         Constructor
         """
@@ -163,10 +170,7 @@ class Updater(QObject):
         self.progress = UpdaterProgressDialog(parent)
         self.progress.aborted.connect(self.abort)
 
-        self.worker_thread = QThread()
         self.worker = worker
-        self.worker.moveToThread(self.worker_thread)
-
         self.worker.done.connect(self.on_update_done)
         self.worker.current_mod.connect(self.progress.on_processed_mod_changed)
         self.worker.hash_progress.connect(self.progress.on_hash_progress)
@@ -176,7 +180,18 @@ class Updater(QObject):
         self.worker.download_progress.connect(self.progress.on_download_progress)
         self.worker.download_finished.connect(self.progress.on_download_finished)
         self.worker.download_started.connect(self.progress.on_download_started)
-        self.worker_thread.started.connect(self.worker.do_update)
+
+        self.worker_thread = QThread()
+        self.worker.moveToThread(self.worker_thread)
+        self.worker_thread.finished.connect(self.worker.deleteLater)
+
+        self.files_obtainer = obtainer
+        self.files_obtainer.finished.connect(self.progress.on_started)
+        self.files_obtainer.finished.connect(self.worker.do_update)
+
+        self.worker_loop = QEventLoop()
+        self.worker_thread.finished.connect(self.worker_loop.quit)
+
         self.result = UpdaterResult.NONE
 
     def run(self) -> UpdaterResult:
@@ -184,12 +199,13 @@ class Updater(QObject):
         log(f"Update started at {timestamp()}", logger)
         log(f"Using appdata: {util.APPDATA_DIR}", logger)
 
+        self.progress.label.setText("Requesting files from API...")
         self.progress.show()
-        self.worker_thread.start()
 
-        loop = QEventLoop()
-        self.worker_thread.finished.connect(loop.quit)
-        loop.exec()
+        self.files_obtainer.request_files()
+
+        self.worker_thread.start()
+        self.worker_loop.exec()
 
         self.progress.accept()
         log(f"Update finished at {timestamp()}", logger)
@@ -217,3 +233,60 @@ class Updater(QObject):
     @property
     def game_version(self) -> int:
         return self.worker.version or -1
+
+
+class FileGroup(NamedTuple):
+    name: str
+    version: int | None
+
+
+class FilesObtainer(QObject):
+    finished = pyqtSignal(tuple)
+
+    def __init__(
+        self,
+        fmod: str,
+        version: int | None,
+        modversions: dict[str, int] | None,
+    ) -> None:
+        super().__init__()
+        self.version = version
+        self.modversion = max(modversions.values()) if modversions else None
+        if fmod in ("faf", "ladder1v1", "fafbeta", "fafdevelop"):
+            self.fgroups = [FileGroup(fmod, self.version)]
+        else:
+            self.fgroups = [FileGroup("faf", self.version), FileGroup(fmod, self.modversion)]
+
+        self.mod_api = FeaturedModApiConnector()
+        self.mod_api.data_ready.connect(self.process_fmod)
+
+        self.main_files: list[FeaturedModFile] = []
+        self.fmod_files: list[FeaturedModFile] = []
+
+        self.files_api = FeaturedModFilesApiConnector()
+        self.files_api.main_ready.connect(self.process_main_files)
+        self.files_api.mod_ready.connect(self.process_fmod_files)
+
+    def request_files(self) -> None:
+        for group in self.fgroups:
+            self.mod_api.request_fmod_by_name(group.name)
+
+    def process_fmod(self, data: dict[str, list[FeaturedMod]]) -> None:
+        mod, = data["values"]
+        if mod.name == self.fgroups[0].name:
+            self.files_api.get_main_files(mod.xd, self.fgroups[0].version)
+        else:
+            self.files_api.get_mod_files(mod.xd, self.fgroups[1].version)
+
+    def process_main_files(self, data: dict[str, list[FeaturedModFile]]) -> None:
+        self.main_files = data["values"]
+        self.check_finish()
+
+    def process_fmod_files(self, data: dict[Literal["values"], list[FeaturedModFile]]) -> None:
+        self.fmod_files = data["values"]
+        self.check_finish()
+
+    def check_finish(self) -> None:
+        self.fgroups.pop(0)
+        if not self.fgroups:
+            self.finished.emit((self.main_files, self.fmod_files))

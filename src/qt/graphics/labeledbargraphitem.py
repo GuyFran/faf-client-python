@@ -1,9 +1,8 @@
-from typing import Iterable
+from collections.abc import Iterable
 from typing import TypedDict
 from typing import Unpack
 
-import pyqtgraph as pg
-from pyqtgraph.GraphicsScene.mouseEvents import HoverEvent
+from src.heavy_modules import pg
 
 
 class BarGraphOptions(TypedDict):
@@ -14,27 +13,28 @@ class BarGraphOptions(TypedDict):
     name: str
 
 
-class LabeledBarGraphItem(pg.BarGraphItem):
+class LabeledBarGraphItem:
     def __init__(self, categories: list[str], **opts: Unpack[BarGraphOptions]) -> None:
-        pg.BarGraphItem.__init__(self, **opts)
+        self.item = pg.BarGraphItem(**opts)
+        self.item.hoverEvent = self.hoverEvent
         self.categories = categories
         self.tooltip: pg.TextItem | None = None
 
-    def hoverEvent(self, ev: HoverEvent) -> None:
+    def hoverEvent(self, ev: pg.GraphicsScene.mouseEvents.HoverEvent) -> None:
         if ev.isExit():
             self.hide_tooltip()
         else:
             pos = ev.pos()
-            for i, height in enumerate(self.opts["height"]):
-                x = self.opts["x"][i]
-                w = self.opts["width"]
+            for i, height in enumerate(self.item.opts["height"]):
+                x = self.item.opts["x"][i]
+                w = self.item.opts["width"]
 
                 if x - w/2 <= pos.x() <= x + w/2:
                     self.show_tooltip(f"{self.categories[i]}: {height:,.2f}", pos)
                     break
 
     def show_tooltip(self, text: str, pos: pg.Point) -> None:
-        if (view := self.getViewBox()) is None:
+        if (view := self.item.getViewBox()) is None:
             return
 
         if self.tooltip is None:

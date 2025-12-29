@@ -41,6 +41,8 @@ class GameSession(QObject):
     ready = pyqtSignal(int)
     gameFullSignal = pyqtSignal()
     game_launched = pyqtSignal(object)
+    ice_poll_started = pyqtSignal()
+    ice_poll_finished = pyqtSignal()
 
     def __init__(self, player_id: int, player_login: str) -> None:
         QObject.__init__(self)
@@ -92,6 +94,8 @@ class GameSession(QObject):
         self.ice_servers_poller = IceServersPoller(self.game_uid)
         if self.ice_adapter_manager.adapter_kind == "java":
             self.ice_servers_poller.ice_servers_received.connect(self.start_java_process)
+            self.ice_servers_poller.ice_servers_received.connect(self.ice_poll_finished.emit)
+            self.ice_poll_started.emit()
             self.ice_servers_poller.request_ice_servers()
         else:
             self.start_go_process()

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import json
 import logging
 import os
@@ -23,6 +21,7 @@ from PyQt6.QtWidgets import QTreeWidgetItem
 from src import client
 from src import fa
 from src import util
+from src.api.ApiBase import ParsedApiResponse
 from src.api.models.Leaderboard import Leaderboard
 from src.api.replaysapi import ReplaysApiConnector
 from src.api.stats_api import LeaderboardApiConnector
@@ -141,8 +140,8 @@ class LiveReplayItem(QtWidgets.QTreeWidgetItem):
         playerid = client.instance.players.getID(name)
         return client.instance.user_relations.model.is_friend(playerid)
 
-    def _is_online(self, name):
-        return name in client.instance.players
+    def _is_online(self, name: str) -> bool:
+        return client.instance.players.get_by_name(name) is not None
 
     def _set_color(self, game):
         my_game = any(self._is_me(p) for p in game.players)
@@ -342,7 +341,7 @@ class LocalReplayItem(QtWidgets.QTreeWidgetItem):
         self._metadata = metadata
         self._map_dl_request = DownloadRequest()
         self._map_dl_request.done.connect(self._map_preview_downloaded)
-        self._setup_appearance()
+        self._loaded = False
 
     @property
     def uid(self) -> int:
@@ -373,7 +372,10 @@ class LocalReplayItem(QtWidgets.QTreeWidgetItem):
     def replay_path(self):
         return os.path.join(util.REPLAY_DIR, self._replay_file)
 
-    def _setup_appearance(self):
+    def _setup_appearance(self) -> None:
+        if self._loaded:
+            return
+
         if self._metadata is None:
             self._setup_no_metadata_appearance()
         elif self._metadata.is_broken:
@@ -382,6 +384,8 @@ class LocalReplayItem(QtWidgets.QTreeWidgetItem):
             self._setup_incomplete_appearance()
         else:
             self._setup_complete_appearance()
+
+        self._loaded = True
 
     def _setup_no_metadata_appearance(self):
         self.setText(1, self._replay_file)
@@ -593,6 +597,11 @@ class LocalReplaysWidgetHandler:
         self.replay_files = LocalReplayMetadataCache(
             util.REPLAY_DIR, replay_cache,
         )
+        self.myTree.itemExpanded.connect(self.on_item_expanded)
+
+    def on_item_expanded(self, item: LocalReplayBucketItem) -> None:
+        for index in range(item.childCount()):
+            cast(LocalReplayItem, item.child(index))._setup_appearance()
 
     def my_tree_pressed(self, item: LocalReplayItem) -> None:
         if QtWidgets.QApplication.mouseButtons() != QtCore.Qt.MouseButton.RightButton:
@@ -767,7 +776,6 @@ class ReplayVaultWidgetHandler:
         self.onlineReplays = {}
         self.selectedReplay = None
         self.apiConnector = ReplaysApiConnector()
-        self.apiConnector.data_ready.connect(self.process_replays_data)
 
         self.leaderboard_api = LeaderboardApiConnector()
         self.leaderboard_api.data_ready.connect(self.process_leaderboards)
@@ -932,7 +940,11 @@ class ReplayVaultWidgetHandler:
         if filters:
             parameters["filter"] = filters
 
-        self.apiConnector.requestData(parameters, self.on_api_request_error)
+        self.apiConnector.get_by_query_parsed(
+            parameters,
+            self.process_replays_data,
+            self.on_api_request_error,
+        )
         self.timer.start(90000)
 
     def prepareFilters(
@@ -1182,7 +1194,7 @@ class ReplayVaultWidgetHandler:
         self.stopSearchVault()
         self._w.searchInfoLabel.setText(reply.errorString())
 
-    def process_replays_data(self, message: dict) -> None:
+    def process_replays_data(self, message: ParsedApiResponse) -> None:
         self.stopSearchVault()
         self.clear_scoreboard()
         self.onlineReplays = {}
@@ -1246,6 +1258,7 @@ class ReplaysWidget(BaseClass, FormClass):
         self.liveManager = LiveReplaysWidgetHandler(self.liveTree, client, gameset)
         self.localManager = LocalReplaysWidgetHandler(self.myTree, client)
         self.vaultManager = ReplayVaultWidgetHandler(self, dispatcher, client, gameset, playerset)
+        self.currentChanged.connect(self.on_tab_changed)
 
         logger.info("Replays Widget instantiated.")
 
@@ -1257,11 +1270,17 @@ class ReplaysWidget(BaseClass, FormClass):
         self.vaultManager.searchVault(0, "", name, 0, 0, 100, exactPlayerName=True)
 
     def focusEvent(self, event):
-        self.localManager.updatemyTree()
+        if self.myTree.isVisible():
+            self.localManager.updatemyTree()
         self.vaultManager.reloadView()
         return BaseClass.focusEvent(self, event)
 
     def showEvent(self, event):
-        self.localManager.updatemyTree()
+        if self.myTree.isVisible():
+            self.localManager.updatemyTree()
         self.vaultManager.reloadView()
         return BaseClass.showEvent(self, event)
+
+    def on_tab_changed(self, index: int) -> None:
+        if index == self.indexOf(self.localTab):
+            self.localManager.updatemyTree()

@@ -1,8 +1,7 @@
 from src.api.ApiAccessors import DataApiAccessor
+from src.api.ApiBase import ParsedApiResponse
 from src.api.models.CoopResult import CoopResult
 from src.api.models.CoopScenario import CoopScenario
-from src.api.parsers.CoopResultParser import CoopResultParser
-from src.api.parsers.CoopScenarioParser import CoopScenarioParser
 
 
 class CoopApiAccessor(DataApiAccessor):
@@ -12,8 +11,11 @@ class CoopApiAccessor(DataApiAccessor):
     def request_coop_scenarios(self) -> None:
         self.requestData({"include": "maps"})
 
-    def prepare_data(self, message: dict) -> dict[str, list[CoopScenario]]:
-        return {"values": CoopScenarioParser.parse_many(message["data"])}
+    def convert_parsed(
+        self,
+        parsed: ParsedApiResponse,
+    ) -> dict[str, list[CoopScenario]]:
+        return {"values": [CoopScenario(**scenario) for scenario in parsed["data"]]}
 
 
 class CoopResultApiAccessor(DataApiAccessor):
@@ -52,7 +54,10 @@ class CoopResultApiAccessor(DataApiAccessor):
             unique_teams.add(players_tuple)
         return unique_results
 
-    def prepare_data(self, message: dict) -> dict[str, list[CoopResult]]:
-        parsed = CoopResultParser.parse_many(message["data"])
-        distinct = self.filter_unique_teams(parsed)
+    def convert_parsed(
+        self,
+        parsed: ParsedApiResponse,
+    ) -> dict[str, list[CoopResult]]:
+        results = [CoopResult(**result) for result in parsed["data"]]
+        distinct = self.filter_unique_teams(results)
         return {"values": distinct}

@@ -1,7 +1,6 @@
 import logging
 import os
 from stat import S_IWRITE
-from typing import TYPE_CHECKING
 
 from PyQt6 import QtCore
 from PyQt6 import QtWidgets
@@ -20,16 +19,13 @@ from src.vaults.mapvault.maplistitem import MapSortType
 from src.vaults.mapvault.maplistwidget import MapListWidget
 from src.vaults.vault import Vault
 
-if TYPE_CHECKING:
-    from src.client._clientwindow import ClientWindow
-
 logger = logging.getLogger(__name__)
 
 
 class MapVault(Vault[Map]):
-    def __init__(self, client: ClientWindow) -> None:
+    def setup(self) -> None:
         logger.debug("Map Vault tab instantiating")
-        super().__init__(client)
+        super().setup()
         self.image_loader = ImageDownloader(util.MAP_PREVIEW_SMALL_DIR)
         self.installed_maps = maps.getUserMaps()
 

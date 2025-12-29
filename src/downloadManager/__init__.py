@@ -425,6 +425,9 @@ class ImageDownloader:
         self._nam.finished.connect(self._image_download_finished)
         self.save_dir = save_dir
 
+    def image_size(self) -> QSize | None:
+        return self._size
+
     def image_path(self, url: QUrl | str) -> str:
         return os.path.join(self.save_dir, self.image_name(url))
 
@@ -478,18 +481,26 @@ class CachedImageDownloader(ImageDownloader):
     def __init__(self, save_dir: str = AVATARS_CACHE_DIR, size: QSize | None = None) -> None:
         ImageDownloader.__init__(self, save_dir, size)
         self.images: dict[str, QPixmap] = {}
-        self.load_cache()
-
-    def load_cache(self) -> None:
-        for entry in os.scandir(self.save_dir):
-            pix = QPixmap(entry.path)
-            self.images[entry.name] = pix if self._size is None else pix.scaled(self._size)
+        self._images_index = {entry.name: entry.path for entry in os.scandir(self.save_dir)}
 
     def has_image(self, name_or_url: QUrl | str) -> bool:
         return self.get_image(name_or_url) is not None
 
     def get_image(self, name_or_url: QUrl | str) -> QPixmap | None:
-        return self.images.get(self.image_name(name_or_url))
+        name = self.image_name(name_or_url)
+        try:
+            return self.images[name]
+        except KeyError:
+            return self._try_load_from_disk(name)
+
+    def _try_load_from_disk(self, name: str) -> QPixmap | None:
+        try:
+            pix = QPixmap(self._images_index[name])
+            scaled = pix if self._size is None else pix.scaled(self._size)
+            self.images[name] = scaled
+            return scaled
+        except KeyError:
+            return None
 
     def download_if_needed(self, url: str | None, req: DownloadRequest) -> None:
         if url is None or self.has_image(url):

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import time
 from enum import Enum
 from typing import Any
@@ -34,7 +32,7 @@ class ChatLine:
 
 
 class ChatLineMetadata:
-    def __init__(self, line: ChatLine, meta: ChatLineMetadata) -> None:
+    def __init__(self, line: ChatLine, meta: MagicDict) -> None:
         self.line = line
         self.meta = meta
 
@@ -97,6 +95,7 @@ class ChatLineMetadataBuilder:
             and self._me.login in line.text
             and line.sender != self._me.login
         )
+        meta.my_mention = self._me.login if meta.mentions_me() else None
 
     def _avatar_metadata(self, pmeta, avatar):
         if avatar is None:

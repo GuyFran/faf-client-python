@@ -1,6 +1,5 @@
 import os
 
-from PyQt6.QtCore import QSize
 from PyQt6.QtGui import QPixmap
 
 from src import util
@@ -15,10 +14,11 @@ FormClass, BaseClass = util.THEME.loadUiType("player_card/playerleague.ui")
 
 class LeagueFormatter(FormClass, BaseClass):
     def __init__(
-            self,
-            player_id: str,
-            rating: LeaderboardRating,
-            league_score_api: LeagueSeasonScoreApiConnector,
+        self,
+        player_id: str,
+        rating: LeaderboardRating,
+        league_score_api: LeagueSeasonScoreApiConnector,
+        img_dler: CachedImageDownloader,
     ) -> None:
         BaseClass.__init__(self)
         self.setupUi(self)
@@ -31,7 +31,7 @@ class LeagueFormatter(FormClass, BaseClass):
         self.league_score_api = league_score_api
         self.league_score_api.score_ready.connect(self.on_league_score_ready)
 
-        self._downloader = CachedImageDownloader(util.DIVISIONS_CACHE_DIR, QSize(160, 80))
+        self._downloader = img_dler
         self._images_dl_request = DownloadRequest()
         self._images_dl_request.done.connect(self.on_image_downloaded)
 
@@ -90,7 +90,8 @@ class LeagueFormatter(FormClass, BaseClass):
         self._downloader.download_if_needed(url, self._images_dl_request)
 
     def on_image_downloaded(self, _: str, pixmap: QPixmap) -> None:
-        self.set_league_icon(pixmap)
+        size = self._downloader.image_size()
+        self.set_league_icon(pixmap.scaled(size) if size else pixmap)
 
 
 class GlobalLeagueFormatter(LeagueFormatter):
@@ -108,7 +109,8 @@ def league_formatter_factory(
         player_id: str,
         rating: LeaderboardRating,
         api: LeagueSeasonScoreApiConnector,
+        img_dler: CachedImageDownloader,
 ) -> LeagueFormatter | GlobalLeagueFormatter:
     if rating.leaderboard.technical_name == "global":
-        return GlobalLeagueFormatter(player_id, rating, api)
-    return LeagueFormatter(player_id, rating, api)
+        return GlobalLeagueFormatter(player_id, rating, api, img_dler)
+    return LeagueFormatter(player_id, rating, api, img_dler)

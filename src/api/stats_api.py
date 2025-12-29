@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Iterator
+from operator import methodcaller
 from typing import cast
 
 from PyQt6.QtCore import QDateTime
@@ -9,16 +10,14 @@ from PyQt6.QtNetwork import QNetworkReply
 
 from src.api.ApiAccessors import ApiAccessor
 from src.api.ApiAccessors import DataApiAccessor
-from src.api.ApiBase import PreParsedApiResponse
-from src.api.ApiBase import PreProcessedApiResponse
+from src.api.ApiBase import ParsedApiResponse
 from src.api.ApiBase import QueryOptions
 from src.api.models.Achievement import Achievement
 from src.api.models.Leaderboard import Leaderboard
+from src.api.models.LeaderboardRating import LeaderboardRating
 from src.api.models.LeagueSeasonScore import LeagueSeasonScore
 from src.api.models.PlayerAchievement import PlayerAchievement
 from src.api.models.PlayerEvent import PlayerEvent
-from src.api.parsers.LeaderboardParser import LeaderboardParser
-from src.api.parsers.LeaderboardRatingParser import LeaderboardRatingParser
 
 logger = logging.getLogger(__name__)
 
@@ -34,19 +33,30 @@ class LeaderboardRatingApiConnector(DataApiAccessor):
             "include": "leaderboard",
             "filter": f"player.id=={pid}",
         }
-        self.get_by_query(query, self.handle_player_ratings)
+        self.get_by_query_parsed(query, self.handle_player_ratings)
 
-    def handle_player_ratings(self, message: dict) -> None:
-        ratings = {"values": LeaderboardRatingParser.parse_many(message)}
-        self.player_ratings_ready.emit(ratings)
+    def handle_player_ratings(self, message: ParsedApiResponse) -> None:
+        ratings = sorted(
+            [LeaderboardRating(**entry) for entry in message["data"]],
+            key=lambda rating: rating.leaderboard.order() if rating.leaderboard is not None else 0,
+        )
+        self.player_ratings_ready.emit({"values": ratings})
 
 
 class LeaderboardApiConnector(DataApiAccessor):
     def __init__(self) -> None:
         super().__init__("/data/leaderboard")
 
-    def prepare_data(self, message: dict) -> dict[str, list[Leaderboard]]:
-        return {"values": LeaderboardParser.parse_many(message)}
+    def convert_parsed(
+        self,
+        parsed: ParsedApiResponse,
+    ) -> dict[str, list[Leaderboard]]:
+        return {
+            "values": sorted(
+                [Leaderboard(**entry) for entry in parsed["data"]],
+                key=methodcaller("order"),
+            ),
+        }
 
 
 class LeaderboardRatingJournalApiConnector(ApiAccessor):
@@ -64,9 +74,7 @@ class LeaderboardRatingJournalApiConnector(ApiAccessor):
             ),
             "sort": "-gamePlayerStats.scoreTime",
         }
-
-    def handle_page(self, message: PreProcessedApiResponse) -> None:
-        self.ratings_ready.emit(message)
+        self.replies: list[QNetworkReply] = []
 
     def get_history_page(self, page: int) -> None:
         self.query.update({
@@ -74,10 +82,18 @@ class LeaderboardRatingJournalApiConnector(ApiAccessor):
             "page[number]": page,
             "page[totals]": "",
         })
-        self.get_by_query(self.query, self.handle_page, self.on_error)
+        self.replies.append(self.get_by_query(self.query, self.ratings_ready.emit, self.on_error))
 
     def on_error(self, reply: QNetworkReply) -> None:
         self.api_error.emit(reply.errorString())
+
+    def abort(self) -> None:
+        for reply in self.replies:
+            try:
+                reply.abort()
+            except RuntimeError:
+                pass
+        self.replies.clear()
 
 
 class LeagueSeasonScoreApiConnector(DataApiAccessor):
@@ -101,9 +117,6 @@ class LeagueSeasonScoreApiConnector(DataApiAccessor):
             f"leagueSeason.endDate=ge={utc_str}",
         )
 
-    def prepare_data(self,  message: dict) -> dict[str, list[LeagueSeasonScore]]:
-        return {"values": [LeagueSeasonScore(**entry) for entry in message["data"]]}
-
     def handle_score(self, message: dict) -> None:
         if message["data"]:
             self.score_ready.emit(LeagueSeasonScore(**message["data"][0]))
@@ -114,9 +127,9 @@ class LeagueSeasonScoreApiConnector(DataApiAccessor):
             f"leagueSeason.leaderboard.technicalName=={leaderboard!r}",
         )
         query_params = {"include": ",".join(self.include), "filter": ";".join(filters)}
-        self.get_by_query(query_params, self.handle_score)
+        self.get_by_query_parsed(query_params, self.handle_score)
 
-    def handle_season_scores(self, message: PreParsedApiResponse) -> None:
+    def handle_season_scores(self, message: ParsedApiResponse) -> None:
         scores = message["data"]
         assert isinstance(scores, list)
         if scores:
@@ -127,7 +140,7 @@ class LeagueSeasonScoreApiConnector(DataApiAccessor):
             "include": ",".join(self.include),
             "filter": ";".join(self.filters(player_id)),
         }
-        self.get_by_query(cast(QueryOptions, query_params), self.handle_season_scores)
+        self.get_by_query_parsed(cast(QueryOptions, query_params), self.handle_season_scores)
 
 
 class PlayerEventApiAccessor(DataApiAccessor):
@@ -141,7 +154,7 @@ class PlayerEventApiAccessor(DataApiAccessor):
             "include": "event",
             "filter": f"player.id=={player_id}",
         }
-        self.get_by_query(query, self.handle_player_events)
+        self.get_by_query_parsed(query, self.handle_player_events)
 
     def handle_player_events(self, message: dict) -> None:
         self.events_ready.emit([PlayerEvent(**entry) for entry in message["data"]])
@@ -159,7 +172,7 @@ class PlayerAchievementApiAccessor(DataApiAccessor):
             "filter": f"player.id=={player_id}",
             "sort": "achievement.order",
         }
-        self.get_by_query(query, self.handle_achievements)
+        self.get_by_query_parsed(query, self.handle_achievements)
 
     def handle_achievements(self, message: dict) -> None:
         self.achievments_ready.emit(PlayerAchievement(**entry) for entry in message["data"])
@@ -169,5 +182,8 @@ class AchievementsApiAccessor(DataApiAccessor):
     def __init__(self) -> None:
         super().__init__("/data/achievement")
 
-    def prepare_data(self, message: dict) -> dict[str, Iterator[Achievement]]:
-        return {"values": (Achievement(**entry) for entry in message["data"])}
+    def convert_parsed(
+        self,
+        parsed: ParsedApiResponse,
+    ) -> dict[str, Iterator[Achievement]]:
+        return {"values": (Achievement(**entry) for entry in parsed["data"])}

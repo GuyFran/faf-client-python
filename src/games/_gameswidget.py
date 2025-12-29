@@ -249,8 +249,8 @@ class GamesWidget(FormClass, BaseClass):
 
     def stopSearch(self):
         self.searching = {"ladder1v1": False}
-        self.client.labelAutomatchInfo.setText("")
-        self.client.labelAutomatchInfo.hide()
+        self.client.labelStatusBarInfo.setText("")
+        self.client.labelStatusBarInfo.hide()
         self.stop_search_ranked_game.emit()
 
     def gameDoubleClicked(self, game):

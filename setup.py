@@ -80,6 +80,11 @@ build_exe_options = {
         "Qt6Test.dll",
     ],
 
+    "includes": [
+        "pyqtgraph",
+        "scipy_ndimage.ndimage._filters",
+    ],
+
     # copied from https://github.com/marcelotduarte/cx_Freeze/blob/5e42a97d2da321eae270cdcc65cdc777eb8e8fc4/samples/pyqt6-simplebrowser/setup.py  # noqa: E501
     # and unexcluded overexcluded
     "excludes": ["tkinter", "unittest", "tcl", "scipy"],
