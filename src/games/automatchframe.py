@@ -1,9 +1,8 @@
-from __future__ import annotations
-
 import logging
 from copy import deepcopy
 from functools import partial
 from typing import TYPE_CHECKING
+from typing import Literal
 
 from PyQt6 import QtCore
 from PyQt6 import QtGui
@@ -12,6 +11,7 @@ from PyQt6 import QtWidgets
 from src import fa
 from src import util
 from src.api.matchmaker_queue_api import MatchmakerQueueApiConnector
+from src.api.models.MatchmakerQueue import MatchmakerQueue
 from src.config import Settings
 from src.fa.factions import Factions
 from src.games.mappoolwidget import MapPoolDialog
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from src.games._gameswidget import GamesWidget
 
 
-class MatchmakerQueue(FormClass, BaseClass):
+class MatchmakerQueueFrame(FormClass, BaseClass):
 
     def __init__(
             self,
@@ -114,10 +114,11 @@ class MatchmakerQueue(FormClass, BaseClass):
                 partial(self.selectFaction, factionID=faction.value),
             )
 
-    def handleApiQueueInfo(self, message):
-        for queue in message.get("values", {}):
-            if queue["technicalName"] == self.queueName:
-                self.ratingType = queue["ratingType"]
+    def handleApiQueueInfo(self, message: dict[Literal["values"], list[MatchmakerQueue]]) -> None:
+        for queue in message["values"]:
+            if queue.name == self.queueName:
+                assert queue.leaderboard is not None
+                self.ratingType = queue.leaderboard.technical_name
 
     def handleQueueInfo(self, message):
         for queue in message.get("queues", {}):

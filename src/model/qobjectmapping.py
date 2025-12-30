@@ -56,10 +56,10 @@ class QObjectMapping[KT, VT](QObject):
             return True
 
     def keys(self) -> KeysView[KT]:
-        return KeysView(self)  # type: ignore[arg-type]
+        return KeysView(self)
 
     def values(self) -> ValuesView[VT]:
-        return ValuesView(self)  # type: ignore[arg-type]
+        return ValuesView(self)
 
     def items(self) -> ItemsView[KT, VT]:
-        return ItemsView(self)  # type: ignore[arg-type]
+        return ItemsView(self)

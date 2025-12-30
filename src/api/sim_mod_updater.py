@@ -5,6 +5,7 @@ from PyQt6.QtCore import pyqtSignal
 
 from src.api.ApiAccessors import DataApiAccessor
 from src.api.ApiBase import ParsedApiResponse
+from src.api.ApiBase import QueryOptions
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class SimModFiles(DataApiAccessor):
         self.ready.emit()
 
     def request_and_get_sim_mod_url_by_id(self, uid: str) -> str:
-        query_dict = {"filter": f"uid=={uid}"}
-        self.get_by_query_parsed(query_dict, self.get_url_from_message, lambda _: self.ready.emit())
+        query: QueryOptions = {"filter": f"uid=={uid}"}
+        self.get_by_query_parsed(query, self.get_url_from_message, lambda _: self.ready.emit())
         self.wait_loop.exec()
         return self.mod_url

@@ -1,6 +1,7 @@
 import json
 import logging
 from collections.abc import Callable
+from collections.abc import MutableMapping
 from typing import Any
 from typing import Literal
 from typing import NotRequired
@@ -41,7 +42,8 @@ class ParsedApiResponse(TypedDict):
 
 
 type PreProcessedApiResponse = ApiResponse | ParsedApiResponse
-type QueryOptions = dict[str, str | float]
+type QueryOptions = MutableMapping[str, str | float]
+
 
 DO_NOT_ENCODE = QByteArray(b":/?&=.,")
 

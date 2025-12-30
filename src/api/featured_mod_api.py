@@ -4,6 +4,7 @@ from PyQt6.QtCore import pyqtSignal
 
 from src.api.ApiAccessors import DataApiAccessor
 from src.api.ApiBase import ParsedApiResponse
+from src.api.ApiBase import QueryOptions
 from src.api.models.FeaturedMod import FeaturedMod
 from src.api.models.FeaturedModFile import FeaturedModFile
 
@@ -18,11 +19,12 @@ class FeaturedModApiConnector(DataApiAccessor):
         self,
         parsed: ParsedApiResponse,
     ) -> dict[str, list[FeaturedMod]]:
+        assert isinstance(parsed["data"], list)
         return {"values": [FeaturedMod(**modinfo) for modinfo in parsed["data"]]}
 
     def request_fmod_by_name(self, technical_name: str) -> None:
-        queryDict = {"filter": f"technicalName=={technical_name}"}
-        self.reply = self.requestData(queryDict)
+        query: QueryOptions = {"filter": f"technicalName=={technical_name}"}
+        self.reply = self.requestData(query)
 
 
 class FeaturedModFilesApiConnector(DataApiAccessor):
@@ -33,6 +35,7 @@ class FeaturedModFilesApiConnector(DataApiAccessor):
         self,
         parsed: ParsedApiResponse,
     ) -> dict[str, list[FeaturedModFile]]:
+        assert isinstance(parsed["data"], list)
         return {"values": [FeaturedModFile(**file) for file in parsed["data"]]}
 
     def endpoint(self, mod_id: str, version: int | None = None) -> str:

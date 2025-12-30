@@ -29,13 +29,14 @@ class LeaderboardRatingApiConnector(DataApiAccessor):
         super().__init__('/data/leaderboardRating')
 
     def get_player_ratings(self, pid: str) -> None:
-        query = {
+        query: QueryOptions = {
             "include": "leaderboard",
             "filter": f"player.id=={pid}",
         }
         self.get_by_query_parsed(query, self.handle_player_ratings)
 
     def handle_player_ratings(self, message: ParsedApiResponse) -> None:
+        assert isinstance(message["data"], list)
         ratings = sorted(
             [LeaderboardRating(**entry) for entry in message["data"]],
             key=lambda rating: rating.leaderboard.order() if rating.leaderboard is not None else 0,
@@ -51,6 +52,7 @@ class LeaderboardApiConnector(DataApiAccessor):
         self,
         parsed: ParsedApiResponse,
     ) -> dict[str, list[Leaderboard]]:
+        assert isinstance(parsed["data"], list)
         return {
             "values": sorted(
                 [Leaderboard(**entry) for entry in parsed["data"]],
@@ -117,17 +119,19 @@ class LeagueSeasonScoreApiConnector(DataApiAccessor):
             f"leagueSeason.endDate=ge={utc_str}",
         )
 
-    def handle_score(self, message: dict) -> None:
-        if message["data"]:
-            self.score_ready.emit(LeagueSeasonScore(**message["data"][0]))
+    def handle_score(self, message: ParsedApiResponse) -> None:
+        score_data = message["data"]
+        assert isinstance(score_data, list)
+        if score_data:
+            self.score_ready.emit(LeagueSeasonScore(**score_data[0]))
 
     def get_player_score_in_leaderboard(self, player_id: str, leaderboard: str) -> None:
         filters = (
             *self.filters(player_id),
             f"leagueSeason.leaderboard.technicalName=={leaderboard!r}",
         )
-        query_params = {"include": ",".join(self.include), "filter": ";".join(filters)}
-        self.get_by_query_parsed(query_params, self.handle_score)
+        query: QueryOptions = {"include": ",".join(self.include), "filter": ";".join(filters)}
+        self.get_by_query_parsed(query, self.handle_score)
 
     def handle_season_scores(self, message: ParsedApiResponse) -> None:
         scores = message["data"]
@@ -150,13 +154,14 @@ class PlayerEventApiAccessor(DataApiAccessor):
         super().__init__("/data/playerEvent")
 
     def get_player_events(self, player_id: str) -> None:
-        query = {
+        query: QueryOptions = {
             "include": "event",
             "filter": f"player.id=={player_id}",
         }
         self.get_by_query_parsed(query, self.handle_player_events)
 
-    def handle_player_events(self, message: dict) -> None:
+    def handle_player_events(self, message: ParsedApiResponse) -> None:
+        assert isinstance(message["data"], list)
         self.events_ready.emit([PlayerEvent(**entry) for entry in message["data"]])
 
 
@@ -167,14 +172,15 @@ class PlayerAchievementApiAccessor(DataApiAccessor):
         super().__init__("/data/playerAchievement")
 
     def get_achievements(self, player_id: str | int) -> None:
-        query = {
+        query: QueryOptions = {
             "include": "achievement",
             "filter": f"player.id=={player_id}",
             "sort": "achievement.order",
         }
         self.get_by_query_parsed(query, self.handle_achievements)
 
-    def handle_achievements(self, message: dict) -> None:
+    def handle_achievements(self, message: ParsedApiResponse) -> None:
+        assert isinstance(message["data"], list)
         self.achievments_ready.emit(PlayerAchievement(**entry) for entry in message["data"])
 
 
@@ -186,4 +192,5 @@ class AchievementsApiAccessor(DataApiAccessor):
         self,
         parsed: ParsedApiResponse,
     ) -> dict[str, Iterator[Achievement]]:
+        assert isinstance(parsed["data"], list)
         return {"values": (Achievement(**entry) for entry in parsed["data"])}

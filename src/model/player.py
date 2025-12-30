@@ -147,6 +147,11 @@ class Player(ModelItem):
     def currentGame(self) -> Game | None:
         return self._currentGame
 
+    @currentGame.setter
+    def currentGame(self, val: Game | None) -> None:
+        # CAVEAT: this will emit signals immediately!
+        self.set_currentGame(val)
+
     @transactional
     def set_currentGame(
         self,
@@ -159,8 +164,3 @@ class Player(ModelItem):
         old = self._currentGame
         self._currentGame = game
         _transaction.emit(self.newCurrentGame, self, game, old)
-
-    @currentGame.setter
-    def currentGame(self, val: Game | None) -> None:
-        # CAVEAT: this will emit signals immediately!
-        self.set_currentGame(val)

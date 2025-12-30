@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import html
 import string
 import time
@@ -283,14 +281,14 @@ class Game(ModelItem):
     @property
     def average_rating(self) -> float:
         players = [
-            name
+            self.to_player(name)
             for team in self.playing_teams.values()
             for name in team
         ]
-        players = list(filter(None, map(self.to_player, players)))
-        if len(players) == 0:
+        online_players = [p for p in players if p is not None]
+        if len(online_players) == 0:
             return 0
-        return sum(p.global_estimate for p in players) / len(players)
+        return sum(p.global_estimate for p in online_players) / len(online_players)
 
     @property
     def mapdisplayname(self):

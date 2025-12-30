@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8; mode: python; py-indent-offset: 4;
 # indent-tabs-mode: nil -*-
 # vim: fileencoding=utf-8 tabstop=4 expandtab shiftwidth=4
 
@@ -14,7 +13,7 @@ import traceback
 
 def isUserAdmin():
 
-    if os.name == 'nt':
+    if sys.platform == "win32":
         import ctypes
 
         # WARNING: requires Windows XP SP2 or higher!
@@ -24,13 +23,9 @@ def isUserAdmin():
             traceback.print_exc()
             print("Admin check failed, assuming not an admin.")
             return False
-    elif os.name == 'posix':
+    else:
         # Check for root on Posix
         return os.getuid() == 0
-    else:
-        raise RuntimeError(
-            "Unsupported operating system for this module: {}".format(os.name),
-        )
 
 
 def runAsAdmin(cmdLine=None, wait=True):
@@ -50,10 +45,10 @@ def runAsAdmin(cmdLine=None, wait=True):
         cmdLine = [python_exe] + sys.argv
     elif type(cmdLine) not in (tuple, list):
         raise ValueError("cmdLine is not a sequence.")
-    cmd = '"{}"'.format(cmdLine[0])
+    cmd = f'"{cmdLine[0]}"'
     # XXX TODO: isn't there a function or something we can call to message
     # command line params?
-    params = " ".join(['"{}"'.format(x) for x in cmdLine[1:]])
+    params = " ".join([f'"{x}"' for x in cmdLine[1:]])
     showCmd = win32con.SW_SHOWNORMAL
     # showCmd = win32con.SW_HIDE
     lpVerb = 'runas'  # causes UAC elevation prompt.

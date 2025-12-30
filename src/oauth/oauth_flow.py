@@ -1,3 +1,6 @@
+from logging import Logger
+from typing import ClassVar
+
 from PyQt6.QtCore import QDateTime
 from PyQt6.QtCore import QObject
 from PyQt6.QtCore import QTimer
@@ -23,6 +26,8 @@ class OAuthReplyHandler(QOAuthHttpServerReplyHandler):
 
 @with_logger
 class OAuth2Flow(QOAuth2AuthorizationCodeFlow):
+    _logger: ClassVar[Logger]
+
     def __init__(
             self,
             manager: QNetworkAccessManager | None = None,
@@ -46,7 +51,7 @@ class OAuth2Flow(QOAuth2AuthorizationCodeFlow):
         self._check_timer = QTimer(self)
         self._check_timer.timeout.connect(self.check_token)
         self._check_interval = 5000
-        self._expires_in = None
+        self._expires_in: int | None = None
 
     def stop_checking_expiration(self) -> None:
         self._check_timer.stop()
@@ -82,8 +87,8 @@ class OAuth2Flow(QOAuth2AuthorizationCodeFlow):
         """
         Set client's credentials, scopes and OAuth endpoints
         """
-        client_id = Settings.get("oauth/client_id")
-        scopes = Settings.get("oauth/scope")
+        client_id = Settings.get("oauth/client_id", "")
+        scopes: list[str] = Settings.get_list("oauth/scope", default=[])
 
         oauth_host = QUrl(Settings.get("oauth/host"))
         auth_endpoint = QUrl(Settings.get("oauth/auth_endpoint"))

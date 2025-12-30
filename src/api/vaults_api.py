@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Callable
 from collections.abc import Sequence
+from copy import copy
 from typing import Any
 from typing import cast
 
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 class VaultsApiConnector(DataApiAccessor):
     def __init__(self, route: str) -> None:
         super().__init__(route)
-        self._includes = ("latestVersion", "reviewsSummary")
+        self._includes: tuple[str, ...] = ("latestVersion", "reviewsSummary")
         self._filters: tuple[str, ...] = ("latestVersion.hidden=='false'",)
 
     def _extend_query_options(self, query_options: QueryOptions) -> QueryOptions:
@@ -36,7 +37,7 @@ class VaultsApiConnector(DataApiAccessor):
 
     def _copy_query_options(self, query_options: QueryOptions | None) -> QueryOptions:
         query_options = query_options or {}
-        return query_options.copy()
+        return copy(query_options)
 
     def request_data(self, query_options: QueryOptions | None = None) -> None:
         query = self._copy_query_options(query_options)
@@ -76,6 +77,7 @@ class ModApiConnector(VaultsApiConnector):
         return query_options
 
     def convert_parsed(self, parsed: ParsedApiResponse) -> dict[str, Any]:
+        assert isinstance(parsed["data"], list)
         return {
             "values": [Mod(**entry) for entry in parsed["data"]],
             "meta": parsed["meta"],
@@ -96,6 +98,7 @@ class MapApiConnector(VaultsApiConnector):
         return map_model
 
     def convert_parsed(self, parsed: ParsedApiResponse) -> dict[str, Any]:
+        assert isinstance(parsed["data"], list)
         return {
             "values": [
                 self._convert_mapversion(info, info["latestVersion"])
@@ -124,6 +127,7 @@ class MapPoolApiConnector(VaultsApiConnector):
         self,
         parsed: ParsedApiResponse,
     ) -> dict[str, list[MatchmakerQueueMapPool]]:
+        assert isinstance(parsed["data"], list)
         return {
             "values": [MatchmakerQueueMapPool(**pool_data) for pool_data in parsed["data"]],
         }
@@ -176,7 +180,7 @@ class ReviewsApiConnector(VaultsApiConnector):
         self,
         version: MapVersion | ModVersion,
         payload: QByteArray,
-        handler: Callable[[dict[str, Any]], None],
+        handler: Callable[[ParsedApiResponse], None],
         error_handler: Callable[[QNetworkReply], None],
     ) -> None:
         json_api_name = decapitalize(version.__class__.__name__)

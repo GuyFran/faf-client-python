@@ -1,6 +1,8 @@
 import logging
 import os
+from collections.abc import Callable
 from typing import Any
+from typing import Concatenate
 
 from PyQt6 import QtCore
 from PyQt6 import QtGui
@@ -11,7 +13,32 @@ from semantic_version import Version
 logger = logging.getLogger(__name__)
 
 
-class Theme():
+def _noneIfNoFile[**P, R](
+    fun: Callable[Concatenate[Theme, P], R],
+) -> Callable[Concatenate[Theme, P], R | None]:
+    def _fun(self: Theme, *args: P.args, **kwargs: P.kwargs) -> R | None:
+        filename, = args
+        assert isinstance(filename, str)
+        if not os.path.isfile(self._themepath(filename)):
+            return None
+        return fun(self, *args, **kwargs)
+    return _fun
+
+
+def _warn_resource_null[**P, R](
+    fn: Callable[Concatenate[ThemeSet, P], R],
+) -> Callable[Concatenate[ThemeSet, P], R]:
+    def _nullcheck(self: ThemeSet, *args: P.args, **kwargs: P.kwargs) -> R:
+        filename, = args
+        assert isinstance(filename, str)
+        ret = fn(self, *args, **kwargs)
+        if ret is None:
+            logger.warning("Failed to load resource '%s' in theme. %s", filename, fn.__name__)
+        return ret
+    return _nullcheck
+
+
+class Theme:
     """
     Represents a single FAF client theme.
     """
@@ -36,13 +63,6 @@ class Theme():
     @property
     def themedir(self):
         return str(self._themedir)
-
-    def _noneIfNoFile(fun):
-        def _fun(self, filename):
-            if not os.path.isfile(self._themepath(filename)):
-                return None
-            return fun(self, filename)
-        return _fun
 
     def version(self):
         if self._themedir is None:
@@ -87,7 +107,7 @@ class Theme():
         # Reads and returns the contents of a file in the theme dir.
         with open(self._themepath(filename)) as f:
             logger.debug("Read themed file: " + filename)
-            return f.readLines()
+            return f.readlines()
 
     @_noneIfNoFile
     def readstylesheet(self, filename):
@@ -315,14 +335,6 @@ class ThemeSet(QtCore.QObject):
         else:
             item = getattr(self._unthemed, fn_name)(filename)
         return item
-
-    def _warn_resource_null(fn):
-        def _nullcheck(self, filename, themed=True):
-            ret = fn(self, filename, themed)
-            if ret is None:
-                logger.warning("Failed to load resource '%s' in theme. %s", filename, fn.__name__)
-            return ret
-        return _nullcheck
 
     def _pixmap(self, filename: str, themed: bool = True) -> QtGui.QPixmap | None:
         return self._theme_callchain("pixmap", filename, themed)
