@@ -1,6 +1,26 @@
 0.x.x
 =====
 
+0.26.0
+* Highlight only mentioned nicknames instead of entire chat lines
+* Display more detailed information in the status bar during
+  game launch
+* Fix inability to play replays from the live replays tab
+* Allow users to configure how many pages of rating history are
+  initially loaded in Playercard
+* Improve network performance by reusing a single
+  QNetworkAccessManager for API requests
+* Improve application launch performance
+  - Implement lazy loading for heavy modules
+  - Load coop and vault widgets on demand
+    + Fix slow initial opening of replay tab by configuring
+      QTreeWidgetItem appearances on demand instead of all at once
+  - Reuse QSoundEffect instances and defer their loading
+* Reduce RAM usage
+  - Refactor Playercard to use a common CachedImageDownloader
+    for all league formatters
+  - Load only requested images into memory in CachedImageDownloader
+
 0.25.3
 * Fix starting ladder games with 'unlisted' league score
 * Reduce installation size
