@@ -13,7 +13,6 @@ const LuaValue = structs.LuaValue;
 const ParseError = structs.ParseError;
 const PlayerGameStats = structs.PlayerGameStats;
 const Point = structs.Point;
-const ParseError = structs.ParseError;
 
 const LUA_TYPE = @import("replayformat.zig").LUA_TYPE;
 const STITARGET = @import("replayformat.zig").STITARGET;
