@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import json
 import logging
 import re
@@ -259,7 +257,7 @@ class ServerConnection(QObject):
     def do_connect(self):
         self._disconnect_requested = False
         self.state = ConnectionState.CONNECTING
-        self.api_accessor.get_by_endpoint(
+        self.api_accessor.get(
             "/lobby/access",
             self.handle_lobby_access_api_response,
             self.on_lobby_access_api_error,

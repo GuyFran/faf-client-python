@@ -1,3 +1,5 @@
+from typing import Any
+
 from PyQt6.QtCore import QDateTime
 from PyQt6.QtCore import QObject
 from PyQt6.QtCore import QPointF
@@ -9,7 +11,6 @@ from PyQt6.QtWidgets import QPushButton
 from PyQt6.QtWidgets import QSpinBox
 from PyQt6.QtWidgets import QTabWidget
 
-from src.api.ApiBase import PreProcessedApiResponse
 from src.api.models.LeaderboardRating import LeaderboardRating
 from src.api.stats_api import LeaderboardRatingJournalApiConnector
 from src.heavy_modules import pg
@@ -160,9 +161,8 @@ class RatingsPlotTab(QObject):
             name += f" ({self._current_page}/{self._total_pages})"
         self.name_changed.emit(self.index, name)
 
-    def process_rating_history(self, message: PreProcessedApiResponse) -> None:
-        meta = message.get("meta")
-        assert meta is not None
+    def process_rating_history(self, message: dict[str, Any]) -> None:
+        meta = message["meta"]
         self._total_pages = meta["page"]["totalPages"]
         self._current_page = meta["page"]["number"]
         if self._total_pages < self._default_pages:

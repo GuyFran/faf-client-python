@@ -1,12 +1,10 @@
-from __future__ import annotations
-
 import json
 import logging
 import os
 import time
 from enum import Enum
 from typing import TYPE_CHECKING
-from typing import Literal
+from typing import Any
 
 from compression import zstd
 from PyQt6 import QtCore
@@ -77,9 +75,9 @@ class ReplayRecorder(QtCore.QObject):
         self._conn_drops = 0
 
     def request_access_url(self) -> None:
-        self.api.get_by_endpoint("/replay/access", self.on_replay_access_url, self.on_api_error)  # type: ignore[arg-type] # noqa: E501
+        self.api.get("/replay/access", self.on_replay_access_url, self.on_api_error)
 
-    def on_replay_access_url(self, data: dict[Literal["accessUrl"], str]) -> None:
+    def on_replay_access_url(self, data: dict[str, Any]) -> None:
         url = QtCore.QUrl(data["accessUrl"])
         self.relay_socket.open(url)
 

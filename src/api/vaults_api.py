@@ -9,7 +9,7 @@ from PyQt6.QtCore import QByteArray
 from PyQt6.QtNetwork import QNetworkReply
 
 from src.api.ApiAccessors import DataApiAccessor
-from src.api.ApiBase import ParsedApiResponse
+from src.api.ApiAccessors import ParsedDataApiResponse
 from src.api.ApiBase import QueryOptions
 from src.api.models.Map import Map
 from src.api.models.MapVersion import MapVersion
@@ -76,7 +76,7 @@ class ModApiConnector(VaultsApiConnector):
         self._extend_includes(query_options, ["uploader"])
         return query_options
 
-    def convert_parsed(self, parsed: ParsedApiResponse) -> dict[str, Any]:
+    def convert_parsed(self, parsed: ParsedDataApiResponse) -> dict[str, Any]:
         assert isinstance(parsed["data"], list)
         return {
             "values": [Mod(**entry) for entry in parsed["data"]],
@@ -97,7 +97,7 @@ class MapApiConnector(VaultsApiConnector):
         map_model.version = MapVersion(**version_info)
         return map_model
 
-    def convert_parsed(self, parsed: ParsedApiResponse) -> dict[str, Any]:
+    def convert_parsed(self, parsed: ParsedDataApiResponse) -> dict[str, Any]:
         assert isinstance(parsed["data"], list)
         return {
             "values": [
@@ -125,7 +125,7 @@ class MapPoolApiConnector(VaultsApiConnector):
 
     def convert_parsed(
         self,
-        parsed: ParsedApiResponse,
+        parsed: ParsedDataApiResponse,
     ) -> dict[str, list[MatchmakerQueueMapPool]]:
         assert isinstance(parsed["data"], list)
         return {
@@ -142,7 +142,7 @@ class ReviewsApiConnector(VaultsApiConnector):
     def request_data(self, query_options: QueryOptions | None = None) -> None:
         query = self._copy_query_options(query_options)
         self._extend_query_options(query)
-        self.get_by_query_parsed(query, self.data_ready.emit)
+        self.get_parsed(query, self.data_ready.emit)
 
     def request_reviews(self, item: Map | Mod) -> None:
         self.route = f"/data/{item.__class__.__name__.lower()}/{item.xd}"
@@ -180,7 +180,7 @@ class ReviewsApiConnector(VaultsApiConnector):
         self,
         version: MapVersion | ModVersion,
         payload: QByteArray,
-        handler: Callable[[ParsedApiResponse], None],
+        handler: Callable[[ParsedDataApiResponse], None],
         error_handler: Callable[[QNetworkReply], None],
     ) -> None:
         json_api_name = decapitalize(version.__class__.__name__)

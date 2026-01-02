@@ -18,7 +18,7 @@ class IceServersPoller(QObject):
         self.servers: list[dict[str, str | list[str]]] = []
 
     def request_ice_servers(self) -> None:
-        self._api_accessor.get_by_endpoint(
+        self._api_accessor.get(
             f"/ice/session/game/{self._game_uid}",
             self.handle_ice_servers,  # type: ignore[arg-type]  FIXME: separate responses form /data route and general responses # noqa: E501
         )

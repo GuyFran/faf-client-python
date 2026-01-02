@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 import re
 import sys
@@ -195,7 +193,7 @@ class IrcConnection(SimpleIRCClient, IrcSignals):
         self._username = username
 
     def begin_connection_process(self) -> None:
-        self.api_accessor.get_by_endpoint(
+        self.api_accessor.get(
             "/irc/ergochat/token",
             self.handle_irc_token,
             self.reconnector.on_connect_failure,

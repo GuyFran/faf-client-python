@@ -1,5 +1,5 @@
 from src.api.ApiAccessors import DataApiAccessor
-from src.api.ApiBase import ParsedApiResponse
+from src.api.ApiAccessors import ParsedDataApiResponse
 from src.api.ApiBase import QueryOptions
 from src.api.models.CoopResult import CoopResult
 from src.api.models.CoopScenario import CoopScenario
@@ -14,7 +14,7 @@ class CoopApiAccessor(DataApiAccessor):
 
     def convert_parsed(
         self,
-        parsed: ParsedApiResponse,
+        parsed: ParsedDataApiResponse,
     ) -> dict[str, list[CoopScenario]]:
         assert isinstance(parsed["data"], list)
         return {"values": [CoopScenario(**scenario) for scenario in parsed["data"]]}
@@ -64,7 +64,7 @@ class CoopResultApiAccessor(DataApiAccessor):
 
     def convert_parsed(
         self,
-        parsed: ParsedApiResponse,
+        parsed: ParsedDataApiResponse,
     ) -> dict[str, list[CoopResult]]:
         assert isinstance(parsed["data"], list)
         results = [CoopResult(**result) for result in parsed["data"]]

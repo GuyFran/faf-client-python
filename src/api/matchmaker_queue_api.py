@@ -1,7 +1,7 @@
 import logging
 
 from src.api.ApiAccessors import DataApiAccessor
-from src.api.ApiBase import ParsedApiResponse
+from src.api.ApiAccessors import ParsedDataApiResponse
 from src.api.models.MatchmakerQueue import MatchmakerQueue
 
 logger = logging.getLogger(__name__)
@@ -13,7 +13,7 @@ class MatchmakerQueueApiConnector(DataApiAccessor):
 
     def convert_parsed(
         self,
-        parsed: ParsedApiResponse,
+        parsed: ParsedDataApiResponse,
     ) -> dict[str, list[MatchmakerQueue]]:
         assert isinstance(parsed["data"], list)
         return {"values": [MatchmakerQueue(**entry) for entry in parsed["data"]]}

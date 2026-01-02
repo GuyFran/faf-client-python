@@ -3,7 +3,7 @@ import logging
 from PyQt6.QtCore import pyqtSignal
 
 from src.api.ApiAccessors import DataApiAccessor
-from src.api.ApiBase import ParsedApiResponse
+from src.api.ApiAccessors import ParsedDataApiResponse
 from src.api.ApiBase import QueryOptions
 from src.api.models.FeaturedMod import FeaturedMod
 from src.api.models.FeaturedModFile import FeaturedModFile
@@ -17,7 +17,7 @@ class FeaturedModApiConnector(DataApiAccessor):
 
     def convert_parsed(
         self,
-        parsed: ParsedApiResponse,
+        parsed: ParsedDataApiResponse,
     ) -> dict[str, list[FeaturedMod]]:
         assert isinstance(parsed["data"], list)
         return {"values": [FeaturedMod(**modinfo) for modinfo in parsed["data"]]}
@@ -33,7 +33,7 @@ class FeaturedModFilesApiConnector(DataApiAccessor):
 
     def convert_parsed(
         self,
-        parsed: ParsedApiResponse,
+        parsed: ParsedDataApiResponse,
     ) -> dict[str, list[FeaturedModFile]]:
         assert isinstance(parsed["data"], list)
         return {"values": [FeaturedModFile(**file) for file in parsed["data"]]}
@@ -43,7 +43,7 @@ class FeaturedModFilesApiConnector(DataApiAccessor):
         return f"/featuredMods/{mod_id}/files/{version_str}"
 
     def get_main_files(self, mod_id: str, version: int | None = None) -> None:
-        self.get_by_endpoint_converted(self.endpoint(mod_id, version), self.main_ready.emit)
+        self.get_converted(self.endpoint(mod_id, version), self.main_ready.emit)
 
     def get_mod_files(self, mod_id: str, version: int | None = None) -> None:
-        self.get_by_endpoint_converted(self.endpoint(mod_id, version), self.mod_ready.emit)
+        self.get_converted(self.endpoint(mod_id, version), self.mod_ready.emit)

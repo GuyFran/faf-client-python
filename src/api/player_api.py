@@ -3,7 +3,7 @@ import logging
 from PyQt6.QtCore import pyqtSignal
 
 from src.api.ApiAccessors import DataApiAccessor
-from src.api.ApiBase import ParsedApiResponse
+from src.api.ApiAccessors import ParsedDataApiResponse
 from src.api.ApiBase import QueryOptions
 from src.api.models.Player import Clan
 from src.api.models.Player import ClanMembership
@@ -28,16 +28,16 @@ class PlayerApiConnector(DataApiAccessor):
             'fields[player]': 'login,names',
             'fields[nameRecord]': 'name,changeTime,player',
         }
-        self.get_by_query_parsed(query, self.alias_info.emit)
+        self.get_parsed(query, self.alias_info.emit)
 
     def request_player(self, player_id: str) -> None:
         query: QueryOptions = {
             "include": "avatarAssignments.avatar,names,clanMembership.clan.memberships.player",
             "filter": f"id=={player_id}",
         }
-        self.get_by_query_parsed(query, self.handle_player)
+        self.get_parsed(query, self.handle_player)
 
-    def handle_player(self, message: ParsedApiResponse) -> None:
+    def handle_player(self, message: ParsedDataApiResponse) -> None:
         player_dict, = message["data"]
         assert isinstance(player_dict, dict)
         player = Player(**player_dict)

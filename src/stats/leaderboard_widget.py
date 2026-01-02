@@ -4,7 +4,7 @@ from PyQt6 import QtCore
 from PyQt6 import QtWidgets
 
 from src import util
-from src.api.ApiBase import ParsedApiResponse
+from src.api.ApiAccessors import ParsedDataApiResponse
 from src.api.player_api import PlayerApiConnector
 from src.api.stats_api import LeaderboardRatingApiConnector
 from src.config import Settings
@@ -160,7 +160,7 @@ class LeaderboardWidget(BaseClass, FormClass):
                     self.showColumnCheckBoxes[index].setEnabled(True)
                     self.showColumnCheckBoxes[index].setChecked(isShown)
 
-    def process_rating_info(self, parsed: ParsedApiResponse) -> None:
+    def process_rating_info(self, parsed: ParsedDataApiResponse) -> None:
         self.createLeaderboard(parsed)
         self.processMeta(parsed["meta"])
         self.resetLoading()
@@ -211,7 +211,7 @@ class LeaderboardWidget(BaseClass, FormClass):
             "filter": f'login=="{self.searchPlayerLine.text()}*"',
             "page[size]": 10,
         }
-        self.playerApiConnector.get_by_query_parsed(query, self.createPlayerCompleter)
+        self.playerApiConnector.get_parsed(query, self.createPlayerCompleter)
 
     def createPlayerCompleter(self, message: dict) -> None:
         logins = [player["login"] for player in message["data"]]
@@ -311,7 +311,7 @@ class LeaderboardWidget(BaseClass, FormClass):
             self.query["page[number]"] = number
             self.query["page[totals]"] = "yes"
 
-            self.apiConnector.get_by_query_parsed(self.query, self.process_rating_info)
+            self.apiConnector.get_parsed(self.query, self.process_rating_info)
             self.labelLoading.setText("Loading...")
             self.loading = True
             self.timer.start(40000)
