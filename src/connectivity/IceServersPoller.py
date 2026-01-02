@@ -20,10 +20,10 @@ class IceServersPoller(QObject):
     def request_ice_servers(self) -> None:
         self._api_accessor.get(
             f"/ice/session/game/{self._game_uid}",
-            self.handle_ice_servers,  # type: ignore[arg-type]  FIXME: separate responses form /data route and general responses # noqa: E501
+            self.handle_ice_servers,
         )
 
     def handle_ice_servers(self, message: dict[str, Any]) -> None:
-        self.servers = cast(list[dict[str, str | list[str]]], message["servers"])
+        self.servers = message["servers"]
         self.force_relay = cast(bool, message["forceRelay"])
         self.ice_servers_received.emit()
