@@ -166,7 +166,7 @@ class DataApiAccessor(ApiAccessor):
                 for key, value in data["relationships"].items():
                     result[key] = self.parse_data(value, included)
         except Exception as e:
-            logger.error("Erorr parsing %s: %s", data, e)
+            logger.error("Error parsing %s: %s", data, e)
         return result
 
     def parse_meta(self, message: DataApiResponse) -> dict[Literal["page"], dict[str, int]]:
