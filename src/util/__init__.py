@@ -184,9 +184,9 @@ for data_dir in [
     os.makedirs(data_dir, exist_ok=True)
 
 
-def remove_obsolete_logs(location, pattern, max_number):
+def remove_obsolete_logs(location: str, pattern: str, max_number: int) -> None:
     files = sorted(os.scandir(location), key=os.path.getmtime)
-    replay_files = [e for e in files if pattern in e]
+    replay_files = [e for e in files if pattern in e.name]
     while len(replay_files) >= max_number:
         os.remove(replay_files[0].path)
         replay_files.pop(0)
