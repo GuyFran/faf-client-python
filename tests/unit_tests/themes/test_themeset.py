@@ -1,4 +1,3 @@
-import PyQt6.QtMultimedia
 from semantic_version import Version
 
 from src.util import ThemeSet
@@ -185,7 +184,7 @@ def test_returns_when_not_found(mocker):
 
     # Make mocks return None
     for theme in [def_mock, theme_mock, unthemed]:
-        members = dict((fn, mocker.Mock()) for fn in THEME_FILE_FUNS)
+        members = {fn: mocker.Mock() for fn in THEME_FILE_FUNS}
         theme.configure_mock(**members)
         for fn in THEME_FILE_FUNS:
             getattr(theme, fn).return_value = None
@@ -231,7 +230,7 @@ def test_theme_call_order(mocker):
     all_mocks = [def_mock, theme_mock, unthemed]
 
     for theme in all_mocks:
-        members = dict((fn, mocker.Mock()) for fn in THEME_FILE_FUNS)
+        members = {fn: mocker.Mock() for fn in THEME_FILE_FUNS}
         theme.configure_mock(**members)
 
     ts = ThemeSet([theme_mock], def_mock, setting_mock, "1.0.0", unthemed)
@@ -240,8 +239,10 @@ def test_theme_call_order(mocker):
     # themes from should_call in their specified order.
     def test_run(should_call, themed=None):
         for fn in THEME_FILE_FUNS:
-            theme_ids = dict((e, "e" + str(i))
-                             for (i, e) in enumerate(all_mocks))
+            theme_ids = {
+                e: "e" + str(i)
+                for (i, e) in enumerate(all_mocks)
+            }
             manager = mocker.Mock()
             for theme in all_mocks:
                 manager.attach_mock(theme, theme_ids[theme])
@@ -251,7 +252,7 @@ def test_theme_call_order(mocker):
             if themed is None:
                 getattr(ts, fn)("mock")
             else:
-                getattr(ts, fn)("mock", themed)
+                getattr(ts, fn)("mock", themed=themed)
             assert [c[0] for c in manager.mock_calls] == call_names
 
     test_run([def_mock])  # Default theme returns something
