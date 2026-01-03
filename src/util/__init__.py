@@ -41,9 +41,6 @@ UNITS_PREVIEW_ROOT = (
 )
 
 COMMON_DIR = fafpath.get_resdir()
-
-stylesheets = {}  # map [qt obj] ->  filename of stylesheet
-
 APPDATA_DIR = Settings.get('client/data_path', default=_APPDATA_DIR)
 
 # This is used to store init_*.lua files
@@ -142,9 +139,6 @@ PREFSFILENAME = os.path.join(LOCALFOLDER, "game.prefs")
 if not os.path.exists(PREFSFILENAME):
     PREFSFILENAME = os.path.join(LOCALFOLDER, "Game.prefs")
 
-DOWNLOADED_RES_PIX = {}
-DOWNLOADING_RES_PIX = {}
-
 
 def get_personal_dir() -> str:
     loc_type = QStandardPaths.StandardLocation.DocumentsLocation
@@ -190,19 +184,11 @@ for data_dir in [
     os.makedirs(data_dir, exist_ok=True)
 
 
-def get_files_by_mod_date(location):
-    files = os.listdir(location)
-    files = map(lambda f: os.path.join(location, f), files)
-    files = sorted(files, key=os.path.getmtime)
-    files = list(map(os.path.basename, files))
-    return files
-
-
-def remove_obsolete_logs(location, pattern, max_number):
-    files = get_files_by_mod_date(location)
-    replay_files = [e for e in files if pattern in e]
+def remove_obsolete_logs(location: str, pattern: str, max_number: int) -> None:
+    files = sorted(os.scandir(location), key=os.path.getmtime)
+    replay_files = [e for e in files if pattern in e.name]
     while len(replay_files) >= max_number:
-        os.remove(os.path.join(location, replay_files[0]))
+        os.remove(replay_files[0].path)
         replay_files.pop(0)
 
 

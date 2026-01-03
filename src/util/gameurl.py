@@ -66,7 +66,7 @@ class GameUrl:
             path = url.path().split("/")
 
             if game_type == GameUrlType.OPEN_GAME:
-                uid = cls._get_query_item(query, "uid", int)
+                uid = int(cls._get_query_item(query, "uid"))
                 player = path[1]
             else:
                 uid = int(path[1])
@@ -85,11 +85,10 @@ class GameUrl:
         return cls(game_type, map_, mod, uid, player, mods)
 
     @classmethod
-    def _get_query_item[T: str | int](cls, query: QUrlQuery, name: str, type_: type[T] = str) -> T:
-        str_value = query.queryItemValue(name)
-        if str_value == "":
+    def _get_query_item(cls, query: QUrlQuery, name: str) -> str:
+        if not query.hasQueryItem(name):
             raise ValueError
-        return type_(str_value)
+        return query.queryItemValue(name)
 
     @classmethod
     def is_game_url(cls, u: str, /) -> bool:

@@ -1,6 +1,8 @@
 import logging
 import os
+from collections.abc import Callable
 from typing import Any
+from typing import Concatenate
 
 from PyQt6 import QtCore
 from PyQt6 import QtGui
@@ -11,7 +13,32 @@ from semantic_version import Version
 logger = logging.getLogger(__name__)
 
 
-class Theme():
+def _noneIfNoFile[**P, R](
+    fun: Callable[Concatenate[Theme, P], R],
+) -> Callable[Concatenate[Theme, P], R | None]:
+    def _fun(self: Theme, *args: P.args, **kwargs: P.kwargs) -> R | None:
+        filename, = args
+        assert isinstance(filename, str)
+        if not os.path.isfile(self._themepath(filename)):
+            return None
+        return fun(self, *args, **kwargs)
+    return _fun
+
+
+def _warn_resource_null[**P, R](
+    fn: Callable[Concatenate[ThemeSet, P], R],
+) -> Callable[Concatenate[ThemeSet, P], R]:
+    def _nullcheck(self: ThemeSet, *args: P.args, **kwargs: P.kwargs) -> R:
+        filename, = args
+        assert isinstance(filename, str)
+        ret = fn(self, *args, **kwargs)
+        if ret is None:
+            logger.warning("Failed to load resource '%s' in theme. %s", filename, fn.__name__)
+        return ret
+    return _nullcheck
+
+
+class Theme:
     """
     Represents a single FAF client theme.
     """
@@ -36,13 +63,6 @@ class Theme():
     @property
     def themedir(self):
         return str(self._themedir)
-
-    def _noneIfNoFile(fun):
-        def _fun(self, filename):
-            if not os.path.isfile(self._themepath(filename)):
-                return None
-            return fun(self, filename)
-        return _fun
 
     def version(self):
         if self._themedir is None:
@@ -87,7 +107,7 @@ class Theme():
         # Reads and returns the contents of a file in the theme dir.
         with open(self._themepath(filename)) as f:
             logger.debug("Read themed file: " + filename)
-            return f.readLines()
+            return f.readlines()
 
     @_noneIfNoFile
     def readstylesheet(self, filename):
@@ -316,49 +336,41 @@ class ThemeSet(QtCore.QObject):
             item = getattr(self._unthemed, fn_name)(filename)
         return item
 
-    def _warn_resource_null(fn):
-        def _nullcheck(self, filename, themed=True):
-            ret = fn(self, filename, themed)
-            if ret is None:
-                logger.warning("Failed to load resource '%s' in theme. %s", filename, fn.__name__)
-            return ret
-        return _nullcheck
-
-    def _pixmap(self, filename: str, themed: bool = True) -> QtGui.QPixmap | None:
+    def _pixmap(self, filename: str, *, themed: bool = True) -> QtGui.QPixmap | None:
         return self._theme_callchain("pixmap", filename, themed)
 
     @_warn_resource_null
-    def loadUi(self, filename, themed=True):
+    def loadUi(self, filename: str, *, themed: bool = True):
         return self._theme_callchain("loadUi", filename, themed)
 
     @_warn_resource_null
-    def loadUiType(self, filename, themed=True):
+    def loadUiType(self, filename: str, *, themed: bool = True):
         return self._theme_callchain("loadUiType", filename, themed)
 
     @_warn_resource_null
-    def readlines(self, filename, themed=True):
+    def readlines(self, filename: str, *, themed: bool = True):
         return self._theme_callchain("readlines", filename, themed)
 
     @_warn_resource_null
-    def readstylesheet(self, filename, themed=True):
+    def readstylesheet(self, filename: str, *, themed: bool = True):
         return self._theme_callchain("readstylesheet", filename, themed)
 
     @_warn_resource_null
-    def themeurl(self, filename, themed=True):
+    def themeurl(self, filename: str, *, themed: bool = True):
         return self._theme_callchain("themeurl", filename, themed)
 
     @_warn_resource_null
-    def readfile(self, filename, themed=True):
+    def readfile(self, filename: str, *, themed: bool = True):
         return self._theme_callchain("readfile", filename, themed)
 
     @_warn_resource_null
-    def sound(self, filename: str, themed: bool = True) -> QtCore.QUrl:
+    def sound(self, filename: str, *, themed: bool = True) -> QtCore.QUrl:
         filepath = self._theme_callchain("sound", filename, themed)
         return QtCore.QUrl.fromLocalFile(filepath)
 
-    def pixmap(self, filename: str, themed: bool = True) -> QtGui.QPixmap:
+    def pixmap(self, filename: str, *, themed: bool = True) -> QtGui.QPixmap:
         # If we receive None, return the default pixmap
-        ret = self._pixmap(filename, themed)
+        ret = self._pixmap(filename, themed=themed)
         if ret is None:
             return QtGui.QPixmap()
         return ret
@@ -377,33 +389,18 @@ class ThemeSet(QtCore.QObject):
         optionally themed pixmap as returned by the pixmap(...) function
         """
         if pix:
-            return self.pixmap(filename, themed)
+            return self.pixmap(filename, themed=themed)
         else:
             icon = QtGui.QIcon()
-            icon.addPixmap(self.pixmap(filename, themed), QtGui.QIcon.Mode.Normal)
+            icon.addPixmap(self.pixmap(filename, themed=themed), QtGui.QIcon.Mode.Normal)
             splitExt = os.path.splitext(filename)
             if len(splitExt) == 2:
-                pixDisabled = self.pixmap(
-                    splitExt[0] + "_disabled" + splitExt[1], themed,
-                )
-                if pixDisabled is not None:
-                    icon.addPixmap(
-                        pixDisabled, QtGui.QIcon.Mode.Disabled, QtGui.QIcon.State.On,
-                    )
+                disabled = self.pixmap(splitExt[0] + "_disabled" + splitExt[1], themed=themed)
+                icon.addPixmap(disabled, QtGui.QIcon.Mode.Disabled, QtGui.QIcon.State.On)
 
-                pixActive = self.pixmap(
-                    splitExt[0] + "_active" + splitExt[1], themed,
-                )
-                if pixActive is not None:
-                    icon.addPixmap(
-                        pixActive, QtGui.QIcon.Mode.Active, QtGui.QIcon.State.On,
-                    )
+                active = self.pixmap(splitExt[0] + "_active" + splitExt[1], themed=themed)
+                icon.addPixmap(active, QtGui.QIcon.Mode.Active, QtGui.QIcon.State.On)
 
-                pixSelected = self.pixmap(
-                    splitExt[0] + "_selected" + splitExt[1], themed,
-                )
-                if pixSelected is not None:
-                    icon.addPixmap(
-                        pixSelected, QtGui.QIcon.Mode.Selected, QtGui.QIcon.State.On,
-                    )
+                selected = self.pixmap(splitExt[0] + "_selected" + splitExt[1], themed=themed)
+                icon.addPixmap(selected, QtGui.QIcon.Mode.Selected, QtGui.QIcon.State.On)
             return icon

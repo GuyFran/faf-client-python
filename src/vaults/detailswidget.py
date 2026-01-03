@@ -15,8 +15,7 @@ from PyQt6.QtWidgets import QTableWidgetItem
 from PyQt6.QtWidgets import QWidget
 
 from src import util
-from src.api.ApiBase import ParsedApiResponse
-from src.api.ApiBase import PreProcessedApiResponse
+from src.api.ApiAccessors import ParsedDataApiResponse
 from src.api.models.Map import Map
 from src.api.models.MapVersion import MapVersion
 from src.api.models.MapVersionReview import MapVersionReview
@@ -88,7 +87,7 @@ class DetailsWidget[T: Map | Mod](QWidget):
     def ask_review(self) -> None:
         pass
 
-    def allow_review(self, response: ParsedApiResponse) -> None:
+    def allow_review(self, response: ParsedDataApiResponse) -> None:
         pass
 
     def ask_file_size(self) -> None:
@@ -161,8 +160,9 @@ class DetailsWidget[T: Map | Mod](QWidget):
             self.on_submit_error,
         )
 
-    def on_review_submitted(self, response: PreProcessedApiResponse) -> None:
+    def on_review_submitted(self, response: ParsedDataApiResponse) -> None:
         data = response["data"]
+        assert isinstance(data, dict)
         if data["type"] == decapitalize(MapVersionReview.__name__):
             review = MapVersionReview(**data)
             assert isinstance(self.item_version, MapVersion)
@@ -376,7 +376,7 @@ class DetailsWidget[T: Map | Mod](QWidget):
         self.item_availability_changed.emit()
         self.update_download_buttons_layout()
 
-    def on_reviews_data(self, message: ParsedApiResponse) -> None:
+    def on_reviews_data(self, message: ParsedDataApiResponse) -> None:
         self._comments_initialized = True
         item_info = message["data"]
 

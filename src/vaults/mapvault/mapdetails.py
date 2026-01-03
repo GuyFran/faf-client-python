@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import QWidget
 
 from src import util
 from src.api.ApiAccessors import DataApiAccessor
-from src.api.ApiBase import ParsedApiResponse
+from src.api.ApiAccessors import ParsedDataApiResponse
 from src.api.models.Map import Map
 from src.fa import maps
 from src.fa.maps_.preview import create_largest_preview
@@ -33,7 +33,7 @@ class MapDetailsWidget(DetailsWidget[Map]):
         self.games_api = DataApiAccessor("/data/game")
 
     def _ask_if_played_map(self) -> None:
-        self.games_api.get_by_query_parsed(
+        self.games_api.get_parsed(
             {
                 "include": "playerStats",
                 "filter": (
@@ -52,7 +52,7 @@ class MapDetailsWidget(DetailsWidget[Map]):
         else:
             self._ask_if_played_map()
 
-    def allow_review(self, response: ParsedApiResponse) -> None:
+    def allow_review(self, response: ParsedDataApiResponse) -> None:
         map_played = len(response["data"]) > 0
         self.ui.addReviewButton.setEnabled(map_played)
         self.ui.detailedReviews.addCommentButton.setEnabled(map_played)

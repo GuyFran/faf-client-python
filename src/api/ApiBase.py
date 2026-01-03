@@ -1,10 +1,8 @@
 import json
 import logging
 from collections.abc import Callable
+from collections.abc import MutableMapping
 from typing import Any
-from typing import Literal
-from typing import NotRequired
-from typing import TypedDict
 from typing import cast
 
 from PyQt6.QtCore import QByteArray
@@ -22,26 +20,8 @@ from src.oauth.oauth_flow import OAuth2FlowInstance
 logger = logging.getLogger(__name__)
 
 
-class ApiResourceObject(TypedDict):
-    id: str
-    type: str
-    attributes: NotRequired[dict[str, Any]]
-    relationships: NotRequired[dict[str, ApiResponse]]
+type QueryOptions = MutableMapping[str, str | float]
 
-
-class ApiResponse(TypedDict):
-    data: ApiResourceObject | list[ApiResourceObject]
-    included: NotRequired[list[ApiResourceObject]]
-    meta: NotRequired[dict[Literal["page"], dict[str, int]]]
-
-
-class ParsedApiResponse(TypedDict):
-    data: dict[str, Any] | list[dict[str, Any]]
-    meta: NotRequired[dict[Literal["page"], dict[str, int]]]
-
-
-type PreProcessedApiResponse = ApiResponse | ParsedApiResponse
-type QueryOptions = dict[str, str | float]
 
 DO_NOT_ENCODE = QByteArray(b":/?&=.,")
 
@@ -59,15 +39,15 @@ class JsonApiBase(QObject):
 
     def _decode_and_handle(
         self,
-        handler: Callable[[ApiResponse], Any],
+        handler: Callable[[dict[str, Any]], Any],
     ) -> Callable[[QNetworkReply], None]:
         def handle(reply: QNetworkReply) -> None:
             handler(self.decode_reply(reply))
         return handle
 
-    def decode_reply(self, reply: QNetworkReply) -> ApiResponse:
+    def decode_reply(self, reply: QNetworkReply) -> dict[str, Any]:
         message_bytes = reply.readAll().data()
-        return cast(ApiResponse, json.loads(message_bytes.decode("utf-8")))
+        return cast(dict[str, Any], json.loads(message_bytes.decode("utf-8")))
 
     def build_query_url(self, query_dict: QueryOptions) -> QUrl:
         query = QUrlQuery()
@@ -89,29 +69,23 @@ class JsonApiBase(QObject):
     def _url_from_endpoint(self, endpoint: str) -> QUrl:
         return self._get_host_url().resolved(QUrl(endpoint))
 
-    def get_by_query(
+    def get(
         self,
-        query: QueryOptions,
-        response_handler: Callable[[ApiResponse], None],
+        query_or_path: QueryOptions | str,
+        response_handler: Callable[[dict[str, Any]], None],
         error_handler: Callable[[QNetworkReply], None] = _do_nothing,
     ) -> QNetworkReply:
-        url = self.build_query_url(query)
-        return self.api.get(url, self._decode_and_handle(response_handler), error_handler)
-
-    def get_by_endpoint(
-        self,
-        endpoint: str,
-        response_handler: Callable[[ApiResponse], None],
-        error_handler: Callable[[QNetworkReply], None] = _do_nothing,
-    ) -> QNetworkReply:
-        url = self._url_from_endpoint(endpoint)
+        if isinstance(query_or_path, str):
+            url = self._url_from_endpoint(query_or_path)
+        else:
+            url = self.build_query_url(query_or_path)
         return self.api.get(url, self._decode_and_handle(response_handler), error_handler)
 
     def post(
         self,
         endpoint: str,
         data: QByteArray,
-        response_handler: Callable[[ApiResponse], None] = _do_nothing,
+        response_handler: Callable[[dict[str, Any]], None] = _do_nothing,
         error_handler: Callable[[QNetworkReply], None] = _do_nothing,
     ) -> QNetworkReply:
         return self.api.post(

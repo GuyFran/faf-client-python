@@ -21,7 +21,7 @@ from src import util
 from src.api.featured_mod_api import FeaturedModApiConnector
 from src.client.user import User
 from src.config import Settings
-from src.games.automatchframe import MatchmakerQueue
+from src.games.automatchframe import MatchmakerQueueFrame
 from src.games.filters.controller import GamesSortFilterController
 from src.games.filters.sortfiltermodel import CustomGameFilterModel
 from src.games.gameitem import GameViewBuilder
@@ -442,13 +442,14 @@ class GamesWidget(FormClass, BaseClass):
 
     def handle_matchmaker_info(self, message: ServerMessage) -> None:
         for queue in sorted(message.get("queues", {}), key=itemgetter("team_size")):
-            insert_to = queue["team_size"] - 1
+            team_size = queue["team_size"]
+            insert_to = team_size - 1
             existing_queue = self.matchmakerQueues.widget(insert_to)
-            if existing_queue is None or existing_queue.teamSize != queue["team_size"]:
+            if existing_queue is None or existing_queue.teamSize != team_size:
                 logger.info("Adding matchmaker queue %s", queue["queue_name"])
-                mqueue = MatchmakerQueue(self, self.client, queue["queue_name"], queue["team_size"])
+                mqueue = MatchmakerQueueFrame(self, self.client, queue["queue_name"], team_size)
                 mqueue.handleQueueInfo(message)
-                tab_name = "&{teamSize} vs {teamSize}".format(teamSize=queue["team_size"])
+                tab_name = "&{teamSize} vs {teamSize}".format(teamSize=team_size)
                 self.matchmakerQueues.insertTab(insert_to, mqueue, tab_name)
                 self.matchmakerQueues.tabBar().setTabTextColor(insert_to, QColor("silver"))
 

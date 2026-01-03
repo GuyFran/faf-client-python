@@ -21,7 +21,7 @@ from PyQt6.QtWidgets import QTreeWidgetItem
 from src import client
 from src import fa
 from src import util
-from src.api.ApiBase import ParsedApiResponse
+from src.api.ApiAccessors import ParsedDataApiResponse
 from src.api.models.Leaderboard import Leaderboard
 from src.api.replaysapi import ReplaysApiConnector
 from src.api.stats_api import LeaderboardApiConnector
@@ -940,7 +940,7 @@ class ReplayVaultWidgetHandler:
         if filters:
             parameters["filter"] = filters
 
-        self.apiConnector.get_by_query_parsed(
+        self.apiConnector.get_parsed(
             parameters,
             self.process_replays_data,
             self.on_api_request_error,
@@ -1194,7 +1194,7 @@ class ReplayVaultWidgetHandler:
         self.stopSearchVault()
         self._w.searchInfoLabel.setText(reply.errorString())
 
-    def process_replays_data(self, message: ParsedApiResponse) -> None:
+    def process_replays_data(self, message: ParsedDataApiResponse) -> None:
         self.stopSearchVault()
         self.clear_scoreboard()
         self.onlineReplays = {}

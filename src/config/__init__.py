@@ -35,7 +35,7 @@ _settings = QtCore.QSettings(
     "ForgedAllianceForever",
     "FA Lobby",
 )
-_unpersisted_settings = {}
+_unpersisted_settings: dict[QtCore.QByteArray | bytes | memoryview | str | None, Any] = {}
 
 CONFIG_PATH = os.path.dirname(_settings.fileName())
 
@@ -304,7 +304,7 @@ def is_development_version():
 # FIXME: Don't initialize proxy code that shows a dialogue box on import
 no_dialogs = False
 
-environment = 'production'
+environment: str = _settings.value("lobby/env", "main", str)
 
 
 def is_beta():
@@ -325,7 +325,6 @@ for config_defaults in [production_defaults, develop_defaults, testing_defaults]
         if isinstance(value, str):
             config_defaults[key] = value.format_map(FormatDefault(host=config_defaults["host"]))
 
-environment: str = _settings.value("lobby/env", "main", str)
 defaults = {
     "main": production_defaults,
     "test": testing_defaults,

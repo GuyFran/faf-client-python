@@ -13,7 +13,6 @@ const LuaValue = structs.LuaValue;
 const ParseError = structs.ParseError;
 const PlayerGameStats = structs.PlayerGameStats;
 const Point = structs.Point;
-const ParseErorr = structs.ParseError;
 
 const LUA_TYPE = @import("replayformat.zig").LUA_TYPE;
 const STITARGET = @import("replayformat.zig").STITARGET;
@@ -22,7 +21,7 @@ const Operation = @import("replayformat.zig").Operation;
 
 const SliceIterator = @import("sliceiterator.zig").SliceIterator;
 
-pub fn parse(replay_buf: []u8, allocator: Allocator) ParseErorr!Parser {
+pub fn parse(replay_buf: []u8, allocator: Allocator) ParseError!Parser {
     var iterator = SliceIterator.from_slice(replay_buf);
     var result = Parser.init(&iterator, allocator);
     errdefer result.deinit(allocator);
