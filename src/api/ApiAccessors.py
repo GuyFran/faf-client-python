@@ -37,7 +37,7 @@ class DataApiResourceObject(TypedDict):
 
 
 class DataApiResponse(TypedDict):
-    data: DataApiResourceObject | list[DataApiResourceObject]
+    data: DataApiResourceObject | list[DataApiResourceObject] | None
     included: NotRequired[list[DataApiResourceObject]]
     meta: NotRequired[dict[Literal["page"], dict[str, int]]]
 
@@ -139,7 +139,9 @@ class DataApiAccessor(ApiAccessor):
         included: dict[str, Any],
     ) -> dict[str, Any] | list[dict[str, Any]]:
         data = message["data"]
-        if isinstance(data, list):
+        if data is None:
+            return {}
+        elif isinstance(data, list):
             return [self.parse_single(entry, included) for entry in data]
         else:
             return self.parse_single(data, included)
