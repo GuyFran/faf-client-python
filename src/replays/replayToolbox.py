@@ -294,7 +294,9 @@ class ReplayToolboxHandler:
         if filters:
             parameters["filter"] = filters
 
-        self.widgetHandler.apiConnector.requestData(parameters)
+        self.widgetHandler.apiConnector.get_parsed(
+            parameters, self.widgetHandler.process_replays_data,
+        )
         self.widgetHandler.timer.start(90000)
 
     def prepareFilters(self):
