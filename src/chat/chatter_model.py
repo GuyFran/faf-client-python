@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Callable
 from enum import Enum
 from enum import IntEnum
@@ -184,7 +182,7 @@ class ChatterSortFilterModel(QSortFilterProxyModel):
 # TODO - place in some separate file?
 class ChatterFormat:
     @classmethod
-    def name(cls, chatter, clan):
+    def name(cls, chatter: str, clan: str | None) -> str:
         if clan is not None:
             return f"[{clan}]{chatter}"
         else:

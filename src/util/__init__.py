@@ -358,12 +358,12 @@ html_escape_table = {
 }
 
 
-def html_escape(text):
+def html_escape(text: str) -> str:
     """Produce entities within text."""
     return "".join(html_escape_table.get(c, c) for c in text)
 
 
-def irc_escape(text):
+def irc_escape(text: str) -> str:
     # first, strip any and all html
     text = html_escape(text)
 
@@ -395,7 +395,7 @@ def irc_escape(text):
     # I'm splitting the whole string and matching each fragment start-to-end
     # as a whole
     strings = text.split(" ")
-    result = []
+    result: list[str] = []
     for fragment in strings:
         match = url_re.match(fragment)
         if match:
