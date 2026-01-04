@@ -160,10 +160,13 @@ class ChatAreaView:
         if new.topic != old.topic:
             self._set_topic(new.topic)
 
-    def _set_topic(self, topic):
-        self._widget.set_topic(self._format_topic(topic))
+    def _set_topic(self, topic: str) -> None:
+        if topic == "":
+            self._widget.clear_topic()
+        else:
+            self._widget.set_topic(self._format_topic(topic))
 
-    def _format_topic(self, topic):
+    def _format_topic(self, topic: str) -> str:
         # FIXME - use CSS for this
         fmt = (
             "<style>a{{color:cornflowerblue}}</style>"

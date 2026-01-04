@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 import re
 from typing import TYPE_CHECKING
@@ -184,8 +182,13 @@ class ChannelWidget(QObject):
     def hidden(self):
         return not self.base.isVisible()
 
-    def set_topic(self, topic):
+    def set_topic(self, topic: str) -> None:
         self.announce_line.setText(topic)
+        self.announce_line.show()
+
+    def clear_topic(self) -> None:
+        self.announce_line.clear()
+        self.announce_line.hide()
 
 
 class ChatAreaStickyScroll:
