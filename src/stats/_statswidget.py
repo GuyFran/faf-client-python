@@ -49,9 +49,6 @@ class StatsWidget(BaseClass, FormClass, BusyWidget):
             util.THEME.readfile("stats/formatters/ladder_header.qthtml"),
         )
 
-        util.THEME.stylesheets_reloaded.connect(self.load_stylesheet)
-        self.load_stylesheet()
-
         # setup other tabs
 
         self.apiConnector = LeaderboardApiConnector()
@@ -75,11 +72,6 @@ class StatsWidget(BaseClass, FormClass, BusyWidget):
                 self.leaderboards.widget(0).deleteLater()
                 self.leaderboards.removeTab(0)
             self.apiConnector.requestData(dict(sort="id"))
-
-    def load_stylesheet(self):
-        self.setStyleSheet(
-            util.THEME.readstylesheet("stats/formatters/style.css"),
-        )
 
     @QtCore.pyqtSlot(int)
     def leaderboardsTabChanged(self, curr):
