@@ -1435,3 +1435,9 @@ QListWidget#clanMembersList::item:hover {
 QFrame#vetoFrame:hover {
     background: #101010;
 }
+
+
+/* CUSTOM RULES */
+QTextBrowser::custom {
+    highlight-background-color: yellow;
+}

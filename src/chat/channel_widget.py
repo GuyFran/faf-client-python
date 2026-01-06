@@ -5,21 +5,64 @@ from typing import Any
 from typing import Self
 
 from PyQt6.QtCore import QObject
+from PyQt6.QtCore import QRegularExpression
+from PyQt6.QtCore import QRegularExpressionMatch
 from PyQt6.QtCore import Qt
 from PyQt6.QtCore import QUrl
 from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QKeySequence
+from PyQt6.QtGui import QShortcut
+from PyQt6.QtGui import QSyntaxHighlighter
+from PyQt6.QtGui import QTextBlock
+from PyQt6.QtGui import QTextCharFormat
 from PyQt6.QtGui import QTextCursor
 from PyQt6.QtGui import QTextDocument
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QFrame
+from PyQt6.QtWidgets import QLabel
+from PyQt6.QtWidgets import QLineEdit
+from PyQt6.QtWidgets import QPushButton
 
 from src.client.chat_config import ChatConfig
 from src.model.chat.channel import Channel
 from src.qt.utils import monkeypatch_method
+from src.util import find_stylesheet_attribute
 from src.util.theme import ThemeSet
 
 if TYPE_CHECKING:
     from src.chat.channel_view import ChatLineCssTemplate
 
 logger = logging.getLogger(__name__)
+
+
+class SearchHighlighter(QSyntaxHighlighter):
+    def __init__(self, parent: QTextDocument, theme: ThemeSet) -> None:
+        super().__init__(parent)
+        self.highlight_format = QTextCharFormat()
+        color_str = find_stylesheet_attribute(
+            theme.readstylesheet("client/client.css"),
+            "QTextBrowser::custom",
+            "highlight-background-color",
+        ) or "yellow"
+        self.highlight_format.setBackground(QColor(color_str))
+        self.expression = QRegularExpression("")
+        self.search_results: list[tuple[QTextBlock, QRegularExpressionMatch]] = []
+
+    def set_expression(self, exp: QRegularExpression, /) -> None:
+        self.expression = exp
+        self.search_results.clear()
+
+    def highlightBlock(self, text: str | None) -> None:
+        if self.expression.pattern() == "":
+            return
+
+        block = self.currentBlock()
+        iterator = self.expression.globalMatch(text)
+        while (iterator.hasNext()):
+            m = iterator.next()
+            self.setFormat(m.capturedStart(), m.capturedLength(), self.highlight_format)
+            self.search_results.append((block, m))
 
 
 class ChannelWidget(QObject):
@@ -41,6 +84,17 @@ class ChannelWidget(QObject):
         self._chat_area_css.changed.connect(self._reload_css)
         self._chat_config = chat_config
         self.set_theme(theme)
+
+        self._search_shortcut = QShortcut(QKeySequence("Ctrl+F"), self.chat_edit)
+        self._search_shortcut.activated.connect(self._toggle_search)
+
+        self.search_button.clicked.connect(self._find_text)
+        self.clear_search_button.clicked.connect(self._reset_search)
+
+        self.search_edit.returnPressed.connect(self._find_text)
+        self.current_search_index = -1
+        self.search_term = ""
+        self.highlighter = SearchHighlighter(self.chat_area.document(), theme)
 
     @classmethod
     def build(
@@ -77,11 +131,32 @@ class ChannelWidget(QObject):
     def announce_line(self):
         return self.form.announceLine
 
+    @property
+    def search_edit(self) -> QLineEdit:
+        return self.form.searchEdit
+
+    @property
+    def search_label(self) -> QLabel:
+        return self.form.searchLabel
+
+    @property
+    def search_frame(self) -> QFrame:
+        return self.form.searchFrame
+
+    @property
+    def search_button(self) -> QPushButton:
+        return self.form.searchChannelButton
+
+    @property
+    def clear_search_button(self) -> QPushButton:
+        return self.form.clearSearchButton
+
     def set_theme(self, theme: ThemeSet) -> None:
         formc, basec = theme.loadUiType("chat/channel.ui")
         self.form = formc()
         self.base = basec()
         self.form.setupUi(self.base)
+        self.form.searchFrame.hide()
 
         # Used by chat widget so it knows it corresponds to this widget
         self.base.cid = self.channel.id_key
@@ -103,7 +178,17 @@ class ChannelWidget(QObject):
                 self.chat_area.copy()
             else:
                 old_fn(keyevent)
+
+        def showEvent(obj, super_showEvent, event):
+            if self.search_frame.isVisible():
+                self.search_edit.setFocus()
+            else:
+                self.chat_edit.setFocus()
+            return super_showEvent(event)
+
+        # FIXME: remove these hacks
         monkeypatch_method(self.base, "keyReleaseEvent", on_key_release)
+        monkeypatch_method(self.base, "showEvent", showEvent)
 
     def _chatter_list_resized(self, size):
         self.chatter_list_resized.emit(size)
@@ -189,6 +274,70 @@ class ChannelWidget(QObject):
     def clear_topic(self) -> None:
         self.announce_line.clear()
         self.announce_line.hide()
+
+    def _toggle_search(self) -> None:
+        if self.search_edit.isVisible() and self.search_edit.hasFocus():
+            self._reset_search()
+            self.search_frame.hide()
+            self.chat_edit.setFocus()
+        else:
+            self.search_frame.show()
+            self.search_edit.setFocus()
+
+    def _reset_search(self) -> None:
+        self.search_term = ""
+        self.highlighter.set_expression(QRegularExpression(""))
+
+        cursor = self.chat_area.textCursor()
+        cursor.clearSelection()
+        self.chat_area.setTextCursor(cursor)
+
+        self.search_label.clear()
+        self.highlighter.rehighlight()
+
+    def _find_text(self) -> None:
+        search_term = self.search_edit.text().strip()
+
+        if not search_term:
+            self._reset_search()
+            return
+
+        if search_term == self.search_term:
+            if QApplication.keyboardModifiers() & Qt.KeyboardModifier.ShiftModifier:
+                self._navigate_to_search_result(self.current_search_index - 1)
+            else:
+                self._navigate_to_search_result(self.current_search_index + 1)
+            return
+
+        self.search_term = search_term
+        pattern_opt = QRegularExpression.PatternOption.CaseInsensitiveOption
+        self.highlighter.set_expression(QRegularExpression(search_term, pattern_opt))
+        self.highlighter.rehighlight()
+
+        if self.highlighter.search_results:
+            self.current_search_index = 0
+            self._navigate_to_search_result(0)
+        else:
+            self.current_search_index = -1
+            self.search_label.setText("0 out of 0")
+
+    def _navigate_to_search_result(self, index: int) -> None:
+        self.current_search_index = index % len(self.highlighter.search_results)
+
+        block, m = self.highlighter.search_results[self.current_search_index]
+
+        cursor = self.chat_area.textCursor()
+        cursor.setPosition(block.position() + m.capturedStart())
+        cursor.movePosition(
+            QTextCursor.MoveOperation.Right,
+            QTextCursor.MoveMode.KeepAnchor,
+            m.capturedLength(),
+        )
+        self.chat_area.setTextCursor(cursor)
+
+        current = self.current_search_index + 1
+        total = len(self.highlighter.search_results)
+        self.search_label.setText(f"{current} out of {total}")
 
 
 class ChatAreaStickyScroll:
