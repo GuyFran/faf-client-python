@@ -986,6 +986,11 @@ QPushButton#searchButton, #advSearchButton, #fafDbButton, #spookyDbButton
     background-color: rgb(39, 39, 45);
 }
 
+QPushButton#searchButton::hover, #advSearchButton::hover, #fafDbButton::hover, #spookyDbButton::hover
+{
+    background-color: #808080;
+}
+
 QPushButton#RefreshResetButton, #advResetButton
 {
 	color: silver;
@@ -994,6 +999,11 @@ QPushButton#RefreshResetButton, #advResetButton
     font: 11px;
     min-height: 20px;
     background-color: rgb(39, 39, 45);
+}
+
+QPushButton#RefreshResetButton::hover, #advResetButton::hover
+{
+    background-color: #808080;
 }
 
 QPushButton#generateMapButton, #hostGameButton
