@@ -789,7 +789,7 @@ QLabel#titleLabel
     font-weight:bold;
 }
 
-QLabel#labelLoading,#labelAutomatchInfo
+QLabel#labelLoading,#labelStatusBarInfo
 {
     color: gold;
 }
