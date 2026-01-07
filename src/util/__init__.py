@@ -512,10 +512,3 @@ def pretty_decoded_basename(path: str) -> str:
 
 def decapitalize(s: str, /) -> str:
     return s[0].lower() + s[1:]
-
-
-def find_stylesheet_attribute(stylesheet: str, section: str, attribute: str) -> str | None:
-    pattern = fr"{section} {{.+{attribute}: (.+);"
-    mobject = re.search(pattern, stylesheet, flags=re.DOTALL)
-    if mobject is not None:
-        return mobject[1]

@@ -396,18 +396,27 @@ class LocalReplayItem(QtWidgets.QTreeWidgetItem):
     def _setup_broken_appearance(self):
         self.setIcon(0, util.THEME.icon("replays/broken.png"))
         self.setText(1, self._replay_file)
-        # FIXME: Needs to come from theme
-        self.setForeground(1, QtGui.QColor("red"))
-        self.setForeground(2, QtGui.QColor("gray"))
-
+        time_color_str = util.THEME.find_stylesheet_attribute(
+            "LocalReplayTreeItem::custom:broken",
+            "time-color",
+        )
+        title_color_str = util.THEME.find_stylesheet_attribute(
+            "LocalReplayTreeItem::custom:broken",
+            "time-color",
+        )
+        self.setForeground(1, QtGui.QColor(time_color_str))
+        self.setForeground(2, QtGui.QColor(title_color_str))
         self.setText(2, "(replay parse error)")
 
     def _setup_incomplete_appearance(self):
         self.setIcon(0, util.THEME.icon("replays/replay.png"))
         self.setText(1, self._replay_file)
         self.setText(2, "(replay doesn't have complete metadata)")
-        # FIXME: Needs to come from theme
-        self.setForeground(1, QtGui.QColor("yellow"))
+        color_str = util.THEME.find_stylesheet_attribute(
+            "LocalReplayTreeItem::custom:incomplete",
+            "time-color",
+        )
+        self.setForeground(1, QtGui.QColor(color_str))
 
     def _setup_complete_appearance(self) -> None:
         data = self._metadata.model
@@ -495,8 +504,11 @@ class LocalReplayBucketItem(QtWidgets.QTreeWidgetItem):
             self.addChild(item)
 
     def _setup_broken_appearance(self):
-        # FIXME: Needs to come from theme
-        self.setForeground(0, QtGui.QColor("red"))
+        color_str = util.THEME.find_stylesheet_attribute(
+            "LocalReplayBucketItem::custom:broken",
+            "color",
+        )
+        self.setForeground(0, QtGui.QColor(color_str))
 
         self.setText(1, "(not watchable)")
         self.setForeground(
@@ -505,8 +517,11 @@ class LocalReplayBucketItem(QtWidgets.QTreeWidgetItem):
         )
 
     def _setup_incomplete_appearance(self):
-        # FIXME: Needs to come from theme
-        self.setForeground(0, QtGui.QColor("yellow"))
+        color_str = util.THEME.find_stylesheet_attribute(
+            "LocalReplayBucketItem::custom:incomplete",
+            "color",
+        )
+        self.setForeground(0, QtGui.QColor(color_str))
 
         self.setText(1, "(watchable)")
         self.setForeground(

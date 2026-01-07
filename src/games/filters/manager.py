@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QShowEvent
 from PyQt6.QtWidgets import QTableWidgetItem
@@ -17,7 +15,7 @@ class GameFilterManager(ManagerForm, ManagerBase):
     def __init__(self) -> None:
         ManagerBase.__init__(self)
         self.setupUi(self)
-        self.setStyleSheet(util.THEME.readstylesheet("client/client.css"))
+        self.setStyleSheet(util.THEME.stylesheet)
 
         self.addButton.clicked.connect(self.open_creator)
         self.removeButton.clicked.connect(self.remove_filter)
@@ -78,7 +76,7 @@ class FilterCreator(CreatorForm, CreatorBase):
     def __init__(self, filter_id: int) -> None:
         CreatorBase.__init__(self)
         self.setupUi(self)
-        self.setStyleSheet(util.THEME.readstylesheet("client/client.css"))
+        self.setStyleSheet(util.THEME.stylesheet)
 
         self.filterTypeComboBox.addItems(FILTER_OPTIONS)
         self.constraintComboBox.addItems(FILTER_OPERATIONS)

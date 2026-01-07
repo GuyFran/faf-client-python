@@ -11,9 +11,9 @@ FormClass, BaseClass = util.THEME.loadUiType("client/change_style.ui")
 
 class ChangeAppStyleDialog(FormClass, BaseClass):
     def __init__(self) -> None:
-        super(ChangeAppStyleDialog, self).__init__()
+        super().__init__()
         self.setupUi(self)
-        self.setStyleSheet(util.THEME.readstylesheet("client/client.css"))
+        self.setStyleSheet(util.THEME.stylesheet)
         self.setWindowTitle("Select Application Style")
         self.stylesList.addItems(QStyleFactory.keys())
         self.buttonBox.clicked.connect(self.on_button_clicked)

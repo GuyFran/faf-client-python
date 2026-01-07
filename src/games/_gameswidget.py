@@ -451,7 +451,11 @@ class GamesWidget(FormClass, BaseClass):
                 mqueue.handleQueueInfo(message)
                 tab_name = "&{teamSize} vs {teamSize}".format(teamSize=team_size)
                 self.matchmakerQueues.insertTab(insert_to, mqueue, tab_name)
-                self.matchmakerQueues.tabBar().setTabTextColor(insert_to, QColor("silver"))
+                tab_color_str = util.THEME.find_stylesheet_attribute(
+                    "AutomatchTabs::custom",
+                    "default-tab-color",
+                )
+                self.matchmakerQueues.tabBar().setTabTextColor(insert_to, QColor(tab_color_str))
 
     def handle_vetoes_info(self, message: VetoesCommand) -> None:
         vetoes: dict[str, Counter[str]] = defaultdict(Counter)

@@ -22,7 +22,6 @@ class LeagueFormatter(FormClass, BaseClass):
     ) -> None:
         BaseClass.__init__(self)
         self.setupUi(self)
-        self.load_stylesheet()
 
         self.rating = rating
         self.leaderboard = rating.leaderboard
@@ -37,9 +36,6 @@ class LeagueFormatter(FormClass, BaseClass):
 
         self.fill_ui()
         self.fetch_league_score()
-
-    def load_stylesheet(self) -> None:
-        self.setStyleSheet(util.THEME.readstylesheet("client/client.css"))
 
     def default_pixmap(self) -> QPixmap:
         return util.THEME.pixmap("player_card/unlisted.png").scaled(80, 80)

@@ -42,7 +42,7 @@ class UIModWidget(FormClass, BaseClass):
             self.hoverOver(self.modList.item(0))
 
     def load_stylesheet(self):
-        self.setStyleSheet(util.THEME.readstylesheet("client/client.css"))
+        self.setStyleSheet(util.THEME.stylesheet)
 
     @QtCore.pyqtSlot()
     def doneClicked(self):

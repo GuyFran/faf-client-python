@@ -42,13 +42,6 @@ class StatsWidget(BaseClass, FormClass, BusyWidget):
         self.currentLeague = 0
         self.currentDivision = 0
 
-        self.FORMATTER_LADDER = str(
-            util.THEME.readfile("stats/formatters/ladder.qthtml"),
-        )
-        self.FORMATTER_LADDER_HEADER = str(
-            util.THEME.readfile("stats/formatters/ladder_header.qthtml"),
-        )
-
         # setup other tabs
 
         self.apiConnector = LeaderboardApiConnector()

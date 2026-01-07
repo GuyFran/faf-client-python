@@ -85,9 +85,6 @@ class CoopWidget(FormClass, BaseClass, BusyWidget):
 
         self.leaderBoard.setVisible(0)
 
-        util.THEME.stylesheets_reloaded.connect(self.load_stylesheet)
-        self.load_stylesheet()
-
         self.leaderBoardTextGeneral.url_clicked.connect(self.open_url)
         self.leaderBoardTextOne.url_clicked.connect(self.open_url)
         self.leaderBoardTextTwo.url_clicked.connect(self.open_url)
@@ -101,11 +98,6 @@ class CoopWidget(FormClass, BaseClass, BusyWidget):
 
         self.gamelist_update_timer = QtCore.QTimer()
         self.gamelist_update_timer.timeout.connect(self.gameList.update)
-
-    def load_stylesheet(self):
-        self.setStyleSheet(
-            util.THEME.readstylesheet("coop/formatters/style.css"),
-        )
 
     def _addExistingGames(self, gameset):
         for game in gameset.values():

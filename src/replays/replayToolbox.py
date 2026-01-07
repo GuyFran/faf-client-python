@@ -7,6 +7,7 @@ from PyQt6 import QtWidgets
 from src.config import Settings
 from src.downloadManager import DownloadRequest
 from src.downloadManager import MapLargePreviewDownloader
+from src.util import THEME
 from src.util import pretty_decoded_basename
 
 logger = logging.getLogger(__name__)
@@ -149,13 +150,17 @@ class ReplayToolboxHandler:
         for widget in children:
             if isinstance(widget, QtWidgets.QAbstractButton):
                 widget.clicked.connect(self.tboxTitleClicked)
-                widget.setStyleSheet("font-size:9pt")
 
         # make our empty page invisible
-        children[-1].setStyleSheet(
-            "background-color: transparent; border-width: 0px",
+        scroll_sheet = THEME.find_stylesheet_style(
+            "ReplayToolBox#hideAll::custom:scroll-area",
         )
-        children[-2].setStyleSheet("max-height: 0px")
+        children[-1].setStyleSheet(scroll_sheet)
+
+        button_sheet = THEME.find_stylesheet_style(
+            "ReplayToolBox#hideAll::custom:abstract-button",
+        )
+        children[-2].setStyleSheet(button_sheet)
 
         for n in range(self.numOfPages):
             if w.replayToolBox.itemText(n) == self.activePage:

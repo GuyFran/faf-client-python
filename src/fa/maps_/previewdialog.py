@@ -1,4 +1,3 @@
-
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QDialog
 from PyQt6.QtWidgets import QLabel
@@ -6,8 +5,6 @@ from PyQt6.QtWidgets import QVBoxLayout
 from PyQt6.QtWidgets import QWidget
 
 from src.util import THEME
-
-STYLESHEET = THEME.readstylesheet("client/client.css")
 
 
 class MapPreviewDialog(QDialog):
@@ -20,7 +17,7 @@ class MapPreviewDialog(QDialog):
         self.preview_label.setPixmap(pixmap)
         layout.addWidget(self.preview_label)
         self.setLayout(layout)
-        self.setStyleSheet(STYLESHEET)
+        self.setStyleSheet(THEME.stylesheet)
 
     def set_pixmap(self, pixmap: QPixmap) -> None:
         self.preview_label.setPixmap(pixmap)

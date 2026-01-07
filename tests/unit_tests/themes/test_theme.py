@@ -84,4 +84,72 @@ def test_pixmap_cache_caches(tmpdir, mocker):
     assert first is still_first
     assert first is not second
 
+
+def test_stylesheet(tmpdir):
+    themedir = tmpdir.mkdir("theme")
+    styledir = themedir.mkdir("client")
+    styledir.join("client.css").write("content")
+    theme = Theme(str(themedir), "cool_theme")
+    assert theme.stylesheet == "content"
+
+
+def test_finding_stylesheet_attributes(tmpdir):
+    themedir = tmpdir.mkdir("theme")
+    styledir = themedir.mkdir("client")
+    sheet = """\
+    QListWidget {
+        color: blue;
+        background: yellow;
+    }
+    QListWidget::item
+    {
+        font-weight: bold;
+        color: #000000;
+    }
+    QListWidget#tourneyList
+    {
+        border-style:solid;
+        border-width:1px;
+        border-color:#353535;
+        color:silver;
+        padding:5px;
+        background-color:#0F0F0F;
+        border-top-right-radius : 5px;
+        border-top-left-radius : 5px;
+        border-bottom-left-radius : 5px;
+        border-bottom-right-radius : 5px;
+    }
+    """
+    styledir.join("client.css").write(sheet)
+    theme = Theme(str(themedir), "cool_theme")
+    assert theme.find_stylesheet_attribute("QListWidget", "background") == "yellow"
+    assert theme.find_stylesheet_attribute("QListWidget", "color") == "blue"
+    assert theme.find_stylesheet_attribute("QListWidget::item", "font-weight") == "bold"
+    assert theme.find_stylesheet_attribute("QListWidget::item", "color") == "#000000"
+    assert theme.find_stylesheet_attribute("QListWidget#tourneyList", "border-color") == "#353535"
+    assert theme.find_stylesheet_attribute(
+        "QListWidget#tourneyList",
+        "border-bottom-left-radius",
+    ) == "5px"
+
+
+def test_finding_stylesheet_style(tmpdir):
+    themedir = tmpdir.mkdir("theme")
+    styledir = themedir.mkdir("client")
+    sheet = """\
+    QLabel[bordered="true"] {
+        border-radius: 8px;
+        background-color: #252525;
+        color: #a0a0a0;
+        padding: 2px;
+    }
+    """
+    styledir.join("client.css").write(sheet)
+    theme = Theme(str(themedir), "cool_theme")
+    assert theme.find_stylesheet_style("QLabel[bordered=\"true\"]") == """\
+        border-radius: 8px;
+        background-color: #252525;
+        color: #a0a0a0;
+        padding: 2px;\n"""
+
 # TODO - tests for specific results of functions

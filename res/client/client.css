@@ -570,6 +570,35 @@ QLineEdit
     color:orange;
 }
 
+QLineEdit#headerTop {
+    border-style: solid;
+    border-width: 1px;
+    border-color: #353535;
+    color: silver;
+    font-weight: bold;
+    padding: 0px;
+    background-color: #202025;
+    alternate-background-color: #303035;
+    border-top-right-radius: 0px;
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius : 0px;
+}
+
+QLineEdit#headerBottom {
+    border-style: solid;
+    border-width: 1px;
+    border-color: #353535;
+    color: silver;
+    font-weight: normal;
+    padding: 0px;
+    background-color: #202025;
+    alternate-background-color: #303035;
+    border-top-right-radius: 0px;
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius : 0px;
+}
 
 
 QListWidget::item:hover, QListView::item:hover
@@ -773,7 +802,7 @@ QScrollBar::sub-page
     background-color: #1f1f1f;
 }
 
-QLabel#labelSortGames,#labelJoinGame,#labelHostGame,#labelAutomatch,#labelMyReplays,#labelLiveReplays,#labelHostTournament,#labelJoinTournament,#joinLabel,#labelTeamManagement,#labelTMM
+QLabel#labelSortGames,#labelJoinGame,#labelHostGame,#labelAutomatch,#labelMyReplays,#labelLiveReplays,#labelHostTournament,#labelJoinTournament,#joinLabel,#labelTeamManagement,#labelTMM,#labelLeaderBoard
 {
     color:white;
 }
@@ -1450,4 +1479,66 @@ QFrame#vetoFrame:hover {
 /* CUSTOM RULES */
 QTextBrowser::custom {
     highlight-background-color: yellow;
+}
+
+LocalReplayTreeitem::custom:broken {
+    time-color: red;
+    title-color: gray;
+}
+
+LocalReplayTreeitem::custom:incomplete {
+    time-color: yellow;
+}
+
+LocalReplayBucketItem::custom:broken {
+    color: red;
+}
+
+LocalReplayBucketItem::custom:incomplete {
+    color: yellow;
+}
+
+ReplayItemDelegate::custom:icon {
+    shadow-color: #202020;
+    rect-color: #202020;
+    frame-color: #303030;
+
+}
+
+GameItemDelegate::custom {
+    background-color: #202020;
+    shadow-color: #202020;
+    frame-color: #0f0f0f;
+}
+
+EventItemDelegate::custom {
+    text-rect-color: #202025;
+    team-rect-color: #202025;
+}
+
+ReviewWidget::custom {
+    star-fill-color: #4CAF50;
+}
+
+AutomatchTabs::custom {
+    default-tab-color: silver;
+    searching-tab-color: orange;
+}
+
+RatingPlotCrosshairs::custom {
+    color: black;
+    background-color: #ffff00;
+}
+
+RatingPlotWidget::custom {
+    background-color: #202025;
+}
+
+ReplayToolBox#hideAll::custom:abstract-button {
+    max-height: 0px;
+}
+
+ReplayToolBox#hideAll::custom:scroll-area {
+    background-color: transparent;
+    border-width: 0px;
 }

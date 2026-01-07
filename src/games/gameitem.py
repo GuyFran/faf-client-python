@@ -98,10 +98,25 @@ class GameItemDelegate(StyledItemDelegate):
     ICON_CLIP_TOP_LEFT = 3
     ICON_CLIP_BOTTOM_RIGHT = -7
     ICON_SHADOW_OFFSET = 8
-    BACKGROUND_COLOR = QtGui.QColor("#202020")
-    SHADOW_COLOR = QtGui.QColor("#202020")
+    BACKGROUND_COLOR = QtGui.QColor(
+        util.THEME.find_stylesheet_attribute(
+            "GameItemDelegate::custom",
+            "background-color",
+        ),
+    )
+    SHADOW_COLOR = QtGui.QColor(
+        util.THEME.find_stylesheet_attribute(
+            "GameItemDelegate::custom",
+            "shadow-color",
+        ),
+    )
     FRAME_THICKNESS = 1
-    FRAME_COLOR = QtGui.QColor("#0f0f0f")
+    FRAME_COLOR = QtGui.QColor(
+        util.THEME.find_stylesheet_attribute(
+            "GameItemDelegate::custom",
+            "frame-color",
+        ),
+    )
     TEXT_OFFSET = 10
     TEXT_RIGHT_MARGIN = 5
 

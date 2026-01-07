@@ -27,7 +27,6 @@ from PyQt6.QtWidgets import QPushButton
 from src.client.chat_config import ChatConfig
 from src.model.chat.channel import Channel
 from src.qt.utils import monkeypatch_method
-from src.util import find_stylesheet_attribute
 from src.util.theme import ThemeSet
 
 if TYPE_CHECKING:
@@ -40,8 +39,7 @@ class SearchHighlighter(QSyntaxHighlighter):
     def __init__(self, parent: QTextDocument, theme: ThemeSet) -> None:
         super().__init__(parent)
         self.highlight_format = QTextCharFormat()
-        color_str = find_stylesheet_attribute(
-            theme.readstylesheet("client/client.css"),
+        color_str = theme.find_stylesheet_attribute(
             "QTextBrowser::custom",
             "highlight-background-color",
         ) or "yellow"

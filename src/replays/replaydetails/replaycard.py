@@ -44,8 +44,6 @@ from src.replays.replaydetails.tabs.gamestats import GameStatsWidget
 from src.replays.replaydetails.tabs.heatmap import Heatmap
 from src.replays.replaydetails.tabs.maintab import ReplayInfoTab
 
-STYLESHEET = util.THEME.readstylesheet("client/client.css")
-
 
 class TabWidget(Protocol):
     def initialize(self, parser: ReplayParser) -> None: ...

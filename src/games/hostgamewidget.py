@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 import random
 import re
@@ -148,8 +146,6 @@ class HostGameWidget(QDialog):
         self.client = client
         self.game = None
         self.mods: dict[str, ModInfo] = {}
-        util.THEME.stylesheets_reloaded.connect(self.load_stylesheet)
-        self.load_stylesheet()
         self.connect_signals()
         self.ui.mapFiltersWidget.hide()
 
@@ -352,9 +348,6 @@ class HostGameWidget(QDialog):
             map_info = item.data(QtCore.Qt.ItemDataRole.UserRole)
             item.setHidden(not (mn <= map_info["max_players"] <= mx))
 
-    def load_stylesheet(self):
-        self.setStyleSheet(util.THEME.readstylesheet("client/client.css"))
-
     def setup(self, title: str, game: Game) -> None:
         self._reset()
         self.game = game
@@ -515,7 +508,7 @@ class HostGameWidget(QDialog):
 
     @QtCore.pyqtSlot()
     def generateMap(self) -> None:
-        dialog = MapGenDialog(self.client.map_generator)
+        dialog = MapGenDialog(self.client, self.client.map_generator)
         dialog.map_generated.connect(self.on_map_generated)
         dialog.load_cmd_options()
         dialog.exec()

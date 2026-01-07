@@ -1,10 +1,9 @@
-from __future__ import annotations
-
 import json
 import logging
 import os
 from enum import Enum
 from enum import auto
+from typing import TYPE_CHECKING
 from typing import ClassVar
 from typing import TypedDict
 
@@ -29,6 +28,9 @@ from src.games.mapgenoptionsvalues import TerrainSymmetry
 from src.games.mapgenoptionsvalues import TextureStyle
 from src.mapGenerator.mapgenManager import MapGeneratorManager
 from src.qt.utils import block_signals
+
+if TYPE_CHECKING:
+    from src.client import ClientWindow
 
 FormClass, BaseClass = util.THEME.loadUiType("games/mapgen.ui")
 
@@ -121,14 +123,10 @@ class OptionsExtractor(QtCore.QObject):
 class MapGenDialog(FormClass, BaseClass):
     map_generated = QtCore.pyqtSignal(str)
 
-    def __init__(self, mapgen_manager: MapGeneratorManager, *args, **kwargs) -> None:
-        BaseClass.__init__(self, *args, **kwargs)
+    def __init__(self, parent: ClientWindow, mapgen_manager: MapGeneratorManager) -> None:
+        BaseClass.__init__(self, parent)
 
         self.setupUi(self)
-
-        util.THEME.stylesheets_reloaded.connect(self.load_stylesheet)
-
-        self.load_stylesheet()
 
         self.mapgen_manager = mapgen_manager
         self.setWindowTitle(f"Map Generator Options - {self.mapgen_manager.currentVersion}")
@@ -292,9 +290,6 @@ class MapGenDialog(FormClass, BaseClass):
     def on_custom_style(self, state: QtCore.Qt.CheckState) -> None:
         self.customStyleGroupBox.setEnabled(state == QtCore.Qt.CheckState.Checked)
         self.mapStyle.setEnabled(state == QtCore.Qt.CheckState.Unchecked)
-
-    def load_stylesheet(self):
-        self.setStyleSheet(util.THEME.readstylesheet("client/client.css"))
 
     def keyPressEvent(self, event):
         if (

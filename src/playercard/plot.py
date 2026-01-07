@@ -6,9 +6,21 @@ from PyQt6.QtGui import QColor
 
 from src.heavy_modules import np
 from src.heavy_modules import pg
+from src.util import THEME
 
 
 class Crosshairs:
+    COLOR = QColor(
+        THEME.find_stylesheet_attribute(
+            "RatingPlotCrosshairs::custom",
+            "color",
+        ),
+    )
+    BACKGROUND_COLOR = THEME.find_stylesheet_attribute(
+        "RatingPlotCrosshairs::custom",
+        "background-color",
+    )
+
     def __init__(self, plotwidget: pg.PlotWidget, series: LineSeries) -> None:
         self.plotwidget = plotwidget
         self.plotwidget.scene().sigMouseMoved.connect(self.update_lines_and_text)
@@ -22,9 +34,8 @@ class Crosshairs:
         self.plotwidget.addItem(self.xLine, ignoreBounds=True)
         self.plotwidget.addItem(self.yLine, ignoreBounds=True)
 
-        color = QColor("black")
-        self.xText = pg.TextItem(color=color)
-        self.yText = pg.TextItem(color=color)
+        self.xText = pg.TextItem(color=self.COLOR)
+        self.yText = pg.TextItem(color=self.COLOR)
 
         self.plotwidget.scene().addItem(self.xText)
         self.plotwidget.scene().addItem(self.yText)
@@ -118,9 +129,11 @@ class Crosshairs:
 
     def update_text(self, scene_point: QPointF, data_point: QPointF) -> None:
         date = QDateTime.fromSecsSinceEpoch(round(data_point.x())).toString("dd-MM-yyyy hh:mm")
-        self.xText.setHtml(f"<div style='background-color: #ffff00;'>{date}</div>")
+        self.xText.setHtml(f"<div style='background-color: {self.BACKGROUND_COLOR};'>{date}</div>")
         self.xText.setPos(*self.get_xtext_pos(scene_point))
-        self.yText.setHtml(f"<div style='background-color: #ffff00;'>{data_point.y():.2f}</div>")
+        self.yText.setHtml(
+            f"<div style='background-color: {self.BACKGROUND_COLOR};'>{data_point.y():.2f}</div>",
+        )
         self.yText.setPos(*self.get_ytext_pos(scene_point))
 
     def update_lines(self, pos: QPointF, data_point: QPointF) -> None:
@@ -163,7 +176,11 @@ class LineSeries:
 class PlotController:
     def __init__(self, widget: pg.PlotWidget) -> None:
         self.widget = widget
-        self.widget.setBackground("#202025")
+        color_str = THEME.find_stylesheet_attribute(
+            "RatingPlotWidget::custom",
+            "background-color",
+        )
+        self.widget.setBackground(color_str)
         self.widget.setAxisItems({"bottom": pg.DateAxisItem()})
         self.series = LineSeries()
         self.crosshairs = Crosshairs(self.widget, self.series)

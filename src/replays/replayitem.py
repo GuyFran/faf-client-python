@@ -30,6 +30,25 @@ if TYPE_CHECKING:
 
 
 class ReplayItemDelegate(QtWidgets.QStyledItemDelegate):
+    ICON_SHADOW_COLOR = QtGui.QColor(
+        util.THEME.find_stylesheet_attribute(
+            "ReplayItemDelegate::custom:icon",
+            "shadow-color",
+        ),
+    )
+    ICON_RECT_COLOR = QtGui.QColor(
+        util.THEME.find_stylesheet_attribute(
+            "ReplayItemDelegate::custom:icon",
+            "rect-color",
+        ),
+    )
+    ICON_FRAME_COLOR = QtGui.QColor(
+        util.THEME.find_stylesheet_attribute(
+            "ReplayItemDelegate::custom:icon",
+            "frame-color",
+        ),
+    )
+
     def paint(
         self,
         painter: QtGui.QPainter | None,
@@ -67,7 +86,7 @@ class ReplayItemDelegate(QtWidgets.QStyledItemDelegate):
             painter.fillRect(
                 option.rect.left()+8-1, option.rect.top()+8-1,
                 iconsize.width(), iconsize.height(),
-                QtGui.QColor("#202020"),
+                self.ICON_SHADOW_COLOR,
             )
 
         # Icon
@@ -75,7 +94,7 @@ class ReplayItemDelegate(QtWidgets.QStyledItemDelegate):
         if index.data(QtCore.Qt.ItemDataRole.UserRole) is not None:
             painter.fillRect(
                 QtCore.QRect(icon_rect.x(), icon_rect.y(), iconsize.width(), iconsize.height()),
-                QtGui.QColor("#202020"),
+                self.ICON_RECT_COLOR,
             )
         if replay_item is not None and replay_item.count_as_watched():
             icon_mode = icon.Mode.Disabled
@@ -91,8 +110,7 @@ class ReplayItemDelegate(QtWidgets.QStyledItemDelegate):
         if index.data(QtCore.Qt.ItemDataRole.UserRole) is not None:
             pen = QtGui.QPen()
             pen.setWidth(1)
-            # FIXME: This needs to come from theme.
-            pen.setBrush(QtGui.QColor("#303030"))
+            pen.setBrush(self.ICON_FRAME_COLOR)
 
             pen.setCapStyle(QtCore.Qt.PenCapStyle.RoundCap)
             painter.setPen(pen)

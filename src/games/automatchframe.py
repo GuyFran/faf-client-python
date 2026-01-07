@@ -210,10 +210,14 @@ class MatchmakerQueueFrame(FormClass, BaseClass):
     def updatePlayButton(self):
         index = self.games.matchmakerQueues.indexOf(self)
         if self.searching:
+            color_str = util.THEME.find_stylesheet_attribute(
+                "AutomatchTabs::custom",
+                "searching-tab-color",
+            )
             s = "Stop search"
             self.searchProgress.show()
             self.games.matchmakerQueues.tabBar().setTabTextColor(
-                index, QtGui.QColor("orange"),
+                index, QtGui.QColor(color_str),
             )
         else:
             c = self.subFactions.count(True)
@@ -222,8 +226,12 @@ class MatchmakerQueueFrame(FormClass, BaseClass):
             else:
                 s = "Play!"
             self.searchProgress.hide()
+            color_str = util.THEME.find_stylesheet_attribute(
+                "AutomatchTabs::custom",
+                "default-tab-color",
+            )
             self.games.matchmakerQueues.tabBar().setTabTextColor(
-                index, QtGui.QColor("silver"),
+                index, QtGui.QColor(color_str),
             )
         self.rankedPlay.setText(s)
 

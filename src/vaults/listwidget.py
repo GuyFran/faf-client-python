@@ -14,8 +14,6 @@ from src.downloadManager import ImageDownloader
 from src.vaults.listwidgetui import ListWidgetUI
 from src.vaults.starrating import StarRatingWidget
 
-STYLESHEET = util.THEME.readstylesheet("client/client.css")
-
 
 class VaultListWidget[T: Map | Mod](QWidget):
     def __init__(
@@ -44,7 +42,7 @@ class VaultListWidget[T: Map | Mod](QWidget):
         else:
             self.ui.titleLabel.setProperty("installed", None)
         if old_property != self.ui.titleLabel.property("installed"):
-            self.ui.titleLabel.setStyleSheet(STYLESHEET)
+            self.ui.titleLabel.setStyleSheet(util.THEME.stylesheet)
 
     def is_installed(self) -> bool:
         return False
