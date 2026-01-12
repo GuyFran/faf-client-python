@@ -356,12 +356,12 @@ class ChatLineFormatter:
             text = irc_escape(text)
 
         sender_name = self._sender_name(data)
+        elided_sender = self._font_metrics.elidedText(sender_name, Qt.TextElideMode.ElideRight, 99)
         if mtype in (ChatLineType.MESSAGE, ChatLineType.NOTICE):
-            sender_name += ":"
+            elided_sender += ":"
             text = "&nbsp;" + text
 
         mention = data.meta.my_mention()
-        elided_sender = self._font_metrics.elidedText(sender_name, Qt.TextElideMode.ElideRight, 99)
         return self._chatline_template.format(
             time=stamp,
             sender=sender_name,
