@@ -289,6 +289,8 @@ class ChannelWidget(QObject):
             return
 
         if search_term == self.search_term:
+            if not self.highlighter.search_results:
+                return
             if QApplication.keyboardModifiers() & Qt.KeyboardModifier.ShiftModifier:
                 self._navigate_to_search_result(self.current_search_index - 1)
             else:
