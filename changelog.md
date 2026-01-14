@@ -1,6 +1,10 @@
 0.x.x
 =====
 
+0.26.1
+* Fix breaking `game.prefs` file with no mods selected
+* Fix parsing `[[]]` empty strings in lua files
+
 0.26.0
 * Highlight only mentioned nicknames instead of entire chat lines
 * Display more detailed information in the status bar during
