@@ -185,7 +185,7 @@ class luaParser:
                     if value[-1] == ",":
                         value = value[:-1]
                     # get rid of redundant chars in value
-                    value = self.__valFilter.sub("", value).strip()
+                    value = self.__valFilter.sub("", value).strip() or "''"
                 if len(value) != 0:
                     # parse value:
                     # if the string starts with '{'
