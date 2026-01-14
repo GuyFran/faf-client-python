@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 import os
 import re
@@ -304,7 +302,7 @@ def setActiveMods(mods, keepuimods=True, temporary=True):
     allmods = keepTheseMods + mods
     logger.debug("Setting active Mods: %s", [mod.uid for mod in allmods])
     active_mods = ",\n".join(f"    ['{mod.uid}'] = true" for mod in allmods)
-    s = "active_mods = {\n" + active_mods + ",\n}"
+    s = f"active_mods = {{\n{active_mods}\n}}"
 
     if not temporary:
         global selectedMods
