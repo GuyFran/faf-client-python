@@ -131,6 +131,7 @@ class GamePanelUI:
 
         self.hostLabel = QLabel()
         self.numPlayersLabel = QLabel()
+        self.mapSizeLabel = QLabel("???")
 
         self.getMapButton.setEnabled(False)
         self.getMapButton.hide()
@@ -148,6 +149,7 @@ class GamePanelUI:
         summary_form.addRow("<b>Map:</b>", self.mapNameLabel)
         summary_form.addRow("<b>Host:</b>", self.hostLabel)
         summary_form.addRow("<b>Players:</b>", self.numPlayersLabel)
+        summary_form.addRow("<b>Size:</b>", self.mapSizeLabel)
         layout.addWidget(self.summaryGroup)
 
         self.simModsButton = QPushButton("Show/Hide mods")
@@ -255,6 +257,7 @@ class GamePanelWidget(QWidget):
             self.ui.joinGameButton.setText("Join Game")
         self.ui.joinGameButton.setEnabled(new.state is GameState.OPEN)
         self.set_map_icon()
+        self.set_map_size()
         self.ui.titleLabel.setText(new.title)
         self.ui.titleLabel.setToolTip(new.title)
         if new.featured_mod != "faf":
@@ -337,6 +340,17 @@ class GamePanelWidget(QWidget):
         else:
             fa.maps.downloadMap(self.game.mapname)
         self.set_map_icon()
+        self.set_map_size()
+
+    def set_map_size(self) -> None:
+        if (
+            self.game is None
+            or (map_info := fa.maps.CachedMapsMetadata.get_map(self.game.mapname)) is None
+        ):
+            self.ui.mapSizeLabel.setText("???")
+            return
+        w, h = map(int, map_info["map_size"].values())
+        self.ui.mapSizeLabel.setText(f"{w/51.2:g} x {h/51.2:g} km")
 
     def show_large_map_preview(self) -> None:
         if self.game is None or (map_folder := fa.maps.folderForMap(self.game.mapname)) is None:

@@ -524,6 +524,34 @@ class InstalledMapsCache(QtCore.QObject):
                 logger.debug("Loaded %s into maps cached metadata", dr.path)
         return self.installed_maps
 
+    def get_map(self, name: str) -> CachedMapInfo | None:
+        try:
+            return self.installed_maps[name.lower()]
+        except KeyError:
+            user_folder = getUserMapsFolder()
+            base_folder = getBaseMapsFolder()
+            for root in (user_folder, base_folder):
+                if not os.path.isdir(root):
+                    continue
+                for dr in os.scandir(root):
+                    if (
+                        dr.name.lower() != name.lower()
+                        or (root == base_folder and dr.name.lower() not in maps)
+                        or not dr.is_dir()
+                    ):
+                        continue
+
+                    map_info = self.parse_metadata(dr.path)
+                    if map_info is None:
+                        continue
+
+                    if isGeneratedMap(map_info["name"]):
+                        self.adjust_generated_map_size(map_info)
+
+                    map_info["folder_name"] = dr.name.lower()
+                    self.installed_maps[dr.name.lower()] = map_info
+                    return map_info
+
     def sanitize(self) -> None:
         current = getUserMaps() + list(maps)
         for folder in tuple(self.installed_maps):
