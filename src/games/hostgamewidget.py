@@ -191,6 +191,7 @@ class HostGameWidget(QDialog):
 
         self.ui.modTypeRadioGroup.buttonToggled.connect(self.on_mod_display_type_changed)
         self.ui.mapNameFilter.textChanged.connect(self.filter_maps_by_name)
+        self.ui.modNameFilter.textChanged.connect(self.filter_mods_by_name)
 
         self.ui.mapPreviewLabel.clicked.connect(self.show_large_map_preview)
 
@@ -347,6 +348,24 @@ class HostGameWidget(QDialog):
                 continue
             map_info = item.data(QtCore.Qt.ItemDataRole.UserRole)
             item.setHidden(not (mn <= map_info["max_players"] <= mx))
+
+    def filter_mods_by_name(self, text: str) -> None:
+        lower_text = text.lower()
+        for row in range(self.ui.modList.count()):
+            item = self.ui.modList.item(row)
+            if item is None:
+                continue
+            if lower_text == "":
+                item.setHidden(False)
+                continue
+            mod = self.mods[item.text()]
+            text_matches = lower_text in item.text().lower()
+            if self.ui.modAllRadio.isChecked():
+                item.setHidden(not text_matches)
+            elif self.ui.modUiRadio.isChecked():
+                item.setHidden(not text_matches or not mod.ui_only)
+            elif self.ui.modSimRadio.isChecked():
+                item.setHidden(not text_matches or mod.ui_only)
 
     def setup(self, title: str, game: Game) -> None:
         self._reset()
