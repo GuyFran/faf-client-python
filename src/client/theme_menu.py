@@ -57,7 +57,7 @@ class ThemeMenu(QtCore.QObject):
         self._updating = False
         self.app_style_handler = ChangeAppStyleDialog()
 
-    def setup(self, themes):
+    def setup(self, themes: list[util.Theme]) -> None:
         for theme in themes:
             action = self._menu.addAction(str(theme))
             action.toggled.connect(self.handle_toggle)

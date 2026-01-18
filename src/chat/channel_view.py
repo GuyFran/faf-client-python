@@ -164,15 +164,7 @@ class ChatAreaView:
         if topic == "":
             self._widget.clear_topic()
         else:
-            self._widget.set_topic(self._format_topic(topic))
-
-    def _format_topic(self, topic: str) -> str:
-        # FIXME - use CSS for this
-        fmt = (
-            "<style>a{{color:cornflowerblue}}</style>"
-            "<b><font color=white>{}</font></b>"
-        )
-        return fmt.format(irc_escape(topic))
+            self._widget.set_topic(irc_escape(topic))
 
     def _at_url_clicked(self, url):
         if not GameUrl.is_game_url(url):
@@ -334,8 +326,11 @@ class ChatLineFormatter:
         if meta.player.avatar and meta.player.avatar():
             yield "avatar"
 
-    def _wrap_me(self, text: str, me: str) -> str:
-        return text.replace(me, f"<span class=\"my_mention\">{me}</span>")
+    def _wrap_me(self, text: str, me: str | None) -> str:
+        if me:
+            return text.replace(me, f"<span class=\"my_mention\">{me}</span>")
+        else:
+            return text
 
     def format(self, data: ChatLineMetadata) -> str:
         tags = " ".join(self._line_tags(data))
@@ -353,7 +348,7 @@ class ChatLineFormatter:
             return text
 
         if mtype is not ChatLineType.ANNOUNCEMENT:
-            text = irc_escape(text)
+            text = self._wrap_me(irc_escape(text), data.meta.my_mention())
 
         sender_name = self._sender_name(data)
         elided_sender = self._font_metrics.elidedText(sender_name, Qt.TextElideMode.ElideRight, 99)
@@ -361,12 +356,11 @@ class ChatLineFormatter:
             elided_sender += ":"
             text = "&nbsp;" + text
 
-        mention = data.meta.my_mention()
         return self._chatline_template.format(
             time=stamp,
             sender=sender_name,
             elided_sender=elided_sender,
-            text=self._wrap_me(text, mention) if mention else text,
+            text=text,
             avatar=avatar,
             tags=tags,
         )

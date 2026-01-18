@@ -99,7 +99,7 @@ QTabWidget > QTabBar::tab
     min-width: 80px;
 }
 
-QTabWidget > QTabBar::tab::hover
+QTabWidget > QTabBar::tab:hover
 {
     color: silver;
     background-color: #808080;
@@ -133,7 +133,7 @@ QTabWidget#matchmakerQueues > QTabBar::tab
     border-bottom-right-radius: 2px;
 }
 
-QTabWidget#matchmakerQueues > QTabBar::tab::hover
+QTabWidget#matchmakerQueues > QTabBar::tab:hover
 {
     color: silver;
     background-color: #808080;
@@ -317,37 +317,6 @@ QDateEdit:disabled
     color: #8D8B85;
 }
 
-QDateEdit::down-arrow
-{
-    color: orange;
-}
-
-QSpinBox#minRating, QLineEdit#mapName, #playerName, QSpinBox#quantity, #advQuantity,
-QComboBox#modList, #value1, #value2, #value3, #value4, #value5, #value6, #leaderboardList
-{
-    background-color: #353535;
-    color: orange;
-}
-
-QSpinBox#quantityBox, #pageBox
-{
-    background-color: #353535;
-    color: orange;
-    border: 1 solid;
-    border-color: #555450;
-}
-
-QSpinBox#minRating, QSpinBox#quantity, #advQuantity
-{
-    border-style: solid;
-    border-color: #353535;
-}
-
-QSpinBox#minRating::disabled
-{
-    color: #8D8B85;
-}
-
 QComboBox#filter1, #filter2, #filter3, #filter4, #filter5, #filter6,
 #operator1, #operator2, #operator3, #operator4, #operator5, #operator6
 {
@@ -370,7 +339,7 @@ QToolBox#replayToolBox::tab
 
 QTableView
 {
-    outline: none,
+    outline: none;
 }
 
 QTableView::item:hover
@@ -469,6 +438,14 @@ QTableView
     border-bottom-right-radius : 5px;
 }
 
+QTableView::indicator:checked {
+    image: url('%THEMEPATH%/client/chboxChecked.png');
+}
+
+QTableView::indicator:unchecked {
+    background: #303035;
+}
+
 /* used in ConnectivityDialog */
 QTableCornerButton::section {
     background-color:#333333;
@@ -533,7 +510,7 @@ QTableWidget::item
     padding:0px;
 }
 
-QTableWidget::item::hover
+QTableWidget::item:hover
 {
     background: #606060;
     border-radius: 3px;
@@ -550,7 +527,7 @@ QTableWidget#filtersTableWidget::item:selected
     background-color: #306030;
 }
 
-QTableWidget#nameHistoryTableWidget::item::hover
+QTableWidget#nameHistoryTableWidget::item:hover
 {
     background: none;
     border-radius: 0px;
@@ -561,9 +538,6 @@ QTableWidget::item:selected, QListWidget::item:previous-selected, QListView::ite
 {
     border: none;
 }
-
-
-
 
 QLineEdit
 {
@@ -774,7 +748,7 @@ QScrollBar:down-arrow {
     background-repeat:no-repeat;
  }
 
- QScrollBar:up-arrow {
+QScrollBar:up-arrow {
     background-image: url('%THEMEPATH%/client/scrollUp.png');
     background-position: center center;
     background-repeat:no-repeat;
@@ -841,6 +815,11 @@ QGroupBox
     background-color: rgb(32, 32, 37);
     color: silver;
     padding-top: 15px;
+}
+
+QGroupBox#mapsGroup,#previewGroup,#modsGroup {
+    font-size: 10pt;
+    font-weight: bold;
 }
 
 QLabel
@@ -932,7 +911,7 @@ QToolButton::pressed
     border-radius : 5px;
 }
 
-QToolButton::hover
+QToolButton:hover
 {
     border: none;
 
@@ -944,7 +923,6 @@ QToolButton::hover
 
 QToolButton::checked
 {
-    border: none;
     border: 2px solid #353535;
 
     color:black;
@@ -967,7 +945,7 @@ QToolButton#gamePanelButton::checked
     padding: 2px;
 }
 
-QToolButton#gamePanelButton::hover
+QToolButton#gamePanelButton:hover
 {
     background: #808080;
 }
@@ -976,6 +954,7 @@ QPushButton
 {
     color: silver;
     background: #453939;
+    border-color: #453939;
 }
 
 QPushButton:disabled
@@ -998,9 +977,9 @@ QPushButton#refreshButton, #nextButton, #previousButton, #goToPageButton, #first
     border-radius: 2;
 }
 
-QPushButton#refreshButton::hover, #nextButton::hover, #previousButton::hover, #goToPageButton::hover,
-#firstButton::hover, #lastButton::hover, #resetButton::hover, #searchPlayerButton::hover,
-#UIButton::hover, #uploadButton::hover,  #kickButton::hover, #leaveButton::hover
+QPushButton#refreshButton:hover, #nextButton::hover, #previousButton::hover, #goToPageButton::hover,
+#firstButton:hover, #lastButton::hover, #resetButton::hover, #searchPlayerButton::hover,
+#UIButton:hover, #uploadButton::hover,  #kickButton::hover, #leaveButton::hover
 {
     background-color: #808080;
 }
@@ -1015,7 +994,7 @@ QPushButton#searchButton, #advSearchButton, #fafDbButton, #spookyDbButton
     background-color: rgb(39, 39, 45);
 }
 
-QPushButton#searchButton::hover, #advSearchButton::hover, #fafDbButton::hover, #spookyDbButton::hover
+QPushButton#searchButton:hover, #advSearchButton::hover, #fafDbButton::hover, #spookyDbButton::hover
 {
     background-color: #808080;
 }
@@ -1030,7 +1009,7 @@ QPushButton#RefreshResetButton, #advResetButton
     background-color: rgb(39, 39, 45);
 }
 
-QPushButton#RefreshResetButton::hover, #advResetButton::hover
+QPushButton#RefreshResetButton:hover, #advResetButton::hover
 {
     background-color: #808080;
 }
@@ -1051,8 +1030,8 @@ QPushButton#saveMapGenSettingsButton, #resetMapGenSettingsButton, #saveHostGameS
     background-color: rgb(39, 39, 45);
     padding: 5px;
 }
-QPushButton#saveMapGenSettingsButton::hover, #resetMapGenSettingsButton::hover,#generateMapButton::hover,
-#hostGameButton::hover, #saveHostGameSettingsButton:hover
+QPushButton#saveMapGenSettingsButton:hover, #resetMapGenSettingsButton::hover,#generateMapButton::hover,
+#hostGameButton:hover, #saveHostGameSettingsButton:hover
 {
     border: none;
 
@@ -1104,9 +1083,9 @@ QPushButton#vetoButton
 
 QSpinBox, QDoubleSpinBox
 {
-    color:orange;
+    color: orange;
     background-color: #353535;
-    border: 1 solid;
+    border: 1px solid;
     border-color: #555450;
 }
 
@@ -1115,13 +1094,21 @@ QSpinBox::disabled, QDoubleSpinBox::disabled
     color: #8D8B85;
 }
 
+QSpinBox::up-button, QDoubleSpinBox::up-button {
+    width: 20px;
+}
+
+QSpinBox::down-button, QDoubleSpinBox::down-button {
+    width: 20px;
+}
 
 QComboBox, QComboBox:selected
 {
     color:orange;
     selection-color:orange;
-    background-color: #575656;
+    background-color: #353535;
     selection-background-color: #575656;
+    border: 1px solid #555450;
 }
 
 QComboBox::disabled
@@ -1133,7 +1120,7 @@ QComboBox::disabled
 QComboBox QAbstractItemView {
     border: 2px solid darkgray;
     selection-background-color: #575656;
-    background-color: #575656;
+    background-color: #353535;
 }
 
 QFrame#settingsFrame {
@@ -1148,7 +1135,7 @@ QFrame#settingsFrame {
     border-bottom-right-radius : 5px;
 }
 
-#line
+#line,#line_2
 {
     background-color: #202025;
 }
@@ -1173,7 +1160,6 @@ QStatusBar
 
 QWidget#tech_widget,#overview_content,#overview_widget
 {
-    background-color: #202025;
     background: #202025;
     padding: 0px;
     border: none;
@@ -1184,9 +1170,20 @@ QWidget#gamePanelStack
     background-color: #161616;
 }
 
+QFrame[frameShape="1"]
+{
+    border: 2px solid #202025;
+}
+
+QFrame[frameShape="2"]
+{
+    border: 2px solid #202025;
+}
+
 QFrame[frameShape="4"]
 {
     background-color: #303035;
+    border: 2px solid #202025;
 }
 
 QLabel#vaultListItemTitle
@@ -1274,6 +1271,17 @@ QLabel#reviewRatingCountLabel
 {
     color: #666;
     font-size: 11pt;
+}
+
+QLabel#announceLine {
+    color: white;
+}
+
+QLabel#labelEvent {
+    color: white;
+    font-weight: bold;
+    font-family: Verdana;
+    font-size: 13pt;
 }
 
 QProgressBar#reviewRatingProgressBar
@@ -1475,6 +1483,14 @@ QFrame#vetoFrame:hover {
     background: #101010;
 }
 
+QFrame#eventButtonsFrame {
+    background: #2e3236;
+}
+
+QFrame#eventContentFrame {
+    background: #202025;
+}
+
 
 /* CUSTOM RULES */
 QTextBrowser::custom {
@@ -1502,13 +1518,19 @@ ReplayItemDelegate::custom:icon {
     shadow-color: #202020;
     rect-color: #202020;
     frame-color: #303030;
-
 }
 
 GameItemDelegate::custom {
     background-color: #202020;
     shadow-color: #202020;
     frame-color: #0f0f0f;
+}
+
+GameItemFormatter::custom {
+    color: silver;
+    title-color: white;
+    map-color: goldenrod;
+    mods-color: red;
 }
 
 EventItemDelegate::custom {
@@ -1526,11 +1548,13 @@ AutomatchTabs::custom {
 }
 
 RatingPlotCrosshairs::custom {
-    color: black;
+    line-color: green;
+    text-color: black;
     background-color: #ffff00;
 }
 
 RatingPlotWidget::custom {
+    color: orange;
     background-color: #202025;
 }
 
@@ -1541,4 +1565,71 @@ ReplayToolBox#hideAll::custom:abstract-button {
 ReplayToolBox#hideAll::custom:scroll-area {
     background-color: transparent;
     border-width: 0px;
+}
+
+ReplayItemFormatter::custom {
+    default-color: #9CA3AF;
+    time-color: #F9FAFB;
+    title-color: #F9FAFB;
+    map-color: #F59E0B;
+    mod-color: #F9FAFB;
+    availability-color: #4B5563;
+    duration-color: #F9FAFB;
+    status-color: #F9FAFB;
+    status-color-delay: darkred;
+    status-color-missing: darkgray;
+}
+
+ReplayBucketItemFormatter::custom {
+    color-date: white;
+    color-count: white;
+}
+
+ReplayCard::custom {
+    team-title-color: gray;
+    team-title-background: white;
+}
+
+GamePanelWidget::custom {
+    featured-mod-color-accent: white;
+}
+
+CoopWidgetTreeRootItem::custom {
+    color: white;
+}
+
+ChatChannelGreeting::custom {
+    color-welcome: red;
+    color-wiki: white;
+}
+
+NewsItemFormatter::custom {
+    author-color: white;
+    title-color: silver;
+}
+
+Notifications::custom {
+    secondary-color: silver;
+    mods-color: red;
+}
+
+PlayerColors::custom {
+  you: red;
+  foe: crimson;
+  foe_mod: lightslategrey;
+  foe_chatterbox: darkred;
+  friend: lightskyblue;
+  friend_mod: medium orchid;
+  self_mod: medium orchid;
+  friend_chatterbox: purple;
+  player: #b0b0b0;
+  server: black;
+  default: grey;
+  self: orange;
+  url: cornflowerblue;
+  clan: limegreen;
+  clan_chatterbox: darkgreen;
+  mod: white;
+  chatterbox: darkgoldenrod;
+  game_host: gold;
 }

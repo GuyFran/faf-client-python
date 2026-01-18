@@ -86,7 +86,7 @@ class HostGameDialogUi:
         middle_section.setSpacing(6)
 
         self.mapsGroup = QGroupBox("Maps")
-        self.mapsGroup.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        self.mapsGroup.setObjectName("mapsGroup")
         maps_layout = QVBoxLayout(self.mapsGroup)
         maps_layout.setContentsMargins(10, 15, 10, 10)
 
@@ -165,7 +165,7 @@ class HostGameDialogUi:
         maps_layout.addLayout(maps_bottom_layout)
 
         self.previewGroup = QGroupBox("Map Preview")
-        self.previewGroup.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        self.previewGroup.setObjectName("previewGroup")
         preview_layout = QVBoxLayout(self.previewGroup)
         preview_layout.setContentsMargins(10, 15, 10, 10)
 
@@ -203,7 +203,7 @@ class HostGameDialogUi:
         preview_layout.addWidget(self.mapDescription)
 
         mods_group = QGroupBox("Mods")
-        mods_group.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        mods_group.setObjectName("modsGroup")
         mods_layout = QVBoxLayout(mods_group)
         mods_layout.setContentsMargins(10, 15, 10, 10)
 

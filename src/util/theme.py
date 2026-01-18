@@ -48,17 +48,24 @@ class Theme:
     Represents a single FAF client theme.
     """
 
-    def __init__(self, themedir: str | None, name: str | None) -> None:
-        """
-        A 'None' themedir represents no theming (no dir prepended to filename)
-        """
+    def __init__(self, themedir: str | None, name: str | None, *, builtin: bool = False) -> None:
         self._themedir = themedir
         self.name = name
         self._pixmapcache: dict[str, QtGui.QPixmap | None] = {}
+        self._builtin = builtin
 
     @cached_property
     def stylesheet(self) -> str | None:
-        return self.readstylesheet("client/client.css")
+        if (
+            self.name is None  # unthemed
+            and QtWidgets.QApplication.style().name() == "windowsvista"
+        ):
+            return self.readstylesheet("client/client_light.css")
+        else:
+            return self.readstylesheet("client/client.css")
+
+    def is_builtin(self) -> bool:
+        return self._builtin
 
     def __str__(self):
         return str(self.name)
@@ -119,7 +126,7 @@ class Theme:
             return f.readlines()
 
     @_noneIfNoFile
-    def readstylesheet(self, filename: str) -> str:
+    def readstylesheet(self, filename: str) -> str | None:
         with open(self._themepath(filename)) as f:
             logger.info("Read themed stylesheet: %s", filename)
             sheet = f.read()
@@ -191,7 +198,7 @@ class ThemeSet(QtCore.QObject):
         self._default_theme = default_theme
         self._themeset = themeset
         self._theme = default_theme
-        self._unthemed = Theme(None, '') if unthemed is None else unthemed
+        self._unthemed = Theme(None, '', builtin=True) if unthemed is None else unthemed
         self._settings = settings
         self._client_version = client_version
 
@@ -201,11 +208,11 @@ class ThemeSet(QtCore.QObject):
 
     @property
     def stylesheet(self) -> str:
-        return self._theme.stylesheet or self._default_theme.stylesheet or ""
+        return self._theme.stylesheet or ""
 
     def _getThemeByName(self, name):
         if name is None:
-            return self._default_theme
+            return self._unthemed
         matching_themes = [
             theme for theme in self._themeset if theme.name == name
         ]
@@ -214,7 +221,7 @@ class ThemeSet(QtCore.QObject):
         return matching_themes[0]
 
     def loadTheme(self) -> None:
-        name = self._settings.get("theme/theme/name", None)
+        name = self._settings.get("theme/theme/name", "Default") or None
         logger.debug("Loaded Theme: " + str(name))
         self.setTheme(name, False)
 
@@ -284,7 +291,7 @@ class ThemeSet(QtCore.QObject):
         if new_theme == self._theme:
             return theme_changed()
 
-        if new_theme == self._default_theme:
+        if new_theme.is_builtin():
             # No need for checks
             self._theme = new_theme
             return theme_changed()
@@ -393,10 +400,6 @@ class ThemeSet(QtCore.QObject):
         return self._theme_callchain("readlines", filename, themed)
 
     @_warn_resource_null
-    def readstylesheet(self, filename: str, *, themed: bool = True) -> str:
-        return self._theme_callchain("readstylesheet", filename, themed)
-
-    @_warn_resource_null
     def themeurl(self, filename: str, *, themed: bool = True):
         return self._theme_callchain("themeurl", filename, themed)
 
@@ -458,6 +461,13 @@ class ThemeSet(QtCore.QObject):
 
     def find_stylesheet_style(self, section: str, fallback: str = "") -> str:
         if (style := self._theme.find_stylesheet_style(section)) is None:
-            return self._default_theme.find_stylesheet_style(section)
+            return self._default_theme.find_stylesheet_style(section) or fallback
         else:
-            return style
+            return style or fallback
+
+    def find_stylesheet_style_as_dict(self, section: str) -> dict[str, str]:
+        sheetlines = self.find_stylesheet_style(section).splitlines()
+        return {
+            name.strip().replace("-", "_"): value.strip()[:-1]
+            for name, value in (line.split(":") for line in sheetlines)
+        }

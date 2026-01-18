@@ -7,7 +7,6 @@ THEME_FILE_FUNS = [
     "loadUi",
     "loadUiType",
     "readlines",
-    "readstylesheet",
     "themeurl",
     "readfile",
     "sound",
@@ -60,18 +59,21 @@ def test_set_theme(mocker):
         version=lambda: Version("1.0.0"),
         name="default",
         themedir="",
+        builtin=True,
     )
     theme_mock = mocker.Mock()
     theme_mock.configure_mock(
         version=lambda: Version("1.0.0"),
         name="theme",
         themedir="",
+        builtin=True,
     )
     other_t_mock = mocker.Mock()
     other_t_mock.configure_mock(
         version=lambda: Version("1.0.0"),
         name="other",
         themedir="",
+        builtin=True,
     )
 
     setting_mock = mocker.Mock()
@@ -87,7 +89,8 @@ def test_set_theme(mocker):
 
     ts.setTheme(None, False)
     theme = ts.theme
-    assert theme is def_mock
+    assert theme is ts._unthemed
+    assert theme is not def_mock
     assert theme is not theme_mock
     assert theme is not other_t_mock
 
@@ -121,18 +124,21 @@ def test_loadTheme(mocker):
         version=lambda: Version("1.0.0"),
         name="default",
         themedir="",
+        builtin=True,
     )
     theme_mock = mocker.Mock()
     theme_mock.configure_mock(
         version=lambda: Version("1.0.0"),
         name="theme",
         themedir="",
+        builtin=True,
     )
     other_t_mock = mocker.Mock()
     other_t_mock.configure_mock(
         version=lambda: Version("1.0.0"),
         name="other",
         themedir="",
+        builtin=True,
     )
 
     setting_mock = mocker.Mock()
@@ -150,7 +156,7 @@ def test_loadTheme(mocker):
     setting_mock.configure_mock(get=(lambda x, y=None: None))
     ts.loadTheme()
     theme = ts.theme
-    assert theme == def_mock
+    assert theme == ts._unthemed
 
 
 def test_returns_when_not_found(mocker):

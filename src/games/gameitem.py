@@ -255,16 +255,17 @@ class GameItemFormatter:
     FORMATTER_MOD = str(util.THEME.readfile("games/formatters/mod.html"))
 
     def __init__(self, playercolors, me):
-        self._colors = playercolors
+        self._playercolors = playercolors
         self._me = me
         self._tooltip_formatter = GameTooltipFormatter(self._me)
+        self._colors = util.THEME.find_stylesheet_style_as_dict("GameItemFormatter::custom")
 
     def _featured_mod(self, game):
         return game.featured_mod in ["faf", "coop"]
 
     def _host_color(self, game):
         hostid = game.host_player.id if game.host_player is not None else -1
-        return self._colors.get_user_color(hostid)
+        return self._playercolors.get_user_color(hostid)
 
     def _age(self, game: Game) -> timedelta:
         hosted = QtCore.QDateTime.fromString(game.hosted_at, QtCore.Qt.DateFormat.ISODate)
@@ -275,7 +276,7 @@ class GameItemFormatter:
         game = data.game
         players = game.num_players - len(game.observers)
         formatting = {
-            "color": self._host_color(game),
+            "host_color": self._host_color(game),
             "mapslots": game.max_players,
             "mapdisplayname": html.escape(game.mapdisplayname),
             "title": html.escape(game.title),
@@ -284,6 +285,7 @@ class GameItemFormatter:
             "playerstring": "player" if players == 1 else "players",
             "simmods": "modded" if game.sim_mods else "",
             "avgrating": int(game.average_rating),
+            **self._colors,
             # HACK/FIXME: we don't use separate timer to update items periodically, because
             # gameswidget has automatch frames, each of which has timer to update its 'Matching In'
             # label and label updates trigger repaint for all of the items in the gameList listview.

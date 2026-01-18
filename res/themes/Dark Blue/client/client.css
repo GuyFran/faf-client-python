@@ -1,0 +1,1630 @@
+*[warning="true"]
+{
+    color: #9CA3AF;
+    font-size: 8pt;
+}
+
+*[titleLabel="true"]
+{
+    color: #E5E7EB;
+    font-size: 12pt;
+    font-family: Verdana;
+}
+
+*[windowControlBtn="true"]
+{
+    background-color: rgba(0,0,0,0);
+    width: 18px;
+    height: 18px;
+}
+
+QMenuBar
+{
+    background-color: rgba(0,0,0,0);
+}
+
+QMenuBar::item
+{
+    background-color: rgba(0,0,0,0);
+    color: #F9FAFB;
+}
+
+QMenuBar::item:selected {
+    background: #374151;
+}
+
+QMenuBar::item:pressed {
+    background: #4B5563;
+}
+
+QMenu {
+    background-color: #1F2937;
+    color: #E5E7EB;
+    margin: 2px;
+}
+
+QMenu::item {
+    padding: 2px 25px 2px 20px;
+    border: 1px solid transparent;
+}
+
+QMenu::item:selected {
+    background: #374151;
+    border-radius: 4px;
+}
+
+QMenu::icon:checked {
+    background: #4B5563;
+    border: 1px inset #6B7280;
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    bottom: 1px;
+    left: 1px;
+}
+
+QMenu::separator {
+    height: 1px;
+    background: #374151;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+QMenu::indicator {
+    width: 13px;
+    height: 13px;
+}
+
+QTabWidget
+{
+    background-color: #1F2937;
+    color: #E5E7EB;
+    min-width: 80px;
+}
+
+QTabWidget::pane
+{
+    border: none;
+    background-color: #111827;
+}
+
+QTabWidget > QTabBar::tab
+{
+    background-color: #1F2937;
+    color: #E5E7EB;
+    min-width: 80px;
+}
+
+QTabWidget > QTabBar::tab:hover
+{
+    color: #F9FAFB;
+    background-color: #374151;
+}
+
+QTabWidget > QTabBar::tab::selected
+{
+    color: #F9FAFB;
+    background-color: #3B82F6;
+}
+
+QTabWidget#matchmakerQueues::pane
+{
+    background-color: none;
+    border: none;
+}
+
+QTabWidget#matchmakerQueues::tab-bar
+{
+    min-width: 10000000;
+    alignment: center;
+}
+
+QTabWidget#matchmakerQueues > QTabBar::tab
+{
+    min-width: 60px;
+    min-height: 25px;
+    background-color: #1F2937;
+    color: none;
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
+QTabWidget#matchmakerQueues > QTabBar::tab:hover
+{
+    color: #E5E7EB;
+    background-color: #374151;
+}
+
+QTabWidget#matchmakerQueues > QTabBar::tab::selected
+{
+    color: #F9FAFB;
+    background-color: #3B82F6;
+}
+
+QTabWidget #lobbyTab,#gamesTab,#ladderTab,#tournamentTab,#coopTab,#replaysTab,#vaultsTab,#mapsTab,#modsTab
+{
+    background-color: rgba(17, 24, 39, 240);
+    border-radius: 12px;
+}
+
+QTabWidget#mainTabs::tab-bar
+{
+    left: 25px;
+}
+
+/* Central area background */
+QWidget#centralwidget, QProgressDialog, QWindow, QWizard
+{
+    background-color: #0F172A;
+    border: 1px solid #1A1B2C;
+}
+
+QWidget#replayScore
+{
+    background: #1A1B2C;
+    padding: 0px;
+}
+
+QWidget#achievementWidget
+{
+    background-color: #1A1B2C;
+}
+
+QWidget#hline
+{
+    background-color: #1A1B2C;
+}
+
+QWidget#statisticsChartsScrollArea,#achievementsScrollArea
+{
+    background-color: #1F2937;
+}
+
+QTabWidget#mainTabs::pane
+{
+    background-color: #111827;
+    border-radius: 12px;
+}
+
+QTabWidget#mainTabs > QTabBar::tab
+{
+    background-color: #1F2937;
+    color: #9CA3AF;
+    min-width: 80px;
+    padding: 2px;
+    padding-right: 5px;
+    padding-left: 5px;
+}
+
+QTabWidget#mainTabs > QTabBar::tab:hover
+{
+    color: #60A5FA;
+    background-color: #374151;
+}
+
+QTabWidget#mainTabs > QTabBar::tab:selected
+{
+    color: #F9FAFB;
+    font-weight: bold;
+    background-color: #3B82F6;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+QTabWidget#mainTabs > QTabBar::tab:!selected
+{
+    margin-bottom: 8px;
+}
+
+/* Typical widget controls (top tabs, etc) */
+
+QTabWidget#topTabs::pane
+{
+    border: none;
+    background-color: #111827;
+    border-radius: 12px;
+}
+
+QTabWidget#topTabs::tab-bar
+{
+    top: 0px;
+    left: 25px;
+}
+
+QTabWidget#topTabs > QTabBar::tab
+{
+    background-color: #1F2937;
+    color: #9CA3AF;
+    min-width: 80px;
+    padding: 4px;
+}
+
+QTabWidget#topTabs > QTabBar::tab:!selected
+{
+    margin-top: 5px;
+    background-color: #374151;
+}
+
+QTabWidget#topTabs > QTabBar::tab:hover
+{
+    color: #F9FAFB;
+    background-color: #4B5563;
+}
+
+QTabWidget#topTabs > QTabBar::tab:selected
+{
+    color: #F9FAFB;
+    background-color: #3B82F6;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+QSplitter::handle
+{
+    background-color: #111827;
+}
+
+QSplitter::handle:horizontal
+{
+    width: 8px;
+}
+
+QSplitter::handle:vertical
+{
+    height: 8px;
+}
+
+QSplitter::handle:hover
+{
+    background-color: #374151;
+}
+
+QDateEdit
+{
+    background-color: #1F2937;
+    color: #F59E0B;
+    border: 1px solid;
+    border-color: #374151;
+}
+
+QDateEdit:disabled
+{
+    color: #6B7280;
+}
+
+QDateEdit::down-arrow
+{
+    color: #F59E0B;
+}
+
+QDateEdit::up-button, QDateEdit::down-button {
+    width: 20px;
+}
+
+QComboBox#filter1, #filter2, #filter3, #filter4, #filter5, #filter6,
+#operator1, #operator2, #operator3, #operator4, #operator5, #operator6
+{
+    background-color: #1F2937;
+    color: #E5E7EB;
+}
+
+QToolBox#replayToolBox::tab
+{
+    background-color: #1A1B2C;
+    color: #E5E7EB;
+    border-radius: 4px;
+    padding-left: 145px;
+}
+
+#advancedSearch, #mapPreview
+{
+    background-color: #1A1B2C;
+}
+
+QTableView
+{
+    outline: none;
+}
+
+QTableView::item:hover
+{
+    background-color: #374151;
+}
+
+QTableView::item:selected
+{
+    color: #F9FAFB;
+    background-color: #065F46;
+    border: none;
+}
+
+/* Text controls */
+QTextEdit, QPlainTextEdit, QListWidget, QListView, QTableWidget, QTreeWidget, QFrame#rankedFrame, #teamFaction, #teamSearch, #partyInfo
+{
+    border-style: solid;
+    border-width: 1px;
+    border-color: #1a1b1c;
+    color: #E5E7EB;
+    padding: 5px;
+    background-color: #1A1B2C;
+    alternate-background-color: #23253C;
+    border-top-right-radius: 6px;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+QLineEdit
+{
+    border-style: solid;
+    border-width: 1px;
+    border-color: #374151;
+    color: #E5E7EB;
+    padding: 5px;
+    background-color: #1A1B2C;
+    alternate-background-color: #23253C;
+    border-top-right-radius: 6px;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+QLineEdit:disabled {
+    color: #4B5563;
+    background-color: #0F172A;
+    border: 1px solid #1A1B2C;
+    padding: 5px;
+    border-top-right-radius: 6px;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+QFrame#rankedFrame
+{
+    border-style: solid;
+    border-width: 1px;
+    border-color: #374151;
+    color: #E5E7EB;
+    padding: 5px;
+    background-color: #1F2937;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+QListView#replayScoreTeamList
+{
+    border-width: 0px;
+    border-color: #374151;
+    color: #E5E7EB;
+    padding: 0px;
+    background-color: #1A1B2C;
+    alternate-background-color: #23253C;
+    border-top-right-radius: 0px;
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+}
+
+QPlainTextEdit#mapNamePlainTextEdit
+{
+    border-width: 0px;
+    border-style: solid;
+    border-color: #374151;
+    color: #F59E0B;
+    padding: 0px;
+    background-color: #1A1B2C;
+    alternate-background-color: #23253C;
+    border-top-right-radius: 0px;
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+}
+
+QTableView
+{
+    border-style: solid;
+    border-width: 1px;
+    border-color: #374151;
+    color: #E5E7EB;
+    padding: 5px;
+    background-color: #1A1B2C;
+    alternate-background-color: #23253C;
+    border-top-right-radius: 6px;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+QTableView::indicator:checked {
+    background: orange;
+}
+
+QTableView::indicator:unchecked {
+    background: #23253C;
+}
+
+/* used in ConnectivityDialog */
+QTableCornerButton::section {
+    background-color: #1F2937;
+}
+
+QHeaderView {
+    background-color: #1A1B2C;
+}
+
+QHeaderView::section
+{
+    color: #F9FAFB;
+    background-color: #374151;
+    font: bold;
+    border-left: 1 solid;
+}
+
+
+QHeaderView#VerticalHeader::section {
+    color: #E5E7EB;
+    background-color: #1F2937;
+    border: none;
+    font: normal;
+    min-width: 50px;
+}
+
+QHeaderView#VerticalHeader::section:checked
+{
+    color: #F9FAFB;
+    background-color: #065F46;
+    border-bottom: 1px solid;
+    border-color: #1A1B2C;
+    width: auto;
+}
+
+QHeaderView#VerticalHeader::section:hover
+{
+    color: #E5E7EB;
+    font: bold;
+    background-color: #374151;
+    border-bottom: 1px solid;
+    border-color: #1A1B2C;
+    width: auto;
+}
+
+/* Nicklist controls */
+
+QTableWidget::item
+{
+    margin: 0px;
+    border: none;
+    padding: 0px;
+}
+
+QTableWidget::item:hover
+{
+    background: #374151;
+    border-radius: 4px;
+}
+
+QTableWidget#filtersTableWidget::item:hover
+{
+    background: none;
+}
+
+QTableWidget#filtersTableWidget::item:selected
+{
+    color: #F9FAFB;
+    background-color: #065F46;
+}
+
+QTableWidget#nameHistoryTableWidget::item:hover
+{
+    background: none;
+    border-radius: 0px;
+}
+
+QTableWidget::item:selected, QListWidget::item:previous-selected, QListView::item:previous-selected
+{
+    border: none;
+}
+
+QLineEdit
+{
+    color: #F59E0B;
+}
+
+QListWidget::item:hover, QListView::item:hover
+{
+    border: none;
+    background: #374151;
+    border-radius: 4px;
+}
+
+QListView::item:selected, QTreeWidget::item:previous-selected
+{
+    border: none;
+}
+
+QListWidget::item:selected
+{
+    color: #F59E0B;
+    background: #065F46;
+    border: none;
+}
+
+QListWidget#newsList::item:selected
+{
+    background-color: #23253C;
+    color: #10B981;
+}
+
+QListWidget#teamList
+{
+    outline: 0;
+}
+
+QListWidget#teamList::item::selected
+{
+    color: #F9FAFB;
+    background-color: #1F2937;
+}
+
+QListWidget#teamList::item::selected:!active
+{
+    color: #E5E7EB;
+}
+
+/* for tournament*/
+QListWidget#tourneyList
+{
+    border-style: solid;
+    border-width: 1px;
+    border-color: #374151;
+    color: #E5E7EB;
+    padding: 5px;
+    background-color: #0F172A;
+    border-top-right-radius: 6px;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+QTreeWidget::item:hover
+{
+    border: none;
+    background: #374151;
+    border-radius: 4px;
+}
+
+QTreeWidget::item:selected
+{
+    border: none;
+    background: #1F2937;
+    border-radius: 4px;
+}
+
+QTreeWidget::item:previous-selected
+{
+    border: none;
+}
+
+/* ScrollWidgets*/
+QScrollArea
+{
+    border-style: solid;
+    border-width: 1px;
+    border-color: #374151;
+    color: #E5E7EB;
+    padding: 5px;
+    background-color: #1F2937;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+QScrollArea#replayScoreScrollArea
+{
+    background-color: #1A1B2C;
+    background: #1A1B2C;
+    color: #1A1B2C;
+    border-width: 0px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+    padding: 0px;
+}
+
+QScrollArea#gamePanelScrollArea
+{
+    border-color: #1a1b1c;
+    background-color: #0F172A;
+}
+
+QScrollArea#mapPoolWidgetScrollArea
+{
+    padding: 0px;
+}
+
+/* Scrollbars*/
+/* QScrollBar:horizontal { */
+/*     background-color: #374151; */
+/*     height: 15px; */
+/*     margin: 0 16px; */
+/* } */
+
+/* /1* QScrollBar:vertical { *1/ */
+/* /1*     border: none; *1/ */
+/* /1*     background: #111; *1/ */
+/* /1*     width: 8px; *1/ */
+/* /1*     margin: 6px 0 6px 0; *1/ */
+/* /1* } *1/ */
+
+/* QScrollBar:vertical { */
+/*     /1* background-color: #111; *1/ */
+/*     background-color: #0F172A; */
+/*     width: 15px; */
+/*     margin: 16px 0; */
+/* } */
+
+/* QScrollBar::handle { */
+/*     /1* background-position: center center; *1/ */
+/*     /1* background-repeat: no-repeat; *1/ */
+/*     background-color: #1F2937; */
+/*     min-height: 24px; */
+/*     border-radius: 3px; */
+/* } */
+
+/* QScrollBar::handle:hover { */
+/*     border-radius: 3px; */
+/*     background-color: #4B5563; */
+/*     min-height: 24px; */
+/* } */
+
+/* QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { */
+/*     border: none; */
+/*     background: #111; */
+/*     subcontrol-origin: margin; */
+/*     height: 6px; */
+/* } */
+
+/* QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical { */
+/*     border: 8px solid #111; */
+/*     width: 0px; */
+/*     height: 0px; */
+/* } */
+
+/* QScrollBar::up-arrow:vertical { */
+/*     top: -4px; */
+/*     border-bottom-color: gray; */
+/* } */
+
+/* QScrollBar::down-arrow:vertical { */
+/*     bottom: -4px; */
+/*     border-top-color: gray; */
+/* } */
+
+/* QScrollBar::up-arrow:vertical:hover { */
+/*     border-bottom-color: lightgray; */
+/* } */
+
+/* QScrollBar::down-arrow:vertical:hover { */
+/*     border-top-color: lightgray */
+/* } */
+
+/* QScrollBar::add-page:vertical { */
+/*     background-position: bottom; */
+/* } */
+
+/* QScrollBar::sub-page:vertical { */
+/*     background-position: top; */
+/* } */
+
+/* QScrollBar::add-page:horizontal { */
+/*     background-position: right; */
+/* } */
+
+/* QScrollBar::add-page:horizontal { */
+/*     background-position: left; */
+/* } */
+
+
+
+QScrollBar:horizontal {
+    background-color: #374151;
+    height: 12px;
+    margin: 0 12px;
+}
+
+QScrollBar:vertical {
+    border: none;
+    background-color: #374151;
+    width: 12px;
+    margin: 12px 0;
+}
+
+QScrollBar::handle {
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-color: #1F2937;
+    border-color: #1F2937;
+    min-height: 24px;
+}
+
+QScrollBar::handle:hover {
+    border-color: #4B5563;
+    background-color: #4B5563;
+    min-height: 24px;
+}
+
+QScrollBar::sub-line:horizontal {
+    background: #111827;
+    width: 12px;
+    subcontrol-position: left;
+    subcontrol-origin: margin;
+}
+
+QScrollBar::add-line:horizontal  {
+    background: #111827;
+    width: 12px;
+    subcontrol-position: right;
+    subcontrol-origin: margin;
+}
+
+/* QScrollBar::sub-line:vertical { */
+/*     border-top-left-radius: 4px; */
+/*     border-top-right-radius: 4px; */
+/*     background: #111827; */
+/*     height: 18px; */
+/*     subcontrol-position: top; */
+/*     subcontrol-origin: margin; */
+/* } */
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    border: none;
+    background: #111827;
+    subcontrol-origin: margin;
+    height: 12px;
+}
+
+/* QScrollBar::add-line:vertical  { */
+/*     border-bottom-left-radius: 4px; */
+/*     border-bottom-right-radius: 4px; */
+/*     background: #111827; */
+/*     height: 8px; */
+/*     subcontrol-position: bottom; */
+/*     subcontrol-origin: margin; */
+/* } */
+
+/* QScrollBar:down-arrow { */
+/*     background-position: center center; */
+/*     background-repeat: no-repeat; */
+/* } */
+
+QScrollBar::up-arrow, QScrollBar::down-arrow {
+    border: 6px solid #111;
+    width: 0px;
+    height: 0px;
+}
+QScrollBar::up-arrow {
+    top: -2px;
+    border-bottom-color: gray;
+}
+
+QScrollBar::up-arrow:hover {
+    border-bottom-color: #4B5563;
+}
+
+QScrollBar::down-arrow {
+    bottom: -2px;
+    border-top-color: gray;
+}
+
+QScrollBar::down-arrow:hover {
+    border-top-color: #4B5563;
+}
+
+QScrollBar::left-arrow, QScrollBar::right-arrow{
+    border: 6px solid #111;
+    width: 0px;
+    height: 0px;
+}
+
+QScrollBar::left-arrow {
+    left: -2px;
+    border-right-color: gray;
+}
+
+QScrollBar::left-arrow:hover {
+    border-right-color: #4B5563;
+}
+
+QScrollBar::right-arrow {
+    right: -2px;
+    border-left-color: gray;
+}
+
+QScrollBar::right-arrow:hover {
+    border-left-color: #4B5563;
+}
+
+QScrollBar::add-page
+{
+    background-color: #0F172A;
+}
+
+QScrollBar::sub-page
+{
+    background-color: #0F172A;
+}
+
+QLabel#labelSortGames,#labelJoinGame,#labelHostGame,#labelAutomatch,#labelMyReplays,#labelLiveReplays,#labelHostTournament,#labelJoinTournament,#joinLabel,#labelTeamManagement,#labelTMM
+{
+    color: #F9FAFB;
+}
+
+QLabel#labelModHint,#labelMyHint,#labelLiveHint,#labelRankedHint,#labelTeamManagementHint,#labelTeamManagementHint2,#labelTeamManagementHint3
+{
+    color: #9CA3AF;
+}
+
+QLabel#titleLabel
+{
+    color: #0F172A;
+    font-weight: bold;
+}
+
+QLabel#labelLoading,#labelStatusBarInfo
+{
+    color: #FCD34D;
+}
+
+QLabel#VSLabel
+{
+    color: #0F172A;
+    background-color: #1A1B2C;
+    margin: 0px;
+}
+
+QLabel#gameFiltersManagerDescription
+{
+    color: #FCD34D;
+}
+
+QGroupBox
+{
+    border: 1px solid #374151;
+    background-color: #1A1B2C;
+    color: #E5E7EB;
+    padding-top: 15px;
+}
+
+QGroupBox#mapsGroup,#previewGroup,#modsGroup {
+    font-size: 10pt;
+    font-weight: bold;
+}
+
+QLabel
+{
+    color: #E5E7EB;
+}
+
+QLabel::disabled
+{
+    color: #6B7280;
+}
+
+/* Used for dialogs*/
+QDialog
+{
+    background-color: #1F2937;
+}
+
+QDialog#MapGenOptionsDialog
+{
+    background-color: #1A1B2C;
+    alternate-background-color: #23253C;
+}
+
+QCheckBox::enabled
+{
+    color: #E5E7EB;
+}
+
+QCheckBox::indicator
+{
+    width: 11px;
+    height: 11px;
+    border: 1px solid #374151;
+}
+
+QCheckBox::indicator:disabled {
+    border-color: #1A1B2C;
+}
+
+QCheckBox::indicator:unchecked
+{
+    background: #23253C;
+}
+
+QCheckBox::indicator:checked
+{
+    background: orange;
+    border-color: black;
+}
+
+QCheckBox::indicator:hover {
+    border-color: #6B7280;
+}
+
+QCheckBox::indicator:checked:hover {
+    background: darkorange;
+}
+
+/* Used for Ranked Buttons only at the moment*/
+QToolButton#rankedPlay
+{
+    color: #E5E7EB;
+    border-radius: 6px;
+    border: 1px solid #4B5563;
+}
+
+QToolButton#rankedPlay::disabled
+{
+    color: #6B7280;
+    border-radius: 6px;
+    border: 1px solid #1A1B2C;
+}
+
+QToolButton#mapsPool
+{
+    color: #E5E7EB;
+    border-radius: 6px;
+    border: 1px solid #4B5563;
+}
+
+QToolButton#showTMM
+{
+    color: #E5E7EB;
+    border: 0.5px solid #0F172A;
+}
+
+QToolButton::pressed
+{
+    border: none;
+    color: #0F172A;
+    padding: 5px;
+    background-color: #1F2937;
+    border-radius: 6px;
+}
+
+QToolButton:hover
+{
+    border: none;
+    color: #E5E7EB;
+    padding: 5px;
+    background-color: #374151;
+    border-radius: 6px;
+}
+
+QToolButton::checked
+{
+    border: 2px solid #374151;
+    color: #0F172A;
+    padding: 5px;
+    background-color: #E5E7EB;
+    border-radius: 6px;
+}
+
+QToolButton#gamePanelButton
+{
+    color: #E5E7EB;
+    background: #1A1B2C;
+    padding: 2px;
+    border-radius: 4px;
+}
+
+QToolButton#gamePanelButton::checked
+{
+    border: none;
+    padding: 2px;
+}
+
+QToolButton#gamePanelButton:hover
+{
+    background: #374151;
+}
+
+QPushButton
+{
+    color: #E5E7EB;
+    background: #2D3748;
+}
+
+QPushButton:disabled
+{
+    color: #4B5563;
+    background: #0F172A;
+}
+
+QPushButton:hover
+{
+    background: #4B5563;
+}
+
+
+QPushButton#searchButton, #advSearchButton {
+    font: bold;
+}
+
+QPushButton#fafDbButton, #spookyDbButton {
+    font: bold 13pt;
+    border-radius: 6px;
+}
+
+
+QPushButton#generateMapButton, #hostGameButton
+{
+    font: bold 14px;
+}
+
+
+QPushButton#newsSettings
+{
+    qproperty-icon: url('%THEMEPATH%/../../client/settings.png');
+}
+
+QPushButton#showAllButton
+{
+    qproperty-icon: url('%THEMEPATH%/../../client/showAll.png');
+}
+
+QPushButton#vetoButton
+{
+    border-radius: 4px;
+}
+
+QSpinBox, QDoubleSpinBox
+{
+    color: #F59E0B;
+    background-color: #1F2937;
+    border: 1px solid;
+    border-color: #374151;
+}
+
+QSpinBox::disabled, QDoubleSpinBox::disabled
+{
+    color: #6B7280;
+}
+
+QSpinBox::up-button, QDoubleSpinBox::up-button {
+    width: 20px;
+}
+
+QSpinBox::down-button, QDoubleSpinBox::down-button {
+    width: 20px;
+}
+
+QComboBox, QComboBox:selected
+{
+    color: #F59E0B;
+    selection-color: #F59E0B;
+    background-color: #1F2937;
+    selection-background-color: #1F2937;
+}
+
+QComboBox::disabled
+{
+    color: #6B7280;
+}
+
+QComboBox QAbstractItemView {
+    border: 2px solid #4B5563;
+    selection-background-color: #1F2937;
+    background-color: #1F2937;
+}
+
+QFrame#settingsFrame {
+    border-style: solid;
+    border-width: 1px;
+    border-color: #374151;
+    background-color: #1F2937;
+    color: #E5E7EB;
+    border-top-right-radius: 6px;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+#line,#line_2
+{
+    background-color: #1A1B2C;
+}
+
+QProgressBar
+{
+    color: #E5E7EB;
+    border: 1px solid black;
+    background-color: #0F172A;
+    text-align: center;
+}
+
+QProgressBar::chunk
+{
+    background-color: #065F46;
+}
+
+QProgressBar#achievementBar
+{
+    background-color: #6B7280;
+    text-align: center;
+    max-height: 12px;
+    border: 1px solid #0F172A;
+}
+
+QProgressBar#achievementBar::chunk
+{
+    background-color: #F59E0B;
+}
+
+QStatusBar
+{
+    color: #FCD34D;
+}
+
+QWidget#tech_widget,#overview_content,#overview_widget
+{
+    background: #1A1B2C;
+    padding: 0px;
+    border: none;
+}
+
+QWidget#gamePanelStack
+{
+    background-color: #0F172A;
+}
+
+QFrame[frameShape="4"]
+{
+    color: #374151;
+
+}
+
+QFrame[frameShape="1"] {
+    border: 2px solid #374151;
+}
+
+QLabel#vaultListItemTitle
+{
+    color: #E5E7EB;
+    font: bold;
+}
+
+QLabel#vaultListItemTitle[installed="true"]
+{
+    color: #10B981;
+}
+
+QLabel[recommended="true"]
+{
+    color: #10B981;
+}
+
+QLabel[unranked_map="true"]
+{
+    color: #EF4444;
+}
+
+QLabel#vaultThumbnail
+{
+    background-color: #0F172A;
+    border: 1px solid #0F172A;
+}
+
+QLabel[ranked_mod="true"]
+{
+    color: #F59E0B;
+}
+
+QLabel#replayEventTime
+{
+    border-radius: 6px;
+    background: #1E293B;
+}
+
+QLabel#iconOverlay
+{
+    background: rgba(15, 23, 42, 180);
+}
+
+QLabel#vetoOverlay
+{
+    font-size: 12pt;
+    font-weight: bold;
+    color: #F9FAFB;
+    max-height: 20px;
+    background: rgba(15, 23, 42, 180);
+}
+
+QLabel#vetoTokens
+{
+    color: #F59E0B;
+    font-size: 11pt;
+}
+
+QTextEdit#reviewText
+{
+    border-style: solid;
+    border-width: 1px;
+    border-color: #374151;
+    color: #E5E7EB;
+    padding: 5px;
+    background-color: #23253C;
+    alternate-background-color: #23253C;
+}
+
+QLabel#starLabel
+{
+    color: #FCD34D;
+}
+
+QLabel#averageReviewRatingLabel
+{
+    font-size: 34pt;
+    font-weight: bold;
+    color: #10B981;
+}
+
+QLabel#reviewRatingCountLabel
+{
+    color: #6B7280;
+    font-size: 11pt;
+}
+
+QLabel#announceLine {
+    color: #F9FAFB;
+}
+
+QLabel#labelEvent {
+    color: #F9FAFB;
+    font-weight: bold;
+    font-family: Verdana;
+    font-size: 13pt;
+}
+
+QProgressBar#reviewRatingProgressBar
+{
+    color: #E5E7EB;
+    border: none;
+    background-color: #0F172A;
+    text-align: right;
+    height: 14pt;
+    margin-right: 2em;
+}
+
+QProgressBar#reviewRatingProgressBar[rating="1"]::chunk
+{
+    background-color: #F87171;
+}
+
+QProgressBar#reviewRatingProgressBar[rating="2"]::chunk
+{
+    background-color: #FB923C;
+}
+
+QProgressBar#reviewRatingProgressBar[rating="3"]::chunk
+{
+    background-color: #FBBF24;
+}
+
+QProgressBar#reviewRatingProgressBar[rating="4"]::chunk
+{
+    background-color: #34D399;
+}
+
+QProgressBar#reviewRatingProgressBar[rating="5"]::chunk
+{
+    background-color: #10B981;
+}
+
+QPushButton[download="true"]
+{
+    background-color: #10B981;
+    color: #F9FAFB;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+QPushButton[download="true"]:hover
+{
+    background-color: #065F46;
+}
+
+QPushButton[download="true"]:pressed
+{
+    background-color: #047857;
+}
+
+QPushButton[remove="true"]
+{
+    background-color: #F87171;
+    color: #F9FAFB;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+QPushButton[remove="true"]:hover
+{
+    background-color: #EF4444;
+}
+
+QPushButton[remove="true"]:pressed
+{
+    background-color: #DC2626;
+}
+
+QLabel[replay_misc_info="true"]
+{
+    color: #6B7280;
+    font-size: 8pt;
+}
+
+QLabel#searchInfoLabel,#advSearchInfoLabel
+{
+    color: #FCD34D;
+    font-weight: bold;
+}
+
+QSlider::groove:horizontal {
+    border: 1px solid #374151;
+    height: 8px;
+    background: #1F2937;
+    margin: 2px 0;
+}
+
+QSlider::groove:horizontal:disabled {
+    background: #6B7280;
+}
+
+QSlider::handle:horizontal {
+    background: #3B82F6;
+    border: 1px solid #1E40AF;
+    width: 10px;
+    margin: -6px 0;
+}
+
+QSlider::handle:horizontal:disabled {
+    background: #6B7280;
+}
+
+QSlider::sub-page:horizontal {
+    background: #3B82F6;
+    height: 6px;
+}
+
+QSlider::sub-page:horizontal:disabled {
+    background: #6B7280;
+}
+
+QSlider::add-page:horizontal {
+    background: #374151;
+    height: 6px;
+}
+
+QRadioButton {
+    color: #E5E7EB;
+    spacing: 5px;
+}
+
+QRadioButton::indicator {
+    width: 13px;
+    height: 13px;
+    border: 1px solid #374151;
+    border-radius: 7px;
+    background: #23253C;
+}
+
+QRadioButton::indicator:hover {
+    border: 1px solid #4B5563;
+}
+
+QRadioButton::indicator:checked {
+    border: 1px solid #3B82F6;
+    background: #3B82F6;
+    image: none;
+}
+
+QRadioButton::indicator:checked:hover {
+    background: #60A5FA;
+    border: 1px solid #60A5FA;
+}
+
+QRadioButton:disabled {
+    color: #6B7280;
+}
+
+QRadioButton::indicator:disabled {
+    background: #374151;
+    border: 1px solid #374151;
+}
+
+QDialog#hostGameDialog {
+    background: rgba(17, 24, 39, 240);
+}
+
+QLabel[bordered="true"] {
+    border: 2px solid #374151;
+    border-radius: 8px;
+    background-color: #1E293B;
+    color: #9CA3AF;
+    padding: 2px;
+}
+
+QFrame#clanMember {
+    border: 1px solid #374151;
+    border-radius: 8px;
+    background-color: #1E293B;
+}
+
+QFrame#clanMember:hover {
+    border-color: #4B5563;
+    border-radius: 8px;
+}
+
+QFrame#playercardPassportFrame,#playercardClanFrame {
+    background: #23253C;
+}
+
+QListWidget#clanMembersList::item:selected {
+    border: 1px solid #3B82F6;
+    border-radius: 8px;
+}
+
+QListWidget#clanMembersList::item:hover {
+    border-radius: 8px;
+}
+
+QFrame#vetoFrame:hover {
+    background: #0F172A;
+}
+
+/* CUSTOM RULES */
+QTextBrowser::custom {
+    highlight-background-color: yellow;
+}
+
+LocalReplayTreeitem::custom:broken {
+    time-color: darkred;
+    title-color: #6B7280;
+}
+
+LocalReplayTreeitem::custom:incomplete {
+    time-color: yellow;
+}
+
+LocalReplayBucketItem::custom:broken {
+    color: darkred;
+}
+
+LocalReplayBucketItem::custom:incomplete {
+    color: yellow;
+}
+
+ReplayItemDelegate::custom:icon {
+    shadow-color: #1A1B2C;
+    rect-color: #1A1B2C;
+    frame-color: #0F172A;
+}
+
+GameItemDelegate::custom {
+    background-color: #1A1B2C;
+    shadow-color: #1A1B2C;
+    frame-color: #0F172A;
+}
+
+GameItemFormatter::custom {
+    color: silver;
+    title-color: #F9FAFB;
+    map-color: #F59E0B;
+    mods-color: darkred;
+}
+
+EventItemDelegate::custom {
+    text-rect-color: #1A1B2C;
+    team-rect-color: #1A1B2C;
+}
+
+ReviewWidget::custom {
+    star-fill-color: #4CAF50;
+}
+
+AutomatchTabs::custom {
+    default-tab-color: #F9FAFB;
+    searching-tab-color: orange;
+}
+
+RatingPlotCrosshairs::custom {
+    line-color: green;
+    text-color: black;
+    background-color: #ffff00;
+}
+
+RatingPlotWidget::custom {
+    color: orange;
+    background-color: #1E293B;
+}
+
+ReplayToolBox#hideAll::custom:abstract-button {
+    max-height: 0px;
+}
+
+ReplayToolBox#hideAll::custom:scroll-area {
+    background-color: transparent;
+    border-width: 0px;
+}
+
+ReplayItemFormatter::custom {
+    default-color: #9CA3AF;
+    time-color: #F9FAFB;
+    title-color: #F9FAFB;
+    map-color: #F59E0B;
+    mod-color: #F9FAFB;
+    availability-color: #4B5563;
+    duration-color: #F9FAFB;
+    status-color: #F9FAFB;
+    status-color-delay: darkred;
+    status-color-missing: darkgray;
+}
+
+ReplayBucketItemFormatter::custom {
+    color-date: white;
+    color-count: white;
+}
+
+ReplayCard::custom {
+    team-title-color: #F9FAFB;
+    team-title-background: #2D3748;
+}
+
+GamePanelWidget::custom {
+    featured-mod-color-accent: #F9FAFB;
+}
+
+CoopWidgetTreeRootItem::custom {
+    color: #F9FAFB;
+}
+
+ChatChannelGreeting::custom {
+    color-welcome: red;
+    color-wiki: #F9FAFB;
+}
+
+NewsItemFormatter::custom {
+    author-color: #E5E7EB;
+    title-color: #F9FAFB;
+}
+
+Notifications::custom {
+    secondary-color: #F9FAFB;
+    mods-color: darkred;
+}
+
+PlayerColors::custom {
+  you: red;
+  foe: crimson;
+  foe_mod: lightslategrey;
+  foe_chatterbox: darkred;
+  friend: lightskyblue;
+  friend_mod: medium orchid;
+  self_mod: medium orchid;
+  friend_chatterbox: purple;
+  player: #b0b0b0;
+  server: black;
+  default: grey;
+  self: orange;
+  url: cornflowerblue;
+  clan: limegreen;
+  clan_chatterbox: darkgreen;
+  mod: white;
+  chatterbox: darkgoldenrod;
+  game_host: gold;
+}

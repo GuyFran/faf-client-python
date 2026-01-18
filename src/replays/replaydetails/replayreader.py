@@ -55,6 +55,7 @@ from src.replays.replaydetails.types import ParsedReplay
 from src.replays.replaydetails.types import _ConvertedCommands
 from src.replays.replaydetails.utils import PLAYER_COLORS
 from src.util import COMMON_DIR
+from src.util import THEME
 
 logger = logging.getLogger(__name__)
 
@@ -420,9 +421,9 @@ class ReplayParser(QObject):
 
     def _gen_info(self) -> Generator[str]:
         yield (
-            f"<center><h2>{self.faf_info['title']}</h2>"
+            f"<center><h2>{self.faf_info.get('title', '???')}</h2>"
             f"<center><h3>{self.replayPatchFieldId}</h3>"
-            f"<center><h4>host: {self.faf_info['host']}</h4>"
+            f"<center><h4>host: {self.faf_info.get('host', '???')}</h4>"
             f"<h3>{seconds_to_human(self.ticks // 10, sep=' ', full=False)}</h3>"
             f"<h4>{self.real_time()}</h4>"
             "</center>"
@@ -443,10 +444,18 @@ class ReplayParser(QObject):
 
         teamid = 0
         yield "<p><table width=100%>"
+        team_title_color = THEME.find_stylesheet_attribute(
+            "ReplayCard::custom",
+            "team-title-color",
+        )
+        team_title_bg = THEME.find_stylesheet_attribute(
+            "ReplayCard::custom",
+            "team-title-background",
+        )
         for team in self.teams.items():
             teamid += 1
             yield (
-                f"<tr><th bgcolor=grey colspan=5><font color=white>"
+                f"<tr><th bgcolor={team_title_bg} colspan=5><font color={team_title_color}>"
                 f"team {str(teamid)}"
                 f"</font></th></tr>"
             )
@@ -535,7 +544,7 @@ class ReplayParser(QObject):
             f"<center><h2>{self.map_display_name()}</h2><h4>"
             f"{self.actual_map_size()}</h4></center><table>"
         )
-        for k, v in sorted(self.luaScenarioInfo["Options"].items()):
+        for k, v in sorted(self.luaScenarioInfo.get("Options", {}).items()):
             if k not in ["Ratings", "ScenarioFile", "ReplayID"]:
                 if not isinstance(v, dict):
                     yield (

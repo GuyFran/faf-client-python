@@ -66,6 +66,8 @@ class NewsWidget(FormClass, BaseClass):
             pixmap = QPixmap(image_path)
             scaled = pixmap.scaled(self.IMAGE_SIZE)
             self.imageLabel.setPixmap(scaled)
+        else:
+            self.imageLabel.clear()
         self.show_newspage()
 
     def itemChanged(self, current: NewsItem | None, previous: NewsItem | None) -> None:
@@ -79,6 +81,7 @@ class NewsWidget(FormClass, BaseClass):
             self.imageLabel.setPixmap(QPixmap(image_path).scaled(self.IMAGE_SIZE))
             self.show_newspage()
         else:
+            self.imageLabel.clear()
             self._downloader.download(image_name, self._images_dl_request, url)
 
     def show_newspage(self) -> None:

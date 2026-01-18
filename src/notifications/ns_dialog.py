@@ -48,12 +48,11 @@ class NotificationDialog(FormClass, BaseClass):
         self.baseWidth = 375
 
         self.sender_id = None
-        self.acceptButton.clicked.connect(
+        self.eventAcceptButton.clicked.connect(
             lambda: self.acceptPartyInvite(sender_id=self.sender_id),
         )
 
-        # TODO: integrate into client.css
-        # self.setStyleSheet(self.client.styleSheet())
+        self.setStyleSheet(util.THEME.stylesheet)
 
     @QtCore.pyqtSlot()
     def newEvent(
@@ -87,10 +86,10 @@ class NotificationDialog(FormClass, BaseClass):
         self.setFixedWidth(width or self.baseWidth)
 
         if hide_accept_button:
-            self.acceptButton.hide()
+            self.eventAcceptButton.hide()
         else:
             self.sender_id = sender_id
-            self.acceptButton.show()
+            self.eventAcceptButton.show()
 
         self.updatePosition()
         self.show()

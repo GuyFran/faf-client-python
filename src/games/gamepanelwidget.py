@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import cast
 
 from PyQt6.QtCore import QEvent
@@ -207,6 +205,10 @@ class GamePanelWidget(QWidget):
             team_widget.install_event_filter(self.event_filter)
 
         self.setFixedWidth(290)
+        self.fmod_color_accent = util.THEME.find_stylesheet_attribute(
+            "GamePanelWidget::custom",
+            "featured-mod-color-accent",
+        )
 
     def set_game(self, game: Game) -> None:
         if self.game is not None and self.game_slot_conn is not None:
@@ -256,7 +258,7 @@ class GamePanelWidget(QWidget):
         self.ui.titleLabel.setText(new.title)
         self.ui.titleLabel.setToolTip(new.title)
         if new.featured_mod != "faf":
-            fmod_text = f"<font color='white'><b>{new.featured_mod}</b></font>"
+            fmod_text = f"<font color='{self.fmod_color_accent}'><b>{new.featured_mod}</b></font>"
             self.ui.featuredModLabel.setText(fmod_text)
         else:
             self.ui.featuredModLabel.setText(new.featured_mod)

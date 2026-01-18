@@ -53,6 +53,11 @@ class CoopWidget(FormClass, BaseClass, BusyWidget):
         self.ui_loaded = False
         self.scenarios_loaded = False
 
+        self._coop_type_item_color = util.THEME.find_stylesheet_attribute(
+            "CoopWidgetTreeRootItem::custom",
+            "color",
+        )
+
     def setup(self) -> None:
         self.setupUi(self)
         # Ranked search UI
@@ -199,7 +204,8 @@ class CoopWidget(FormClass, BaseClass, BusyWidget):
             if type_coop not in self.cooptypes:
                 root_item = QtWidgets.QTreeWidgetItem()
                 self.coopList.addTopLevelItem(root_item)
-                root_item.setText(0, f"<font color='white' size=+3>{type_coop}</font>")
+                html = f"<font color='{self._coop_type_item_color}' size=+3>{type_coop}</font>"
+                root_item.setText(0, html)
                 root_item.setToolTip(0, campaign.description)
                 self.cooptypes[type_coop] = root_item
                 root_item.setExpanded(False)

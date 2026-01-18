@@ -54,6 +54,15 @@ class Notifications:
 
         self.user = util.THEME.icon("client/user.png", pix=True)
 
+        self.secondary_color = util.THEME.find_stylesheet_attribute(
+            "Notifications::custom",
+            "secondary-color",
+        )
+        self.mods_color = util.THEME.find_stylesheet_attribute(
+            "Notifications::custom",
+            "mods-color",
+        )
+
     def _newPlayer(self, player: Player) -> None:
         if self.is_disabled(self.USER_ONLINE):
             return
@@ -191,8 +200,7 @@ class Notifications:
             player = data
             pixmap = self.user
             text = (
-                '<html>{}<br><font color="silver" size="-2">is online'
-                '</font></html>'.format(player.login)
+                f'{player.login}<br><font color="{self.secondary_color}" size="-2">is online</font>'
             )
         elif eventType == self.NEW_GAME:
             game = data
@@ -220,8 +228,8 @@ class Notifications:
                 modhtml = ''
             else:
                 modhtml = (
-                    '<br><font size="-4"><font color="red">mods</font> '
-                    '{}</font>'.format(modstr)
+                    '<br>'
+                    f'<font size="-4"><font color="{self.mods_color}">mods</font> {modstr}</font>'
                 )
             text = (
                 '<html>{}<br><font color="silver" size="-2">on</font> '
@@ -233,29 +241,22 @@ class Notifications:
             )
         elif eventType == self.GAME_FULL:
             pixmap = self.user
-            text = (
-                '<html><br><font color="silver" size="-2">Game is full.'
-                '</font></html>'
-            )
+            text = f'<br><font color="{self.secondary_color}" size="-2">Game is full.</font>'
         elif eventType in (self.CUSTOM_GAME_LAUNCHED, self.LADDER_GAME_LAUNCHED):
             text = "Game Launched"
         elif eventType == self.LAUNCHING_LADDER:
             text = f"<font size='-2'>Launching game:</font><br>{data}"
         elif eventType == self.UNOFFICIAL_CLIENT:
             pixmap = self.user
-            text = (
-                '<html><br><font color="silver" size="-2">{}</font></html>'
-                .format(data)
-            )
+            text = f'<br><font color="{self.secondary_color}" size="-2">{data}</font>'
             self.dialog.newEvent(pixmap, text, 10, False, 200)
             return
         elif eventType == self.PARTY_INVITE:
             pixmap = self.user
-
+            login = self.client.players[data["sender"]].login
             text = (
-                '<html>{}<br><font color="silver" size="-2">invites you to'
-                ' their party</font></html>'
-                .format(str(self.client.players[data["sender"]].login))
+                f'{login}<br><font color="{self.secondary_color}" size="-2">invites you to'
+                ' their party</font>'
             )
             self.dialog.newEvent(
                 pixmap, text, 15,

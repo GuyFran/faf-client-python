@@ -402,7 +402,7 @@ class LocalReplayItem(QtWidgets.QTreeWidgetItem):
         )
         title_color_str = util.THEME.find_stylesheet_attribute(
             "LocalReplayTreeItem::custom:broken",
-            "time-color",
+            "title-color",
         )
         self.setForeground(1, QtGui.QColor(time_color_str))
         self.setForeground(2, QtGui.QColor(title_color_str))
@@ -847,6 +847,15 @@ class ReplayVaultWidgetHandler:
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.stopSearchVault)
 
+        self.bucket_item_date_color = util.THEME.find_stylesheet_attribute(
+            "ReplayBucketItemFormatter::custom",
+            "color-date",
+        )
+        self.bucket_item_count_color = util.THEME.find_stylesheet_attribute(
+            "ReplayBucketItemFormatter::custom",
+            "color-count",
+        )
+
     def show_replay_details(self) -> None:
         item = self._w.onlineTree.currentItem()
         if item is not None and hasattr(item, "url"):
@@ -1058,7 +1067,7 @@ class ReplayVaultWidgetHandler:
         scoreboard = item.generate_scoreboard()
         self._w.replayScoreLayout.addWidget(scoreboard)
         self.adjust_scoreboard_size(scoreboard.width(), scoreboard.height())
-        game_finished = hasattr(item, "duration") and "playing" not in item.duration
+        game_finished = "playing" not in item.status
         available = item.game and item.game.replay_available
         self._w.detailsButton.setVisible(game_finished and available)
 
@@ -1085,7 +1094,7 @@ class ReplayVaultWidgetHandler:
         if not hasattr(item, "duration") or item.duration is None:
             return
 
-        if "playing" in item.duration:  # live game will not be in vault
+        if "playing" in item.status:  # live game will not be in vault
             # search result isn't updated automatically - so game status
             # might have changed
             if item.uid in self._gameset:  # game still running
@@ -1238,20 +1247,20 @@ class ReplayVaultWidgetHandler:
             bucket = buckets.setdefault(self.onlineReplays[uid].startDate, [])
             bucket.append(self.onlineReplays[uid])
 
-        for bucket in buckets.keys():
+        for bucket, replay_items in buckets.items():
             bucket_item = QtWidgets.QTreeWidgetItem()
             self._w.onlineTree.addTopLevelItem(bucket_item)
 
             bucket_item.setIcon(0, util.THEME.icon("replays/bucket.png"))
             bucket_item.setText(
-                0, f"<font color='white'>{bucket}</font>",
+                0, f"<font color='{self.bucket_item_date_color}'>{bucket}</font>",
             )
             bucket_len = len(buckets[bucket])
             bucket_item.setText(
-                1, f"<font color='white'>{bucket_len} replays</font>",
+                1, f"<font color='{self.bucket_item_count_color}'>{bucket_len} replays</font>",
             )
 
-            for replay_item in buckets[bucket]:
+            for replay_item in replay_items:
                 bucket_item.addChild(replay_item)
                 replay_item.setFirstColumnSpanned(True)
                 replay_item.setIcon(0, replay_item.thumbnail)

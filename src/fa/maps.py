@@ -139,7 +139,10 @@ def folderForMap(mapname: str) -> str | None:
     Returns the folder where the application could find the map
     """
     if isBase(mapname):
-        return os.path.join(getBaseMapsFolder(), mapname)
+        if (base := getBaseMapsFolder()) != "":
+            return os.path.join(base, mapname)
+        else:
+            return None
 
     for infile in _get_user_maps():
         if infile.name.lower() == mapname.lower():
@@ -156,8 +159,7 @@ def getBaseMapsFolder() -> str:
     if gamepath:
         return os.path.join(gamepath, "maps")
     else:
-        # This most likely isn't the valid maps folder, but it's the best guess
-        return "maps"
+        return ""
 
 
 def getUserMapsFolder() -> str:

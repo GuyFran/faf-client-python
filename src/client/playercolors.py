@@ -24,7 +24,7 @@ class PlayerColors(QObject):
         self._user_relations = user_relations
         self._theme = theme
         self._colored_nicknames = False
-        self.colors = self._load_colors("client/colors.json")
+        self.colors = self._theme.find_stylesheet_style_as_dict("PlayerColors::custom")
         self.random_colors = self._load_colors("client/randomcolors.json")
 
     @property

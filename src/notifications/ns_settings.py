@@ -55,6 +55,7 @@ class NsSettingsDialog(FormClass2, BaseClass2):
         # BaseClass2.__init__(self, client)
 
         self.setupUi(self)
+        self.setStyleSheet(util.THEME.stylesheet)
         self.client = client
 
         # remove help button

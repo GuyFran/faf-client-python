@@ -66,7 +66,8 @@ class NewsItem(QtWidgets.QListWidgetItem):
     TEXTHEIGHT = 85
     PADDING = 10
 
-    FORMATTER = str(util.THEME.readfile("news/formatters/newsitem.qhtml"))
+    FORMATTER = util.THEME.readfile("news/formatters/newsitem.qhtml")
+    COLORS = util.THEME.find_stylesheet_style_as_dict("NewsItemFormatter::custom")
 
     def __init__(
         self,
@@ -81,6 +82,7 @@ class NewsItem(QtWidgets.QListWidgetItem):
                 author=newsPost['author'][0]['name'],
                 date=newsPost['date'],
                 title=newsPost['title'],
+                **self.COLORS,
             ),
         )
 

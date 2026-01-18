@@ -314,7 +314,7 @@ class DownloadWrapper(QObject):
 class DownloadRequest(QObject):
     done = pyqtSignal(object, object)
 
-    def __init__(self):
+    def __init__(self) -> None:
         QObject.__init__(self)
         self._dl: DownloadWrapper | None = None
 
@@ -464,7 +464,7 @@ class ImageDownloader:
         image_name = self.image_name(reply.url())
         self._save_image_to_cache(image_name, pixmap)
 
-        reqs = self._requests.pop(url_str, [])
+        reqs = self._requests.pop(url_str, set())
         for req in reqs:
             req.finished(url_str, pixmap)
         reply.deleteLater()
