@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import cast
 
 from PyQt6.QtCore import QEvent
@@ -133,6 +131,7 @@ class GamePanelUI:
 
         self.hostLabel = QLabel()
         self.numPlayersLabel = QLabel()
+        self.mapSizeLabel = QLabel("???")
 
         self.getMapButton.setEnabled(False)
         self.getMapButton.hide()
@@ -150,6 +149,7 @@ class GamePanelUI:
         summary_form.addRow("<b>Map:</b>", self.mapNameLabel)
         summary_form.addRow("<b>Host:</b>", self.hostLabel)
         summary_form.addRow("<b>Players:</b>", self.numPlayersLabel)
+        summary_form.addRow("<b>Size:</b>", self.mapSizeLabel)
         layout.addWidget(self.summaryGroup)
 
         self.simModsButton = QPushButton("Show/Hide mods")
@@ -207,6 +207,10 @@ class GamePanelWidget(QWidget):
             team_widget.install_event_filter(self.event_filter)
 
         self.setFixedWidth(290)
+        self.fmod_color_accent = util.THEME.find_stylesheet_attribute(
+            "GamePanelWidget::custom",
+            "featured-mod-color-accent",
+        )
 
     def set_game(self, game: Game) -> None:
         if self.game is not None and self.game_slot_conn is not None:
@@ -253,10 +257,11 @@ class GamePanelWidget(QWidget):
             self.ui.joinGameButton.setText("Join Game")
         self.ui.joinGameButton.setEnabled(new.state is GameState.OPEN)
         self.set_map_icon()
+        self.set_map_size()
         self.ui.titleLabel.setText(new.title)
         self.ui.titleLabel.setToolTip(new.title)
         if new.featured_mod != "faf":
-            fmod_text = f"<font color='white'><b>{new.featured_mod}</b></font>"
+            fmod_text = f"<font color='{self.fmod_color_accent}'><b>{new.featured_mod}</b></font>"
             self.ui.featuredModLabel.setText(fmod_text)
         else:
             self.ui.featuredModLabel.setText(new.featured_mod)
@@ -335,6 +340,17 @@ class GamePanelWidget(QWidget):
         else:
             fa.maps.downloadMap(self.game.mapname)
         self.set_map_icon()
+        self.set_map_size()
+
+    def set_map_size(self) -> None:
+        if (
+            self.game is None
+            or (map_info := fa.maps.CachedMapsMetadata.get_map(self.game.mapname)) is None
+        ):
+            self.ui.mapSizeLabel.setText("???")
+            return
+        w, h = map(int, map_info["map_size"].values())
+        self.ui.mapSizeLabel.setText(f"{w/51.2:g} x {h/51.2:g} km")
 
     def show_large_map_preview(self) -> None:
         if self.game is None or (map_folder := fa.maps.folderForMap(self.game.mapname)) is None:

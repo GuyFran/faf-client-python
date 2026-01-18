@@ -1,6 +1,9 @@
 import logging
 import os
+import re
 from collections.abc import Callable
+from collections.abc import Iterable
+from functools import cached_property
 from typing import Any
 from typing import Concatenate
 
@@ -9,6 +12,8 @@ from PyQt6 import QtGui
 from PyQt6 import QtWidgets
 from PyQt6 import uic
 from semantic_version import Version
+
+from src.config import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -43,13 +48,24 @@ class Theme:
     Represents a single FAF client theme.
     """
 
-    def __init__(self, themedir: str | None, name: str | None) -> None:
-        """
-        A 'None' themedir represents no theming (no dir prepended to filename)
-        """
+    def __init__(self, themedir: str | None, name: str | None, *, builtin: bool = False) -> None:
         self._themedir = themedir
         self.name = name
         self._pixmapcache: dict[str, QtGui.QPixmap | None] = {}
+        self._builtin = builtin
+
+    @cached_property
+    def stylesheet(self) -> str | None:
+        if (
+            self.name is None  # unthemed
+            and QtWidgets.QApplication.style().name() == "windowsvista"
+        ):
+            return self.readstylesheet("client/client_light.css")
+        else:
+            return self.readstylesheet("client/client.css")
+
+    def is_builtin(self) -> bool:
+        return self._builtin
 
     def __str__(self):
         return str(self.name)
@@ -110,12 +126,14 @@ class Theme:
             return f.readlines()
 
     @_noneIfNoFile
-    def readstylesheet(self, filename):
+    def readstylesheet(self, filename: str) -> str | None:
         with open(self._themepath(filename)) as f:
-            logger.info("Read themed stylesheet: " + filename)
-            return f.read().replace(
-                "%THEMEPATH%", self._themedir.replace("\\", "/"),
-            )
+            logger.info("Read themed stylesheet: %s", filename)
+            sheet = f.read()
+            if self._themedir is not None:
+                return sheet.replace("%THEMEPATH%", self._themedir.replace("\\", "/"))
+            else:
+                return sheet
 
     @_noneIfNoFile
     def themeurl(self, filename):
@@ -139,6 +157,27 @@ class Theme:
         # Returns a sound file string, from the themed folder.
         return self._themepath(filename)
 
+    def find_stylesheet_attribute(self, section: str, attribute: str) -> str | None:
+        if self.stylesheet is None:
+            return
+        field = r"\s{0,8}[\w-]+\s{0,2}:\s{0,2}[#\d\w\s-]+;\n"
+        target_field = fr"\s{{0,8}}{attribute}\s{{0,2}}:\s{{0,2}}([#\d\w\s-]+);\n"
+        escaped_section = section.replace("[", "\\[").replace("]", "\\]")
+        pattern = fr"{escaped_section}[\s\n]{{0,10}}{{\n({field}){{0,100}}{target_field}"
+        mobject = re.search(pattern, self.stylesheet, flags=re.S)
+        if mobject is not None:
+            return mobject[2]
+
+    def find_stylesheet_style(self, section: str) -> str | None:
+        if self.stylesheet is None:
+            return
+        field = r"\s{0,8}[\w-]+\s{0,2}:\s{0,2}[#\d\w\s-]+;\n"
+        escaped_section = section.replace("[", "\\[").replace("]", "\\]")
+        pattern = fr"{escaped_section}[\s\n]{{0,10}}{{\n(({field}){{0,100}})\s{{0,10}}}}"
+        mobject = re.search(pattern, self.stylesheet, flags=re.S)
+        if mobject is not None:
+            return mobject[1]
+
 
 class ThemeSet(QtCore.QObject):
     """
@@ -148,13 +187,18 @@ class ThemeSet(QtCore.QObject):
     stylesheets_reloaded = QtCore.pyqtSignal()
 
     def __init__(
-        self, themeset, default_theme, settings, client_version, unthemed=None,
-    ):
+        self,
+        themeset: Iterable[Theme],
+        default_theme: Theme,
+        settings: type[Settings],
+        client_version: str,
+        unthemed: Theme | None = None,
+    ) -> None:
         QtCore.QObject.__init__(self)
         self._default_theme = default_theme
         self._themeset = themeset
         self._theme = default_theme
-        self._unthemed = Theme(None, '') if unthemed is None else unthemed
+        self._unthemed = Theme(None, '', builtin=True) if unthemed is None else unthemed
         self._settings = settings
         self._client_version = client_version
 
@@ -162,9 +206,13 @@ class ThemeSet(QtCore.QObject):
     def theme(self):
         return self._theme
 
+    @property
+    def stylesheet(self) -> str:
+        return self._theme.stylesheet or ""
+
     def _getThemeByName(self, name):
         if name is None:
-            return self._default_theme
+            return self._unthemed
         matching_themes = [
             theme for theme in self._themeset if theme.name == name
         ]
@@ -172,8 +220,8 @@ class ThemeSet(QtCore.QObject):
             return None
         return matching_themes[0]
 
-    def loadTheme(self):
-        name = self._settings.get("theme/theme/name", None)
+    def loadTheme(self) -> None:
+        name = self._settings.get("theme/theme/name", "Default") or None
         logger.debug("Loaded Theme: " + str(name))
         self.setTheme(name, False)
 
@@ -234,7 +282,7 @@ class ThemeSet(QtCore.QObject):
         faf_version = Version(self._client_version)
         return faf_version > theme_version
 
-    def _do_setTheme(self, new_theme):
+    def _do_setTheme(self, new_theme: Theme) -> None:
         old_theme = self._theme
 
         def theme_changed():
@@ -243,7 +291,7 @@ class ThemeSet(QtCore.QObject):
         if new_theme == self._theme:
             return theme_changed()
 
-        if new_theme == self._default_theme:
+        if new_theme.is_builtin():
             # No need for checks
             self._theme = new_theme
             return theme_changed()
@@ -352,10 +400,6 @@ class ThemeSet(QtCore.QObject):
         return self._theme_callchain("readlines", filename, themed)
 
     @_warn_resource_null
-    def readstylesheet(self, filename: str, *, themed: bool = True):
-        return self._theme_callchain("readstylesheet", filename, themed)
-
-    @_warn_resource_null
     def themeurl(self, filename: str, *, themed: bool = True):
         return self._theme_callchain("themeurl", filename, themed)
 
@@ -375,7 +419,11 @@ class ThemeSet(QtCore.QObject):
             return QtGui.QPixmap()
         return ret
 
-    def reloadStyleSheets(self):
+    def reloadStyleSheets(self) -> None:
+        if hasattr(self._theme, "stylesheet"):
+            del self._theme.stylesheet
+        if hasattr(self._default_theme, "stylesheet"):
+            del self._default_theme.stylesheet
         self.stylesheets_reloaded.emit()
 
     def icon(
@@ -404,3 +452,22 @@ class ThemeSet(QtCore.QObject):
                 selected = self.pixmap(splitExt[0] + "_selected" + splitExt[1], themed=themed)
                 icon.addPixmap(selected, QtGui.QIcon.Mode.Selected, QtGui.QIcon.State.On)
             return icon
+
+    def find_stylesheet_attribute(self, section: str, attribute: str, fallback: str = "") -> str:
+        if (found := self._theme.find_stylesheet_attribute(section, attribute)) is None:
+            return self._default_theme.find_stylesheet_attribute(section, attribute) or fallback
+        else:
+            return found or fallback
+
+    def find_stylesheet_style(self, section: str, fallback: str = "") -> str:
+        if (style := self._theme.find_stylesheet_style(section)) is None:
+            return self._default_theme.find_stylesheet_style(section) or fallback
+        else:
+            return style or fallback
+
+    def find_stylesheet_style_as_dict(self, section: str) -> dict[str, str]:
+        sheetlines = self.find_stylesheet_style(section).splitlines()
+        return {
+            name.strip().replace("-", "_"): value.strip()[:-1]
+            for name, value in (line.split(":") for line in sheetlines)
+        }

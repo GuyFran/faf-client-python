@@ -2,6 +2,8 @@ import re
 import time
 from datetime import datetime
 from datetime import timezone
+from enum import Enum
+from enum import auto
 from functools import cache
 from operator import itemgetter
 from typing import TYPE_CHECKING
@@ -30,6 +32,25 @@ if TYPE_CHECKING:
 
 
 class ReplayItemDelegate(QtWidgets.QStyledItemDelegate):
+    ICON_SHADOW_COLOR = QtGui.QColor(
+        util.THEME.find_stylesheet_attribute(
+            "ReplayItemDelegate::custom:icon",
+            "shadow-color",
+        ),
+    )
+    ICON_RECT_COLOR = QtGui.QColor(
+        util.THEME.find_stylesheet_attribute(
+            "ReplayItemDelegate::custom:icon",
+            "rect-color",
+        ),
+    )
+    ICON_FRAME_COLOR = QtGui.QColor(
+        util.THEME.find_stylesheet_attribute(
+            "ReplayItemDelegate::custom:icon",
+            "frame-color",
+        ),
+    )
+
     def paint(
         self,
         painter: QtGui.QPainter | None,
@@ -67,7 +88,7 @@ class ReplayItemDelegate(QtWidgets.QStyledItemDelegate):
             painter.fillRect(
                 option.rect.left()+8-1, option.rect.top()+8-1,
                 iconsize.width(), iconsize.height(),
-                QtGui.QColor("#202020"),
+                self.ICON_SHADOW_COLOR,
             )
 
         # Icon
@@ -75,7 +96,7 @@ class ReplayItemDelegate(QtWidgets.QStyledItemDelegate):
         if index.data(QtCore.Qt.ItemDataRole.UserRole) is not None:
             painter.fillRect(
                 QtCore.QRect(icon_rect.x(), icon_rect.y(), iconsize.width(), iconsize.height()),
-                QtGui.QColor("#202020"),
+                self.ICON_RECT_COLOR,
             )
         if replay_item is not None and replay_item.count_as_watched():
             icon_mode = icon.Mode.Disabled
@@ -91,8 +112,7 @@ class ReplayItemDelegate(QtWidgets.QStyledItemDelegate):
         if index.data(QtCore.Qt.ItemDataRole.UserRole) is not None:
             pen = QtGui.QPen()
             pen.setWidth(1)
-            # FIXME: This needs to come from theme.
-            pen.setBrush(QtGui.QColor("#303030"))
+            pen.setBrush(self.ICON_FRAME_COLOR)
 
             pen.setCapStyle(QtCore.Qt.PenCapStyle.RoundCap)
             painter.setPen(pen)
@@ -142,6 +162,19 @@ def map_font_metrics() -> QFontMetrics:
     return QFontMetrics(map_font)
 
 
+@cache
+def replay_item_colors() -> dict[str, str]:
+    return util.THEME.find_stylesheet_style_as_dict("ReplayItemFormatter::custom")
+
+
+class ReplayItemState(Enum):
+    DELAY = auto()
+    PLAYING = auto()
+    FINISHED = auto()
+    UNKNOWN = auto()
+    MISSING = auto()
+
+
 class ReplayItem(QtWidgets.QTreeWidgetItem):
     TITLE_COLUMN_WIDTH = 250
     REPLAY_TREE_ITEM_FORMATTER = str(util.THEME.readfile("replays/formatters/replay.html"))
@@ -160,6 +193,7 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
 
         self.startDate = None
         self.duration = None
+        self.state = ReplayItemState.FINISHED
         self.live_delay = False
 
         self.extra_info_loaded = False
@@ -180,6 +214,32 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
 
         self._map_dl_request = DownloadRequest()
         self._map_dl_request.done.connect(self._on_map_preview_downloaded)
+
+    def _colors(self) -> dict[str, str]:
+        colors = replay_item_colors().copy()
+        match self.state:
+            case ReplayItemState.DELAY:
+                colors["status_color"] = colors["status_color_delay"]
+            case ReplayItemState.MISSING:
+                colors["status_color"] = colors["status_color_missing"]
+            case _:
+                pass
+        return colors
+
+    @property
+    def status(self) -> str:
+        match self.state:
+            # kinda hacky to insert <br/> here, but mixing status and duration
+            # doesn't look appealing either, and putting <br/> into html template
+            # breaks lines when state is MISSING
+            case ReplayItemState.MISSING:
+                return "&nbsp;end time<br/>missing"
+            case ReplayItemState.UNKNOWN:
+                return "<br/>&nbsp;?playing?"
+            case ReplayItemState.DELAY | ReplayItemState.PLAYING:
+                return "<br/>&nbsp;playing"
+            case _:
+                return ""
 
     def update(self, replay: dict, client: ClientWindow) -> None:
         """ Updates this item from the message dictionary supplied """
@@ -205,25 +265,18 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
         if replay["endTime"] is None:
             seconds = time.time() - startDt.timestamp()
             if seconds > 86400:  # more than 24 hours
-                self.duration = (
-                    "<font color='darkgrey'>end time<br />&nbsp;missing</font>"
-                )
+                self.duration = ""
+                self.state = ReplayItemState.MISSING
             elif seconds > 7200:  # more than 2 hours
-                self.duration = (
-                    time.strftime('%H:%M:%S', time.gmtime(seconds))
-                    + "<br />?playing?"
-                )
+                self.duration = time.strftime('%H:%M:%S', time.gmtime(seconds))
+                self.state = ReplayItemState.UNKNOWN
             elif seconds < 300:  # less than 5 minutes
-                self.duration = (
-                    time.strftime('%H:%M:%S', time.gmtime(seconds))
-                    + "<br />&nbsp;<font color='darkred'>playing</font>"
-                )
+                self.duration = time.strftime('%H:%M:%S', time.gmtime(seconds))
+                self.state = ReplayItemState.DELAY
                 self.live_delay = True
             else:
-                self.duration = (
-                    time.strftime('%H:%M:%S', time.gmtime(seconds))
-                    + "<br />&nbsp;playing"
-                )
+                self.duration = time.strftime('%H:%M:%S', time.gmtime(seconds))
+                self.state = ReplayItemState.PLAYING
         else:
             endDt = datetime.strptime(replay["endTime"], '%Y-%m-%dT%H:%M:%SZ')
             # local time
@@ -270,9 +323,15 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
             self.TITLE_COLUMN_WIDTH - 50,
         )
         self.viewtext = self.REPLAY_TREE_ITEM_FORMATTER.format(
-            time=self.startHour, name=elided_name, map=elided_map,
-            duration=self.duration, mod=self.moddisplayname, availability=availability,
+            time=self.startHour,
+            name=elided_name,
+            map=elided_map,
+            duration=self.duration,
+            status=self.status,
+            mod=self.moddisplayname,
+            availability=availability,
             title_column_width=self.TITLE_COLUMN_WIDTH,
+            **self._colors(),
         )
 
     def _on_map_preview_downloaded(self, mapname: str, pixmap: QtGui.QPixmap) -> None:

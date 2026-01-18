@@ -24,6 +24,7 @@ from src.api.models.Mod import Mod
 from src.api.models.ModVersionReview import ModVersionReview
 from src.api.vaults_api import ReviewsApiConnector
 from src.model.player import Player
+from src.util import THEME
 from src.util import utctolocal
 from src.vaults.starrating import StarRatingWidget
 
@@ -170,6 +171,13 @@ class MyCommentWidget(CommentWidget):
 
 
 class RatingBarWidgetUI:
+    STAR_FILL_COLOR = QColor(
+        THEME.find_stylesheet_attribute(
+            "ReviewWidget::custom",
+            "star-fill-color",
+        ),
+    )
+
     def setupUi(self, widget: QWidget) -> None:
         self.bars: dict[int, tuple[QProgressBar, QLabel]] = {}
 
@@ -189,7 +197,7 @@ class RatingBarWidgetUI:
             rating=0,
             max_rating=5,
             star_size=20,
-            star_color_filled=QColor("#4CAF50"),
+            star_color_filled=self.STAR_FILL_COLOR,
         )
         self.summaryLayout.addWidget(self.star_rating)
 

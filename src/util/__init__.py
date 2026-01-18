@@ -46,7 +46,10 @@ APPDATA_DIR = Settings.get('client/data_path', default=_APPDATA_DIR)
 # This is used to store init_*.lua files
 LUA_DIR = os.path.join(APPDATA_DIR, "lua")
 
-# This contains the themes
+# This contains builtin themes
+BUILTIN_THEME_DIR = os.path.join(COMMON_DIR, "themes")
+
+# This contains user themes
 THEME_DIR = os.path.join(APPDATA_DIR, "themes")
 
 # This contains cached data downloaded while communicating with the lobby
@@ -305,13 +308,22 @@ def clearDirectory(directory, confirm=True):
 
 # Theme and settings
 def _setup_theme() -> ThemeSet:
-    default = Theme(COMMON_DIR, None)
-    themes: list[Theme] = []
+    # FIXME: move constants somewhere so they can be imported and used in Theme
+    # instead of passing booleans and maybe even make the whole __init__ empty
+    default = Theme(COMMON_DIR, "Default", builtin=True)
+    unthemed = Theme(os.path.join(BUILTIN_THEME_DIR, "unthemed"), None, builtin=True)
+    themes: list[Theme] = [default]
+    themes.extend(
+        Theme(entry.path, entry.name, builtin=True)
+        for entry in os.scandir(BUILTIN_THEME_DIR)
+        if entry.name != "unthemed"
+    )
     if os.path.isdir(THEME_DIR):
         for entry in os.scandir(THEME_DIR):
             if entry.is_dir():
                 themes.append(Theme(entry.path, entry.name))
-    return ThemeSet(themes, default, Settings, VERSION_STRING)
+    themes.sort(key=attrgetter("name"))
+    return ThemeSet(themes, default, Settings, VERSION_STRING, unthemed)
 
 
 THEME = _setup_theme()
@@ -358,12 +370,12 @@ html_escape_table = {
 }
 
 
-def html_escape(text):
+def html_escape(text: str) -> str:
     """Produce entities within text."""
     return "".join(html_escape_table.get(c, c) for c in text)
 
 
-def irc_escape(text):
+def irc_escape(text: str) -> str:
     # first, strip any and all html
     text = html_escape(text)
 
@@ -395,7 +407,7 @@ def irc_escape(text):
     # I'm splitting the whole string and matching each fragment start-to-end
     # as a whole
     strings = text.split(" ")
-    result = []
+    result: list[str] = []
     for fragment in strings:
         match = url_re.match(fragment)
         if match:

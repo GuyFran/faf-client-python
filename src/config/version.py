@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Douglas Creager <dcreager@dcreager.net> and Moritz Voss
 # Modified by: Igor Kotrasinski <ikotrasinsk@gmail.com>
 # This file is placed into the public domain.
@@ -59,7 +58,7 @@ def version_filename(dir):
 
 def read_version_file(dir):
     try:
-        f = open(version_filename(dir), "r")
+        f = open(version_filename(dir))
 
         try:
             version = f.readlines()[0]
@@ -68,18 +67,18 @@ def read_version_file(dir):
         finally:
             f.close()
 
-    except IOError:
+    except OSError:
         return None
 
 
 def write_version_file(version, dir):
     with open(version_filename(dir), "w") as f:
-        f.write("{}\n".format(version))
+        f.write(f"{version}\n")
 
 
-def get_git_version(git_dir=None):
+def get_git_version(git_dir: str | None = None) -> tuple[str, str] | None:
 
-    def get_cmd_line(cmd):
+    def get_cmd_line(cmd: list[str]) -> str:
         lines = check_output(cmd).decode().splitlines()
         line = lines[0]
         return line
@@ -100,11 +99,11 @@ def get_git_version(git_dir=None):
         return tag, commit_tag
 
     except Exception as e:
-        sys.stderr.write("Error grabbing git version: {}".format(e))
+        sys.stderr.write(f"Error grabbing git version: {e}")
         return None
 
 
-def build_version(version, revision, build=None):
+def build_version(version: str, revision: str, build: str | None = None) -> str:
     return (
         version
         + '+'
@@ -121,7 +120,7 @@ def msi_version(version):
 
 
 # Used by FAF to read the version at runtime
-def get_release_version(dir=None, git_dir=None):
+def get_release_version(dir: str | None = None, git_dir: str | None = None) -> str:
     version = read_version_file(dir) if dir is not None else None
     if version is not None:
         return version

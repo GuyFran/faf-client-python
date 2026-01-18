@@ -1,8 +1,7 @@
-from __future__ import annotations
-
 import random
 from typing import Any
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QComboBox
 from PyQt6.QtWidgets import QSpinBox
 
@@ -95,8 +94,9 @@ class ComboBoxOption(MapGenOption):
     def populate(self) -> None:
         if self.opts is None:
             return
-        for opt in self.opts:
+        for index, opt in enumerate(sorted(self.opts)):
             self.ui_elem.addItem(opt)
+            self.ui_elem.setItemData(index, opt, Qt.ItemDataRole.ToolTipRole)
 
     def load(self) -> None:
         self.populate()

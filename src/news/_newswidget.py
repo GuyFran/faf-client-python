@@ -1,13 +1,14 @@
 import logging
 import os.path
+from typing import Any
 
-from PyQt6 import QtWidgets
 from PyQt6.QtCore import QPoint
 from PyQt6.QtCore import QSize
 from PyQt6.QtCore import QUrl
-from PyQt6.QtGui import QImage
-from PyQt6.QtGui import QTextDocument
-from PyQt6.QtNetwork import QNetworkAccessManager
+from PyQt6.QtGui import QDesktopServices
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtWidgets import QToolTip
+from PyQt6.QtWidgets import QWidget
 
 from src import util
 from src.config import Settings
@@ -25,25 +26,19 @@ FormClass, BaseClass = util.THEME.loadUiType("news/news.ui")
 
 
 class NewsWidget(FormClass, BaseClass):
-    CSS = util.THEME.readstylesheet('news/news_style.css')
+    IMAGE_SIZE = QSize(600, 338)
 
-    HTML = util.THEME.readfile('news/news_page.html')
-
-    def __init__(self, *args, **kwargs) -> None:
-        BaseClass.__init__(self, *args, **kwargs)
+    def __init__(self, parent: QWidget | None = None) -> None:
+        BaseClass.__init__(self, parent)
 
         self.setupUi(self)
 
-        self.nam = QNetworkAccessManager()
         self._downloader = Downloader(util.NEWS_CACHE_DIR)
         self._images_dl_request = DownloadRequest()
         self._images_dl_request.done.connect(self.item_image_downloaded)
 
         self.newsManager = NewsManager(self)
-        self.newsItems = []
-
-        # open all links in external browser
-        self.newsTextBrowser.setOpenExternalLinks(True)
+        self.newsItems: list[NewsItem] = []
 
         self.settingsFrame.hide()
         self.hideNewsEdit.setText(Settings.get('news/hideWords', ""))
@@ -55,8 +50,9 @@ class NewsWidget(FormClass, BaseClass):
         self.showAllButton.pressed.connect(self.showAll)
         self.hideNewsEdit.textEdited.connect(self.updateNewsFilter)
         self.hideNewsEdit.cursorPositionChanged.connect(self.showEditToolTip)
+        self.newsLinkButton.clicked.connect(self.open_news_in_browser)
 
-    def addNews(self, newsPost):
+    def addNews(self, newsPost: dict[str, Any]) -> None:
         newsItem = NewsItem(newsPost, self.newsList)
         self.newsItems.append(newsItem)
 
@@ -64,18 +60,14 @@ class NewsWidget(FormClass, BaseClass):
         name = os.path.basename(img_url)
         self._downloader.download(name, self._images_dl_request, img_url)
 
-    def add_image_resource(self, image_name: str, image_path: str) -> None:
-        doc = self.newsTextBrowser.document()
-        if doc.resource(QTextDocument.ResourceType.ImageResource, QUrl(image_name)):
-            return
-        img = QImage(image_path)
-        scaled = img.scaled(QSize(600, 338))
-        doc.addResource(QTextDocument.ResourceType.ImageResource, QUrl(image_name), scaled)
-
     def item_image_downloaded(self, image_name: str, result: tuple[str, bool]) -> None:
         image_path, download_failed = result
         if not download_failed:
-            self.add_image_resource(image_name, image_path)
+            pixmap = QPixmap(image_path)
+            scaled = pixmap.scaled(self.IMAGE_SIZE)
+            self.imageLabel.setPixmap(scaled)
+        else:
+            self.imageLabel.clear()
         self.show_newspage()
 
     def itemChanged(self, current: NewsItem | None, previous: NewsItem | None) -> None:
@@ -86,31 +78,21 @@ class NewsWidget(FormClass, BaseClass):
         image_name = os.path.basename(url)
         image_path = os.path.join(util.NEWS_CACHE_DIR, image_name)
         if os.path.isfile(image_path):
-            self.add_image_resource(image_name, image_path)
+            self.imageLabel.setPixmap(QPixmap(image_path).scaled(self.IMAGE_SIZE))
             self.show_newspage()
         else:
+            self.imageLabel.clear()
             self._downloader.download(image_name, self._images_dl_request, url)
 
     def show_newspage(self) -> None:
         current = self.newsList.currentItem()
-
-        if current.newsPost['external_link'] == '':
-            external_link = current.newsPost['link']
-        else:
-            external_link = current.newsPost['external_link']
-
-        image_name = os.path.basename(current.newsPost["img_url"])
+        if current is None:
+            return
         content = current.newsPost["excerpt"].strip().removeprefix("<p>").removesuffix("</p>")
-        html = self.HTML.format(
-            style=self.CSS,
-            title=current.newsPost['title'],
-            content=content,
-            img_source=image_name,
-            external_link=external_link,
-        )
-        self.newsTextBrowser.setHtml(html)
+        self.newsTitleLabel.setText(current.newsPost["title"])
+        self.bodyLabel.setText(content)
 
-    def showAll(self):
+    def showAll(self) -> None:
         for item in self.newsItems:
             item.setHidden(False)
         self.updateLabel(0)
@@ -121,9 +103,9 @@ class NewsWidget(FormClass, BaseClass):
         """
         widget = self.hideNewsEdit
         position = widget.mapToGlobal(
-            QPoint(0 + widget.width(), 0 - widget.height() / 2),
+            QPoint(int(widget.width()), -widget.height() // 2),
         )
-        QtWidgets.QToolTip.showText(
+        QToolTip.showText(
             position,
             "To separate multiple words use commas: nomads,server,dev",
         )
@@ -144,7 +126,7 @@ class NewsWidget(FormClass, BaseClass):
         if filterList[0]:
             for item in self.newsItems:
                 for word in filterList:
-                    if word in item.text().lower():
+                    if word in item.newsPost["title"].lower():
                         item.setHidden(True)
                         newsHidden += 1
                         break
@@ -158,3 +140,16 @@ class NewsWidget(FormClass, BaseClass):
 
     def updateLabel(self, number):
         self.totalHidden.setText("NEWS HIDDEN: " + str(number))
+
+    def open_news_in_browser(self) -> None:
+        current = self.newsList.currentItem()
+        if current is None:
+            return
+        if current.newsPost["external_link"] == "":
+            external_link = current.newsPost["link"]
+        else:
+            external_link = current.newsPost["external_link"]
+        QDesktopServices.openUrl(QUrl(external_link))
+
+    def on_news_loaded(self) -> None:
+        self.stackedWidget.setCurrentIndex(1)

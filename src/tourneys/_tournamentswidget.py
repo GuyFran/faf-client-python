@@ -1,4 +1,3 @@
-
 from PyQt6 import QtCore
 from PyQt6 import QtWidgets
 
@@ -35,17 +34,9 @@ class TournamentsWidget(FormClass, BaseClass):
 
         self.tourneysTab = {}
 
-        util.THEME.stylesheets_reloaded.connect(self.load_stylesheet)
-        self.load_stylesheet()
-
         self.updateTimer = QtCore.QTimer(self)
         self.updateTimer.timeout.connect(self.updateTournaments)
         self.updateTimer.start(600000)
-
-    def load_stylesheet(self):
-        self.setStyleSheet(
-            util.THEME.readstylesheet("tournaments/formatters/style.css"),
-        )
 
     def showEvent(self, event):
         self.updateTournaments()

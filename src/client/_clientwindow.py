@@ -453,8 +453,8 @@ class ClientWindow(FormClass, BaseClass):
 
         self.connectivity_dialog = None
 
-    def load_stylesheet(self):
-        self.setStyleSheet(util.THEME.readstylesheet("client/client.css"))
+    def load_stylesheet(self) -> None:
+        self.setStyleSheet(util.THEME.stylesheet)
 
     @property
     def state(self):
@@ -700,9 +700,17 @@ class ClientWindow(FormClass, BaseClass):
         wiki_formatter = "Check out the wiki: {} for help with common issues."
         wiki_msg = wiki_formatter.format(wiki_link)
 
+        welcome_color = util.THEME.find_stylesheet_attribute(
+            "ChatChannelGreeting::custom",
+            "color-welcome",
+        )
+        wiki_color = util.THEME.find_stylesheet_attribute(
+            "ChatChannelGreeting::custom",
+            "color-wiki",
+        )
         self._chat_config.channel_greeting = [
-            ("Welcome to Forged Alliance Forever!", "red", "+3"),
-            (wiki_msg, "white", "+1"),
+            ("Welcome to Forged Alliance Forever!", welcome_color, "+3"),
+            (wiki_msg, wiki_color, "+1"),
             ("", "black", "+1"),
             ("", "black", "+1"),
         ]
@@ -1625,7 +1633,7 @@ class ClientWindow(FormClass, BaseClass):
         self.show_login_widget()
 
     def show_login_widget(self):
-        login_widget = LoginWidget(self.remember)
+        login_widget = LoginWidget(self, self.remember)
         login_widget.finished.connect(self.on_widget_login_data)
         login_widget.rejected.connect(self.on_widget_no_login)
         login_widget.request_quit.connect(

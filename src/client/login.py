@@ -1,4 +1,5 @@
 import logging
+from typing import TYPE_CHECKING
 
 from PyQt6 import QtCore
 from PyQt6 import QtGui
@@ -8,6 +9,9 @@ from src import util
 from src.config import Settings
 from src.config.production import default_values as main_environment
 from src.config.testing import default_values as testing_environment
+
+if TYPE_CHECKING:
+    from src.client import ClientWindow
 
 logger = logging.getLogger(__name__)
 
@@ -23,13 +27,11 @@ class LoginWidget(FormClass, BaseClass):
         test=testing_environment,
     )
 
-    def __init__(self, remember: bool = False) -> None:
+    def __init__(self, parent: ClientWindow, remember: bool = False) -> None:
         # TODO - init with the parent to inherit the stylesheet
         # once we make some of our own css to go with it
-        BaseClass.__init__(self)
+        BaseClass.__init__(self, parent)
         self.setupUi(self)
-        util.THEME.stylesheets_reloaded.connect(self.load_stylesheet)
-        self.load_stylesheet()
         self.splash.setPixmap(util.THEME.pixmap("client/login_watermark.png"))
 
         self.rememberCheckbox.setChecked(remember)
@@ -37,9 +39,6 @@ class LoginWidget(FormClass, BaseClass):
         self.replayServerPortField.setValidator(QtGui.QIntValidator(1, 65535))
         self.ircServerPortField.setValidator(QtGui.QIntValidator(1, 65535))
         self.populate_environments()
-
-    def load_stylesheet(self):
-        self.setStyleSheet(util.THEME.readstylesheet("client/login.css"))
 
     def populate_environments(self) -> None:
         chosen_env = Settings.get("lobby/env", "main", type=str)

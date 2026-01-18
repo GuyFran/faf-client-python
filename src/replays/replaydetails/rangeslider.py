@@ -61,6 +61,8 @@ from PyQt6.QtWidgets import QStyle
 from PyQt6.QtWidgets import QStyleOptionSlider
 from PyQt6.QtWidgets import QStylePainter
 
+from src.util import THEME
+
 CC_SLIDER = QtWidgets.QStyle.ComplexControl.CC_Slider
 SC_GROOVE = QtWidgets.QStyle.SubControl.SC_SliderGroove
 SC_HANDLE = QtWidgets.QStyle.SubControl.SC_SliderHandle
@@ -146,7 +148,11 @@ class RangeSlider(QtWidgets.QSlider):
         grect = self._style.subControlRect(CC_SLIDER, opt, SC_GROOVE, self)
         slrect = opt.rect
         rect = QRect(slrect.left(), grect.center().y() - 2, slrect.width() - 5, 4)
-        brush = QBrush(QColor("#333333"))  # FIXME: Needs to come from theme
+        color_str = THEME.find_stylesheet_attribute(
+            "QSlider::groove:horizontal",
+            "background",
+        )
+        brush = QBrush(QColor(color_str))
         painter.fillRect(rect, brush)
         self._draw_bar(painter, opt)
         self._draw_handle(painter, opt)
@@ -195,7 +201,11 @@ class RangeSlider(QtWidgets.QSlider):
 
     def _draw_bar(self, painter: QStylePainter, opt: QStyleOptionSlider) -> None:
         r_bar = self._bar_rect(opt)
-        brush = QBrush(QColor("#1A7BFF"))  # FIXME: Needs to come from theme
+        color_str = THEME.find_stylesheet_attribute(
+            "QSlider::handle:horizontal",
+            "background",
+        )
+        brush = QBrush(QColor(color_str))
         painter.fillRect(r_bar, brush)
 
     def mousePressEvent(self, ev: QtGui.QMouseEvent | None) -> None:

@@ -37,8 +37,6 @@ from src.vaults.reviewwidget import ReviewDialog
 from src.vaults.reviewwidget import VersionReview
 from src.vaults.reviewwidget import convert_review
 
-STYLESHEET = util.THEME.readstylesheet("client/client.css")
-
 
 class DetailsWidget[T: Map | Mod](QWidget):
     item_availability_changed = pyqtSignal()

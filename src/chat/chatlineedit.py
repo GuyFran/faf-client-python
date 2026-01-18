@@ -1,4 +1,3 @@
-
 """
 Created on Dec 8, 2011
 
@@ -58,10 +57,6 @@ class ChatLineEdit(QtWidgets.QLineEdit):
     def on_line_entered(self):
         self.history.append(self.text())
         self.currentHistoryIndex = len(self.history) - 1
-
-    def showEvent(self, event):
-        self.setFocus()
-        return QtWidgets.QLineEdit.showEvent(self, event)
 
     def try_completion(self):
         if not self.completionStarted:

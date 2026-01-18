@@ -8,8 +8,11 @@ from typing import Self
 
 import jinja2
 from PyQt6.QtCore import QObject
+from PyQt6.QtCore import Qt
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QDesktopServices
+from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFontMetrics
 
 from src.chat.channel_tab import TabInfo
 from src.chat.channel_widget import ChannelWidget
@@ -157,16 +160,11 @@ class ChatAreaView:
         if new.topic != old.topic:
             self._set_topic(new.topic)
 
-    def _set_topic(self, topic):
-        self._widget.set_topic(self._format_topic(topic))
-
-    def _format_topic(self, topic):
-        # FIXME - use CSS for this
-        fmt = (
-            "<style>a{{color:cornflowerblue}}</style>"
-            "<b><font color=white>{}</font></b>"
-        )
-        return fmt.format(irc_escape(topic))
+    def _set_topic(self, topic: str) -> None:
+        if topic == "":
+            self._widget.clear_topic()
+        else:
+            self._widget.set_topic(irc_escape(topic))
 
     def _at_url_clicked(self, url):
         if not GameUrl.is_game_url(url):
@@ -272,6 +270,8 @@ class ChatLineCssTemplate(QObject):
 
 
 class ChatLineFormatter:
+    _font_metrics = QFontMetrics(QFont())
+
     def __init__(self, theme: ThemeSet, player_colors: PlayerColors) -> None:
         self._set_theme(theme)
         self._player_colors = player_colors
@@ -326,10 +326,13 @@ class ChatLineFormatter:
         if meta.player.avatar and meta.player.avatar():
             yield "avatar"
 
-    def _wrap_me(self, text: str, me: str) -> str:
-        return text.replace(me, f"<span class=\"my_mention\">{me}</span>")
+    def _wrap_me(self, text: str, me: str | None) -> str:
+        if me:
+            return text.replace(me, f"<span class=\"my_mention\">{me}</span>")
+        else:
+            return text
 
-    def format(self, data):
+    def format(self, data: ChatLineMetadata) -> str:
         tags = " ".join(self._line_tags(data))
         avatar = self._avatar(data)
 
@@ -339,16 +342,25 @@ class ChatLineFormatter:
             stamp = ""
 
         text = data.line.text
-        if data.line.type not in [ChatLineType.ANNOUNCEMENT, ChatLineType.RAW]:
-            text = irc_escape(text)
-        if data.line.type == ChatLineType.RAW:
+        mtype = data.line.type
+
+        if mtype == ChatLineType.RAW:
             return text
 
-        mention = data.meta.my_mention()
+        if mtype is not ChatLineType.ANNOUNCEMENT:
+            text = self._wrap_me(irc_escape(text), data.meta.my_mention())
+
+        sender_name = self._sender_name(data)
+        elided_sender = self._font_metrics.elidedText(sender_name, Qt.TextElideMode.ElideRight, 99)
+        if mtype in (ChatLineType.MESSAGE, ChatLineType.NOTICE):
+            elided_sender += ":"
+            text = "&nbsp;" + text
+
         return self._chatline_template.format(
             time=stamp,
-            sender=self._sender_name(data),
-            text=self._wrap_me(text, mention) if mention else text,
+            sender=sender_name,
+            elided_sender=elided_sender,
+            text=text,
             avatar=avatar,
             tags=tags,
         )
@@ -365,15 +377,11 @@ class ChatLineFormatter:
         avatar_tip = ava_meta.tip() if ava_meta.tip else ""
         return self._avatar_template.format(url=avatar_url, tip=avatar_tip)
 
-    def _sender_name(self, data):
+    def _sender_name(self, data: ChatLineMetadata) -> str:
         if data.line.sender is None:
             return ""
-        mtype = data.line.type
         sender = ChatterFormat.name(data.line.sender, data.meta.player.clan())
-        sender = html.escape(sender)
-        if mtype in [ChatLineType.MESSAGE, ChatLineType.NOTICE]:
-            sender += ":&nbsp;"
-        return sender
+        return html.escape(sender)
 
     def _check_timestamp(self, stamp):
         local = time.localtime(stamp)

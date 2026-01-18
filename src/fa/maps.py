@@ -139,7 +139,10 @@ def folderForMap(mapname: str) -> str | None:
     Returns the folder where the application could find the map
     """
     if isBase(mapname):
-        return os.path.join(getBaseMapsFolder(), mapname)
+        if (base := getBaseMapsFolder()) != "":
+            return os.path.join(base, mapname)
+        else:
+            return None
 
     for infile in _get_user_maps():
         if infile.name.lower() == mapname.lower():
@@ -156,8 +159,7 @@ def getBaseMapsFolder() -> str:
     if gamepath:
         return os.path.join(gamepath, "maps")
     else:
-        # This most likely isn't the valid maps folder, but it's the best guess
-        return "maps"
+        return ""
 
 
 def getUserMapsFolder() -> str:
@@ -521,6 +523,34 @@ class InstalledMapsCache(QtCore.QObject):
                 self.installed_maps[dr.name.lower()] = map_info
                 logger.debug("Loaded %s into maps cached metadata", dr.path)
         return self.installed_maps
+
+    def get_map(self, name: str) -> CachedMapInfo | None:
+        try:
+            return self.installed_maps[name.lower()]
+        except KeyError:
+            user_folder = getUserMapsFolder()
+            base_folder = getBaseMapsFolder()
+            for root in (user_folder, base_folder):
+                if not os.path.isdir(root):
+                    continue
+                for dr in os.scandir(root):
+                    if (
+                        dr.name.lower() != name.lower()
+                        or (root == base_folder and dr.name.lower() not in maps)
+                        or not dr.is_dir()
+                    ):
+                        continue
+
+                    map_info = self.parse_metadata(dr.path)
+                    if map_info is None:
+                        continue
+
+                    if isGeneratedMap(map_info["name"]):
+                        self.adjust_generated_map_size(map_info)
+
+                    map_info["folder_name"] = dr.name.lower()
+                    self.installed_maps[dr.name.lower()] = map_info
+                    return map_info
 
     def sanitize(self) -> None:
         current = getUserMaps() + list(maps)

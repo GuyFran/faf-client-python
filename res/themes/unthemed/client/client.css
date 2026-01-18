@@ -1,0 +1,794 @@
+*[warning="true"]
+{
+    font-size:8pt;
+}
+
+
+*[titleLabel="true"]
+{
+    font-size:12pt;
+    font-family: Verdana;
+}
+
+*[windowControlBtn="true"]
+{
+    width: 18px;
+    height: 18px;
+
+}
+
+QTabWidget
+{
+    min-width: 80px;
+}
+
+QTabWidget::pane
+{
+    border: none;
+}
+
+QTabWidget > QTabBar::tab
+{
+    min-width: 80px;
+}
+
+QTabWidget#matchmakerQueues::pane
+{
+    border: none;
+}
+
+QTabWidget#matchmakerQueues::tab-bar
+{
+    alignment: center;
+}
+
+QTabWidget#matchmakerQueues > QTabBar::tab
+{
+    min-width: 60px;
+    min-height: 25px;
+}
+
+QTabWidget #lobbyTab,#gamesTab,#ladderTab,#tournamentTab,#coopTab,#replaysTab,#vaultsTab,#mapsTab,#modsTab
+{
+    border-radius: 10px;
+}
+
+QTabWidget#mainTabs::tab-bar
+{
+     left: 25px; /* move to the right by 25px */
+}
+
+
+
+QWidget#replayScore
+{
+    padding: 0px;
+}
+
+QTabWidget#mainTabs::pane
+{ /* The tab widget frame */
+
+    border-radius: 10px;
+
+}
+
+/* Style the tab using the tab sub-control. Note that it reads QTabBar _not_ QTabWidget */
+QTabWidget#mainTabs > QTabBar::tab
+{
+    min-width: 80px;
+    padding:2px;
+    padding-right: 5px;
+    padding-left: 5px;
+}
+
+
+QTabWidget#mainTabs > QTabBar::tab:selected
+{
+    font-weight:bold;
+}
+
+
+QTabWidget#mainTabs > QTabBar::tab:!selected
+{
+    margin-bottom: 8px; /* make non-selected tabs look smaller */
+}
+
+/* Typical widget controls (top tabs, etc) */
+
+QTabWidget#topTabs::pane
+{
+    /* The tab widget frame */
+    border: none;
+    border-radius: 10px;
+}
+
+
+ QTabWidget#topTabs::tab-bar
+{
+    top: 0px;
+    left: 25px; /* move to the right by 25px */
+ }
+
+
+/* Style the tab using the tab sub-control. Note that it reads QTabBar _not_ QTabWidget */
+QTabWidget#topTabs > QTabBar::tab
+{
+    min-width: 80px;
+    padding:4px;
+}
+
+
+QTabWidget#topTabs > QTabBar::tab:!selected
+{
+    margin-top:5px;
+
+}
+
+
+QTabWidget#topTabs > QTabBar::tab:selected
+{
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+
+}
+
+QSplitter::handle:horizontal
+{
+     width: 8px;
+ }
+
+QSplitter::handle:vertical
+{
+     height: 8px;
+}
+
+QDateEdit::up-button {
+    width: 20px;
+}
+
+QDateEdit::down-button {
+    width: 20px;
+}
+
+QToolBox#replayToolBox::tab
+{
+    border-radius: 3px;
+    padding-left: 145px; /* "alignment: center" doesn't work with toolboxes :| */
+}
+
+QTableView
+{
+    outline: none;
+}
+
+QTableView::item:selected
+{
+    border:none;
+}
+
+/* Text controls */
+QTextEdit, QPlainTextEdit, QLineEdit, QListWidget, QListView, QTableWidget, QTreeWidget, QFrame#rankedFrame, #teamFaction, #teamSearch, #partyInfo
+{
+    border-style:solid;
+    border-width:1px;
+    padding:5px;
+    border-top-right-radius : 5px;
+    border-top-left-radius : 5px;
+    border-bottom-left-radius : 5px;
+    border-bottom-right-radius : 5px;
+}
+
+QLineEdit:disabled {
+    border: 1px solid;
+    padding: 5px;
+    border-top-right-radius: 5px;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+}
+
+QFrame#rankedFrame
+{
+    border-style:solid;
+    border-width:1px;
+    padding:5px;
+    border-bottom-left-radius : 5px;
+    border-bottom-right-radius : 5px;
+}
+
+QListView#replayScoreTeamList
+{
+    border-width:0px;
+    padding:0px;
+    border-top-right-radius : 0px;
+    border-top-left-radius : 0px;
+    border-bottom-left-radius : 0px;
+    border-bottom-right-radius : 0px;
+
+}
+
+QPlainTextEdit#mapNamePlainTextEdit
+{
+    border-width:0px;
+    border-style:solid;
+    padding:0px;
+    border-top-right-radius : 0px;
+    border-top-left-radius : 0px;
+    border-bottom-left-radius : 0px;
+    border-bottom-right-radius : 0px;
+}
+
+QTableView
+{
+    border-style:solid;
+    border-width:1px;
+    padding:5px;
+    border-top-right-radius : 5px;
+    border-top-left-radius : 5px;
+    border-bottom-left-radius : 5px;
+    border-bottom-right-radius : 5px;
+}
+
+/* used in ConnectivityDialog */
+QHeaderView::section
+{
+    font: bold;
+    border-left: 1 solid;
+
+}
+
+QHeaderView#VerticalHeader::section {
+    border: none;
+    font: normal;
+    min-width: 50px;
+}
+
+QHeaderView#VerticalHeader::section:checked
+{
+    border-bottom: 1px solid;
+    width: auto;
+}
+
+/* Nicklist controls */
+
+QTableWidget::item
+{
+    margin: 0px;
+    border: none;
+    padding:0px;
+}
+
+QTableWidget::item:selected, QListWidget::item:previous-selected, QListView::item:previous-selected
+{
+    border: none;
+}
+
+QLineEdit#headerTop {
+    border-style: solid;
+    border-width: 1px;
+    font-weight: bold;
+    padding: 0px;
+    border-top-right-radius: 0px;
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius : 0px;
+}
+
+QLineEdit#headerBottom {
+    border-style: solid;
+    border-width: 1px;
+    font-weight: normal;
+    padding: 0px;
+    border-top-right-radius: 0px;
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius : 0px;
+}
+
+
+/* for tournament*/
+QListWidget#tourneyList
+{
+    border-style:solid;
+    border-width:1px;
+    padding:5px;
+    border-top-right-radius : 5px;
+    border-top-left-radius : 5px;
+    border-bottom-left-radius : 5px;
+    border-bottom-right-radius : 5px;
+}
+
+/* ScrollWidgets*/
+QScrollArea
+{
+    border-style:solid;
+    border-width:1px;
+    padding:5px;
+    border-bottom-left-radius : 5px;
+    border-bottom-right-radius : 5px;
+}
+
+QScrollArea#replayScoreScrollArea
+{
+    border-width: 0px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+    padding: 0px;
+}
+
+QScrollArea#mapPoolWidgetScrollArea
+{
+    padding: 0px;
+}
+
+/* Scrollbars*/
+QLabel#titleLabel
+{
+    font-weight:bold;
+}
+
+QLabel#VSLabel
+{
+    margin: 0px;
+}
+
+QGroupBox
+{
+    border: 1px solid;
+    padding-top: 15px;
+}
+
+QGroupBox#mapsGroup,#previewGroup,#modsGroup {
+    font-size: 10pt;
+    font-weight: bold;
+}
+
+/* Used for dialogs*/
+QCheckBox::indicator
+{
+    width: 13px;
+    height: 13px;
+    border: 1px solid;
+}
+
+/* Used for Ranked Buttons only at the moment*/
+QToolButton#rankedPlay
+{
+	border-radius: 5px;
+	border: 1px solid;
+}
+
+QToolButton#rankedPlay::disabled
+{
+    border-radius: 5px;
+    border: 1px solid;
+}
+
+QToolButton#mapsPool
+{
+	border-radius: 5px;
+	border: 1px solid;
+}
+
+QToolButton#showTMM
+{
+    border: 0.5px solid;
+}
+
+QToolButton::pressed
+{
+    border: none;
+    padding:5px;
+    border-radius : 5px;
+}
+
+QToolButton::checked
+{
+    border: 2px solid;
+    padding:5px;
+    border-radius : 5px;
+}
+
+QToolButton#gamePanelButton
+{
+    padding: 2px;
+    border-radius: 2px;
+}
+
+QToolButton#gamePanelButton::checked
+{
+    border: none;
+    padding: 2px;
+}
+
+QPushButton#refreshButton, #nextButton, #previousButton, #goToPageButton, #firstButton, #lastButton,
+#resetButton, #searchPlayerButton, #UIButton, #uploadButton, #kickButton, #leaveButton
+{
+    border: 1 solid;
+    border-radius: 2;
+}
+
+QPushButton#searchButton, #advSearchButton, #fafDbButton, #spookyDbButton
+{
+	border-radius: 5px;
+	border: 2px solid;
+    font: bold 12px;
+    min-height: 20px;
+}
+
+QPushButton#RefreshResetButton, #advResetButton
+{
+	border-radius: 5px;
+	border: 1px solid;
+    font: 11px;
+    min-height: 20px;
+}
+
+QPushButton#generateMapButton, #hostGameButton
+{
+	border-radius: 2px;
+	border: 0.5px solid;
+    font: bold 14px;
+    min-height: 30px;
+}
+QPushButton#saveMapGenSettingsButton, #resetMapGenSettingsButton, #saveHostGameSettingsButton
+{
+    border: 0.5px solid;
+    padding: 5px;
+}
+QPushButton#hostGameButton:disabled {
+    border: 0.5px solid;
+}
+
+QPushButton#newsSettings
+{
+    qproperty-icon: url('%THEMEPATH%/../../client/settings.png');
+    border: 1px solid;
+    border-radius: 2px;
+}
+
+QPushButton#showAllButton
+{
+    qproperty-icon: url('%THEMEPATH%/../../client/showAll.png');
+    border: 1px solid;
+    border-radius: 2px;
+}
+
+QPushButton#joinGameButton
+{
+    height: 18px;
+    font-weight: bold;
+    font-size: 11pt;
+}
+
+QPushButton#vetoButton
+{
+    border-radius: 2px;
+}
+
+QSpinBox, QDoubleSpinBox
+{
+    border: 1px solid;
+}
+
+QSpinBox::up-button, QDoubleSpinBox::up-button {
+    width: 20px;
+}
+
+QSpinBox::down-button, QDoubleSpinBox::down-button {
+    width: 20px;
+}
+
+QComboBox, QComboBox:selected
+{
+    border: 1px solid;
+}
+
+QComboBox QAbstractItemView {
+    border: 2px solid;
+}
+
+QFrame#settingsFrame {
+    border-style:solid;
+    border-width:1px;
+    color:silver;
+    border-top-right-radius : 5px;
+    border-top-left-radius : 5px;
+    border-bottom-left-radius : 5px;
+    border-bottom-right-radius : 5px;
+}
+
+QProgressBar#achievementBar
+{
+    text-align: center;
+    max-height: 12px;
+    border: 1px solid;
+}
+
+QWidget#tech_widget,#overview_content,#overview_widget
+{
+    padding: 0px;
+    border: none;
+}
+
+QLabel#vaultListItemTitle
+{
+    font: bold;
+}
+
+QLabel#vaultThumbnail
+{
+    border: 1px solid;
+}
+
+QLabel#replayEventTime
+{
+    border-radius: 4px;
+}
+
+QLabel#vetoOverlay
+{
+    font-size: 12pt;
+    font-weight: bold;
+    max-height: 20px;
+}
+
+QLabel#vetoTokens
+{
+    font-size: 11pt;
+}
+
+QTextEdit#reviewText
+{
+    border-style: solid;
+    border-width: 1px;
+    padding: 5px;
+}
+
+QLabel#averageReviewRatingLabel
+{
+    font-size: 34pt;
+    font-weight: bold;
+}
+
+QLabel#reviewRatingCountLabel
+{
+    font-size: 11pt;
+}
+
+QLabel#labelEvent {
+    font-weight: bold;
+    font-family: Verdana;
+    font-size: 13pt;
+}
+
+QProgressBar#reviewRatingProgressBar
+{
+    border: none;
+    text-align: right;
+    height: 14pt;
+    margin-right: 2em;
+}
+
+QPushButton[download="true"]
+{
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+QPushButton[remove="true"]
+{
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+QLabel[replay_misc_info="true"]
+{
+    font-size: 8pt;
+}
+
+QLabel#searchInfoLabel,#advSearchInfoLabel
+{
+    font-weight: bold;
+}
+
+QSlider::groove:horizontal {
+    border: 1px solid;
+    height: 8px;
+    margin: 2px 0;
+}
+
+QSlider::handle:horizontal {
+    border: 1px solid;
+    width: 10px;
+    margin: -6px 0;
+}
+
+QSlider::sub-page:horizontal {
+    height: 6px;
+}
+
+QSlider::add-page:horizontal {
+    height: 6px;
+}
+
+QRadioButton {
+    spacing: 5px;
+}
+
+QRadioButton::indicator {
+    width: 13px;
+    height: 13px;
+    border: 1px solid;
+    border-radius: 7px;
+}
+
+QRadioButton::indicator:checked {
+    border: 1px solid;
+    image: none;
+}
+
+QRadioButton::indicator:disabled {
+    border: 1px solid;
+}
+
+QLabel[bordered="true"] {
+    border: 2px solid;
+    border-radius: 8px;
+    padding: 2px;
+}
+
+
+QFrame#clanMember {
+    border: 1px solid;
+    border-radius: 8px;
+}
+
+QListWidget#clanMembersList::item:selected {
+    border: 1px solid;
+    border-radius: 8px;
+}
+
+
+/* CUSTOM RULES */
+QTextBrowser::custom {
+    highlight-background-color: yellow;
+}
+
+LocalReplayTreeitem::custom:broken {
+    time-color: red;
+    title-color: gray;
+}
+
+LocalReplayTreeitem::custom:incomplete {
+    time-color: yellow;
+}
+
+LocalReplayBucketItem::custom:broken {
+    color: red;
+}
+
+LocalReplayBucketItem::custom:incomplete {
+    color: yellow;
+}
+
+ReplayItemDelegate::custom:icon {
+    shadow-color: #202020;
+    rect-color: #202020;
+    frame-color: #303030;
+
+}
+
+GameItemDelegate::custom {
+    background-color: #202020;
+    shadow-color: #202020;
+    frame-color: #0f0f0f;
+}
+
+GameItemFormatter::custom {
+    color: silver;
+    title-color: white;
+    map-color: goldenrod;
+    mods-color: red;
+}
+
+EventItemDelegate::custom {
+    text-rect-color: #202025;
+    team-rect-color: #202025;
+}
+
+ReviewWidget::custom {
+    star-fill-color: #4CAF50;
+}
+
+AutomatchTabs::custom {
+    default-tab-color: silver;
+    searching-tab-color: orange;
+}
+
+RatingPlotCrosshairs::custom {
+    line-color: green;
+    text-color: black;
+    background-color: #ffff00;
+}
+
+RatingPlotWidget::custom {
+    color: orange;
+    background-color: #202025;
+}
+
+ReplayToolBox#hideAll::custom:abstract-button {
+    max-height: 0px;
+}
+
+ReplayToolBox#hideAll::custom:scroll-area {
+    background-color: transparent;
+    border-width: 0px;
+}
+
+ReplayItemFormatter::custom {
+    default-color: #9CA3AF;
+    time-color: #F9FAFB;
+    title-color: #F9FAFB;
+    map-color: #F59E0B;
+    mod-color: #F9FAFB;
+    availability-color: #4B5563;
+    duration-color: #F9FAFB;
+    status-color: #F9FAFB;
+    status-color-delay: darkred;
+    status-color-missing: darkgray;
+}
+
+ReplayBucketItemFormatter::custom {
+    color-date: white;
+    color-count: white;
+}
+
+ReplayCard::custom {
+    team-title-color: gray;
+    team-title-background: white;
+}
+
+GamePanelWidget::custom {
+    featured-mod-color-accent: white;
+}
+
+CoopWidgetTreeRootItem::custom {
+    color: white;
+}
+
+ChatChannelGreeting::custom {
+    color-welcome: red;
+    color-wiki: white;
+}
+
+Notifications::custom {
+    secondary-color: silver;
+    mods-color: red;
+}
+
+PlayerColors::custom {
+  you: red;
+  foe: crimson;
+  foe_mod: lightslategrey;
+  foe_chatterbox: darkred;
+  friend: lightskyblue;
+  friend_mod: medium orchid;
+  self_mod: medium orchid;
+  friend_chatterbox: purple;
+  player: #b0b0b0;
+  server: black;
+  default: grey;
+  self: orange;
+  url: cornflowerblue;
+  clan: limegreen;
+  clan_chatterbox: darkgreen;
+  mod: white;
+  chatterbox: darkgoldenrod;
+  game_host: gold;
+
+}

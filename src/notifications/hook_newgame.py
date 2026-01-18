@@ -26,8 +26,9 @@ class NewGameDialog(FormClass, BaseClass):
         BaseClass.__init__(self)
         self.parent = parent
         self.eventType = eventType
-        self._settings_key = 'notifications/{}'.format(eventType)
+        self._settings_key = f'notifications/{eventType}'
         self.setupUi(self)
+        self.setStyleSheet(util.THEME.stylesheet)
 
         # remove help button
         self.setWindowFlags(

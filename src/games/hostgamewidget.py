@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 import random
 import re
@@ -148,8 +146,6 @@ class HostGameWidget(QDialog):
         self.client = client
         self.game = None
         self.mods: dict[str, ModInfo] = {}
-        util.THEME.stylesheets_reloaded.connect(self.load_stylesheet)
-        self.load_stylesheet()
         self.connect_signals()
         self.ui.mapFiltersWidget.hide()
 
@@ -195,6 +191,7 @@ class HostGameWidget(QDialog):
 
         self.ui.modTypeRadioGroup.buttonToggled.connect(self.on_mod_display_type_changed)
         self.ui.mapNameFilter.textChanged.connect(self.filter_maps_by_name)
+        self.ui.modNameFilter.textChanged.connect(self.filter_mods_by_name)
 
         self.ui.mapPreviewLabel.clicked.connect(self.show_large_map_preview)
 
@@ -352,8 +349,23 @@ class HostGameWidget(QDialog):
             map_info = item.data(QtCore.Qt.ItemDataRole.UserRole)
             item.setHidden(not (mn <= map_info["max_players"] <= mx))
 
-    def load_stylesheet(self):
-        self.setStyleSheet(util.THEME.readstylesheet("client/client.css"))
+    def filter_mods_by_name(self, text: str) -> None:
+        lower_text = text.lower()
+        for row in range(self.ui.modList.count()):
+            item = self.ui.modList.item(row)
+            if item is None:
+                continue
+            if lower_text == "":
+                item.setHidden(False)
+                continue
+            mod = self.mods[item.text()]
+            text_matches = lower_text in item.text().lower()
+            if self.ui.modAllRadio.isChecked():
+                item.setHidden(not text_matches)
+            elif self.ui.modUiRadio.isChecked():
+                item.setHidden(not text_matches or not mod.ui_only)
+            elif self.ui.modSimRadio.isChecked():
+                item.setHidden(not text_matches or mod.ui_only)
 
     def setup(self, title: str, game: Game) -> None:
         self._reset()
@@ -515,7 +527,7 @@ class HostGameWidget(QDialog):
 
     @QtCore.pyqtSlot()
     def generateMap(self) -> None:
-        dialog = MapGenDialog(self.client.map_generator)
+        dialog = MapGenDialog(self.client, self.client.map_generator)
         dialog.map_generated.connect(self.on_map_generated)
         dialog.load_cmd_options()
         dialog.exec()

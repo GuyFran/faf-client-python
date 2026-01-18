@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import enum
 import re
 from collections.abc import Sequence
@@ -29,6 +27,7 @@ from PyQt6.QtWidgets import QTabWidget
 from PyQt6.QtWidgets import QVBoxLayout
 from PyQt6.QtWidgets import QWidget
 
+from src import util
 from src.config import Settings
 from src.fa.factions import Factions
 from src.qt.itemviews.styleditemdelegate import StyledItemDelegate
@@ -104,6 +103,19 @@ class ReplayEventModel(QtListModel[ReplayEvent, EventModelItem]):
 
 
 class EventItemDelegate(StyledItemDelegate):
+    TEXT_RECT_COLOR = QColor(
+        util.THEME.find_stylesheet_attribute(
+            "EventItemDelegate::custom",
+            "text-rect-color",
+        ),
+    )
+    TEAM_RECT_COLOR = QColor(
+        util.THEME.find_stylesheet_attribute(
+            "EventItemDelegate::custom",
+            "team-rect-color",
+        ),
+    )
+
     def __init__(self, *, render_teams: bool) -> None:
         super().__init__()
         self.render_teams = render_teams
@@ -165,7 +177,7 @@ class EventItemDelegate(StyledItemDelegate):
         text_rect.moveCenter(QPoint(item_rect.center().x(), item_rect.bottom() - 16))
         path = QPainterPath()
         path.addRoundedRect(QRectF(text_rect), 4, 4)
-        painter.fillPath(path, QColor("#202025"))
+        painter.fillPath(path, self.TEXT_RECT_COLOR)
 
         text = str(seconds_to_human(model_item.replay_event.tick // 10))
         painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, text)
@@ -184,7 +196,7 @@ class EventItemDelegate(StyledItemDelegate):
         font = painter.font()
         font.setPointSize(font.pointSize() - 2)
         painter.setFont(font)
-        painter.fillPath(path, QColor("#202025"))
+        painter.fillPath(path, self.TEAM_RECT_COLOR)
         text = f"{model_item.replay_event.team - 1:.0f}"
         painter.drawText(team_rect, Qt.AlignmentFlag.AlignCenter, text)
 

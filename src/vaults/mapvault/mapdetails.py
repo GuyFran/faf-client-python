@@ -14,8 +14,6 @@ from src.fa.maps_.previewdialog import MapPreviewDialog
 from src.model.player import Player
 from src.vaults.detailswidget import DetailsWidget
 
-STYLESHEET = util.THEME.readstylesheet("client/client.css")
-
 
 class MapDetailsWidget(DetailsWidget[Map]):
     def __init__(
