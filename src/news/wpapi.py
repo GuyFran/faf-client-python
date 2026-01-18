@@ -29,7 +29,7 @@ class WPAPI(QtCore.QObject):
                     'excerpt': post.get('excerpt', {}).get('rendered'),
                     'author': post.get('_embedded', {}).get('author'),
                     'link': post.get('link'),
-                    'external_link': post.get('newshub_externalLinkUrl'),
+                    'external_link': post.get('newshub_externalLinkUrl', ''),
                     'img_url': (
                         post.get('_embedded', {})
                         .get('wp:featuredmedia', [{}])[0]
