@@ -1,16 +1,15 @@
 from collections.abc import Callable
 from enum import IntEnum
-from functools import cache
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import Self
 
 from PyQt6.QtCore import QTimer
-from PyQt6.QtMultimedia import QSoundEffect
 
 from src.chat.chat_widget import TabIcon
 from src.client.chat_config import ChatConfig
 from src.model.chat.channel import ChannelID
+from src.qt.common_objects import sound_effect
 from src.util.theme import ThemeSet
 
 if TYPE_CHECKING:
@@ -21,13 +20,6 @@ class TabInfo(IntEnum):
     IDLE = 0
     NEW_MESSAGES = 1
     IMPORTANT = 2
-
-
-@cache
-def channel_ping_sound(theme: ThemeSet) -> QSoundEffect:
-    sound = QSoundEffect()
-    sound.setSource(theme.sound("chat/sfx/query.wav"))
-    return sound
 
 
 class ChannelTab:
@@ -53,6 +45,8 @@ class ChannelTab:
         self._ping_timer = QTimer()
         self._ping_timer.setSingleShot(True)
         self._ping_timer.setInterval(self._chat_config.channel_ping_timeout)
+
+        self._ping_sound = sound_effect(theme)
 
     def _config_updated(self, option):
         c = self._chat_config
@@ -106,8 +100,8 @@ class ChannelTab:
         if self._ping_timer.isActive():
             return
         self._ping_timer.start()
-        if channel_ping_sound(self._theme).isLoaded():
-            channel_ping_sound(self._theme).play()
+        if self._ping_sound.isLoaded():
+            self._ping_sound.play()
 
     def _stop_blinking(self):
         self._timer.stop()
