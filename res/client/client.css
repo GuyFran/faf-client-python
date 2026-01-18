@@ -1586,8 +1586,8 @@ ReplayBucketItemFormatter::custom {
 }
 
 ReplayCard::custom {
-    team-title-color: gray;
-    team-title-background: white;
+    team-title-color: white;
+    team-title-background: gray;
 }
 
 GamePanelWidget::custom {
