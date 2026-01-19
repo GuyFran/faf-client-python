@@ -300,9 +300,6 @@ class GamesWidget(FormClass, BaseClass):
         """
         Hosting a game event
         """
-        if not fa.instance.available():
-            return
-
         if (
             self.party is not None
             and self.party.member_count > 1

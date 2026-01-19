@@ -471,6 +471,9 @@ class HostGameWidget(QDialog):
         self.update_map_preview(item)
 
     def hosting(self) -> None:
+        if not fa.instance.available():
+            return
+
         password = None
         if self.game.password_protected:
             password = self.ui.passEdit.text()
