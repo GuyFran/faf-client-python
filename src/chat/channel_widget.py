@@ -165,6 +165,9 @@ class ChannelWidget(QObject):
         self.chat_area.anchorClicked.connect(self._url_clicked)
         self._override_widget_methods()
         self._load_css()
+        self._sticky_scroll = ChatAreaStickyScroll(
+            self.chat_area.verticalScrollBar(),
+        )
 
     def _override_widget_methods(self):
 
@@ -227,8 +230,17 @@ class ChannelWidget(QObject):
     def show_chatter_list(self, should_show):
         self.nick_frame.setVisible(should_show)
 
-    def append_line(self, text: str) -> None:
-        self.chat_area.append(text)
+    def append_line(self, text):
+        # QTextEdit has its own ideas about scrolling and does not stay
+        # in place when adding content
+        self._sticky_scroll.save_scroll()
+
+        cursor = self.chat_area.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.End)
+        self.chat_area.setTextCursor(cursor)
+        self.chat_area.insertHtml(text)
+
+        self._sticky_scroll.restore_scroll()
 
     def remove_lines(self, number):
         cursor = self.chat_area.textCursor()
@@ -326,3 +338,32 @@ class ChannelWidget(QObject):
         current = self.current_search_index + 1
         total = len(self.highlighter.search_results)
         self.search_label.setText(f"{current} out of {total}")
+
+
+class ChatAreaStickyScroll:
+    def __init__(self, scrollbar):
+        self._scrollbar = scrollbar
+        self._scrollbar.valueChanged.connect(self._track_maximum)
+        self._scrollbar.rangeChanged.connect(self._stick_at_range_changed)
+        self._is_set_to_maximum = True
+        self._old_value = self._scrollbar.value()
+        self._saved_scroll = 0
+
+    def save_scroll(self):
+        self._saved_scroll = self._scrollbar.value()
+
+    def restore_scroll(self):
+        if self._is_set_to_maximum:
+            self._scrollbar.setValue(self._scrollbar.maximum())
+        else:
+            self._scrollbar.setValue(self._saved_scroll)
+
+    def _track_maximum(self, val):
+        self._is_set_to_maximum = val == self._scrollbar.maximum()
+        self._old_value = val
+
+    def _stick_at_range_changed(self, min_, max_):
+        if self._is_set_to_maximum:
+            self._scrollbar.setValue(max_)
+        else:
+            self._scrollbar.setValue(self._old_value)
