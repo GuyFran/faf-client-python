@@ -956,6 +956,8 @@ class ClientWindow(FormClass, BaseClass):
         progress.setLabelText("Closing ForgedAllianceForever.exe")
         if fa.instance.running():
             fa.instance.close()
+        if fa.replay_instance.running():
+            fa.replay_instance.close()
 
         # Terminate Lobby Server connection
         self.lobby_reconnector.enabled = False
