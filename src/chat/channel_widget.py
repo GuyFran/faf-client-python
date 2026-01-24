@@ -230,17 +230,8 @@ class ChannelWidget(QObject):
     def show_chatter_list(self, should_show):
         self.nick_frame.setVisible(should_show)
 
-    def append_line(self, text):
-        # QTextEdit has its own ideas about scrolling and does not stay
-        # in place when adding content
-        self._sticky_scroll.save_scroll()
-
-        cursor = self.chat_area.textCursor()
-        cursor.movePosition(QTextCursor.MoveOperation.End)
-        self.chat_area.setTextCursor(cursor)
-        self.chat_area.insertHtml(text)
-
-        self._sticky_scroll.restore_scroll()
+    def append_line(self, text: str) -> None:
+        self.chat_area.append(text)
 
     def remove_lines(self, number):
         cursor = self.chat_area.textCursor()
