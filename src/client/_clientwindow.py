@@ -2017,7 +2017,6 @@ class ClientWindow(FormClass, BaseClass):
             self.game_session.game_visibility = game.visibility.value
 
     def handle_matchmaker_info(self, message: ServerMessage) -> None:
-        logger.debug("Handling matchmaker info with message %s", message)
         if not self.me.player:
             return
         self.matchmaker_info.emit(message)
