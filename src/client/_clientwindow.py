@@ -55,6 +55,7 @@ from src.fa.game_session import GameSession
 from src.fa.maps import CachedMapsMetadata
 from src.fa.maps import getUserMapsFolder
 from src.fa.replay import WatchedReplaysTracker
+from src.fa.replaylivestreamer import LiveReplayStreamer
 from src.games import GamesWidget
 from src.games.gameitem import GameViewBuilder
 from src.games.gamemodel import GameModel
@@ -449,7 +450,8 @@ class ClientWindow(FormClass, BaseClass):
 
         self._alias_viewer = AliasWindow.build(parent_widget=self)
         self._alias_search_window = AliasSearchWindow(self, self._alias_viewer)
-        self._game_runner = GameRunner(self.gameset, self)
+        self.live_replay_streamer = LiveReplayStreamer()
+        self._game_runner = GameRunner(self.gameset, self.live_replay_streamer, self)
 
         self.connectivity_dialog = None
 

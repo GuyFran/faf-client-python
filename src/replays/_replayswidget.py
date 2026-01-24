@@ -279,8 +279,9 @@ class LiveReplaysWidgetHandler:
 
         if self.liveTree.indexOfTopLevelItem(item) == -1:
             # Notify other modules that we're watching a replay
-            self.client.viewing_replay.emit(item.gurl)
-            replay(item.gurl)
+            if not Settings.get("game/replay_process", True, type=bool):
+                self.client.viewing_replay.emit(item.gurl)
+            self.client.live_replay_streamer.start_live_replay(item.gurl)
 
     def _addExistingGames(self, gameset):
         for game in gameset.values():
@@ -1107,32 +1108,19 @@ class ReplayVaultWidgetHandler:
                             self._startReplay(name)
                             break
                 else:
-                    delta = time.gmtime(
-                        game.LIVE_REPLAY_DELAY_SECS
-                        - (time.time() - game.launched_at),
-                    )
-                    wait_str = time.strftime('%M Min %S Sec', delta)
-                    QtWidgets.QMessageBox.information(
-                        client.instance,
-                        "5 Minute Live Game Delay",
-                        (
-                            "It is too early to join the Game.\n"
-                            "You have to wait {} to join.".format(wait_str)
-                        ),
-                    )
-            elif item.replay["endTime"] is None and not item.live_delay:
+                    game.warn_live_delay(client.instance)
+            elif item.replay["endTime"] is None:
                 # player probably foed us; hiding started games from foes
                 # makes no sense, but currently server does that
                 name = item.replay["host"]["login"]
-                if (player := self._playerset.get_by_name(name)) is not None:  # still logged in
-                    url = GameUrl(
-                        GameUrlType.LIVE_REPLAY,
-                        item.mapname,
-                        item.mod,
-                        item.uid,
-                        player.id,
-                    )
-                    replay(url)
+                url = GameUrl(
+                    GameUrlType.LIVE_REPLAY,
+                    item.mapname,
+                    item.mod,
+                    item.uid,
+                    name,
+                )
+                self.client.live_replay_streamer.start_live_replay(url)
             else:  # game ended - ask to start replay
                 if QtWidgets.QMessageBox.question(
                     client.instance,
@@ -1150,11 +1138,15 @@ class ReplayVaultWidgetHandler:
                 self.replayDownload.get(req)
 
     def _startReplay(self, name: str | None) -> None:
-        if name is None or (player := self._playerset.get_by_name(name)) is None:
+        if (
+            name is None
+            or (player := self._playerset.get_by_name(name)) is None
+            or player.currentGame is None
+        ):
             return
-        if not player.currentGame:
-            return
-        replay(player.currentGame.url(player.id))
+
+        url = player.currentGame.url(player.id)
+        self.client.live_replay_streamer.start_live_replay(url)
 
     def matchUsernameCheckboxChange(self, state):
         self.match_username = state

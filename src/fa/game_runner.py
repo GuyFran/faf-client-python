@@ -3,7 +3,8 @@ from typing import TYPE_CHECKING
 from typing import NamedTuple
 
 from src import fa
-from src.fa.replay import replay
+from src.config import Settings
+from src.fa.replaylivestreamer import LiveReplayStreamer
 from src.model.game import Game
 from src.model.game import GameState
 from src.model.gameset import Gameset
@@ -21,10 +22,16 @@ class GameLaunchArguments(NamedTuple):
 
 
 class GameRunner:
-    def __init__(self, gameset: Gameset, client_window: ClientWindow) -> None:
+    def __init__(
+        self,
+        gameset: Gameset,
+        replay_streamer: LiveReplayStreamer,
+        client_window: ClientWindow,
+    ) -> None:
         self._gameset = gameset
         self._client_window = client_window     # FIXME
         self._launch_args: GameLaunchArguments | None = None
+        self._live_replay_streamer = replay_streamer
 
     def set_launch_args(self, args: GameLaunchArguments) -> None:
         self._launch_args = args
@@ -62,7 +69,10 @@ class GameRunner:
         if game.state == GameState.OPEN:
             self._join_game_from_url(gurl)
         elif game.state == GameState.PLAYING:
-            replay(gurl)
+            if not game.has_live_replay and Settings.get("game/pipe_live_replay", True, type=bool):
+                game.warn_live_delay(self._client_window)
+            else:
+                self._live_replay_streamer.start_live_replay(gurl)
 
     def _join_game_from_url(self, gurl: GameUrl) -> None:
         logger.debug("Joining game from URL: " + gurl.to_url().toString())

@@ -1,6 +1,5 @@
-from __future__ import annotations
-
 import os
+import sys
 import textwrap
 from typing import TYPE_CHECKING
 
@@ -303,9 +302,19 @@ class GameSettingsUI:
         self.runReplaysSeparatelyCheckBox.setToolTip(tooltip)
         self.forceAffinityCheckBox = QCheckBox("Force Affinity")
         self.forceAffinityCheckBox.setToolTip("Allow the game to adjust process affinity")
+        self.liveReplaysWorkaround = QCheckBox("Enable Live Replay Workaround")
+        if sys.platform == "win32":
+            self.liveReplaysWorkaround.setToolTip(
+                "Use pipe to stream live replay data. Avoids Premature EOF errors,\n"
+                "but the replay will end abruptly with no ability to select armies/see\n"
+                "statistics/etc.",
+            )
+        else:
+            self.liveReplaysWorkaround.setToolTip("[Windows only setting]")
         misc_settings_layout.addWidget(self.gameLogsCheckBox)
         misc_settings_layout.addWidget(self.runReplaysSeparatelyCheckBox)
         misc_settings_layout.addWidget(self.forceAffinityCheckBox)
+        misc_settings_layout.addWidget(self.liveReplaysWorkaround)
 
         self.buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
@@ -338,6 +347,13 @@ class GameSettings(QDialog):
         self.ui.forceAffinityCheckBox.setChecked(
             Settings.get("game/force_affinity", True, type=bool),
         )
+        if sys.platform == "win32":
+            self.ui.liveReplaysWorkaround.setChecked(
+                Settings.get("game/pipe_live_replay", True, type=bool),
+            )
+        else:
+            self.ui.liveReplaysWorkaround.setEnabled(False)
+
         self.ui.browseGameButton.clicked.connect(
             lambda: self.browse_directory(self.ui.gamePathInput),
         )
@@ -383,6 +399,7 @@ class GameSettings(QDialog):
         Settings.set("game/logs", self.ui.gameLogsCheckBox.isChecked())
         Settings.set("game/replay_process", self.ui.runReplaysSeparatelyCheckBox.isChecked())
         Settings.set("game/force_affinity", self.ui.forceAffinityCheckBox.isChecked())
+        Settings.set("game/pipe_live_replay", self.ui.liveReplaysWorkaround.isChecked())
         if vault_path != util.VAULTS_BASE_DIR:
             # TODO: change without restart (or make sure that restart is not needed)
             util.change_vaults_base_dir(vault_path)
