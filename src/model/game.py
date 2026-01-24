@@ -37,9 +37,9 @@ class GameVisibility(Enum):
 
 
 class GameType(Enum):
-    COOP = "coop"
     CUSTOM = "custom"
     MATCHMAKER = "matchmaker"
+    COOP = "coop"
 
 
 @with_logger

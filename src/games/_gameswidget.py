@@ -236,16 +236,24 @@ class GamesWidget(FormClass, BaseClass):
                 for i in range(0, self.modList.count()):
                     if self.modList.item(i) == old_mod:
                         self.modList.takeItem(i)
+
+                # FIXME: gameswidget shouldn't handle replayswidget
                 for i in range(self.client.replays.modList.count()):
                     if self.client.replays.modList.itemText(i) == old_mod.mod:
                         self.client.replays.modList.removeItem(i)
+                for i in range(self.client.replays.featuredModComboBox.count()):
+                    if self.client.replays.featuredModComboBox.itemText(i) == old_mod.mod:
+                        self.client.replays.featuredModComboBox.removeItem(i)
 
             if featured_mod.visible:
                 self.modList.addItem(self.mods[mod])
             else:
                 mod_invisible[mod] = self.mods[mod]
 
+            # FIXME: gameswidget shouldn't handle replayswidget
             self.client.replays.modList.addItem(mod)
+            if featured_mod.visible:
+                self.client.replays.featuredModComboBox.addItem(mod)
 
     def stopSearch(self):
         self.searching = {"ladder1v1": False}
