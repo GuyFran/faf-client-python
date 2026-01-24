@@ -70,6 +70,8 @@ class StreamWriter(QObject):
         # just prevent hanging
         self._terminator = b"\x00" * 2048
 
+        self._close_intended = False
+
     def start(self) -> None:
         self._finished = False
         self._logger.debug("Starting named pipe thread...")
@@ -124,7 +126,10 @@ class StreamWriter(QObject):
         self._logger.info("Replay server disconnected")
         if not self._finished:
             self.queue.put(self._terminator)
-        elif self.socket.error() == QAbstractSocket.SocketError.UnknownSocketError:
+        elif (
+            not self._close_intended
+            and self.socket.error() == QAbstractSocket.SocketError.UnknownSocketError
+        ):
             self.not_ready.emit()
 
     def on_server_message(self, message: QByteArray) -> None:
@@ -134,10 +139,12 @@ class StreamWriter(QObject):
             self._ready = True
 
     def abort(self) -> None:
+        self._close_intended = True
         self.socket.abort()
         self.shutdown()
 
     def close(self) -> None:
+        self._close_intended = True
         self.socket.close()
         self.shutdown()
 
@@ -189,7 +196,7 @@ class LiveReplayStreamer(QObject):
         if replay(self.game_url):
             self.writer.start()
         else:
-            self.on_writer_closed()
+            self.writer.abort()
 
     def on_writer_not_ready(self) -> None:
         msg = "Could not start live replay.\nReplay server disconnected for no reason"
