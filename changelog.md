@@ -1,6 +1,20 @@
 0.x.x
 =====
 
+0.26.2
+* [Windows] Workaround `Premature EOF` in live replays with an option to disable it
+* Fix advanced search in replay vault
+* Fix mod search not working in game host widget
+* Chat:
+  - Search chat content with Ctrl+F
+  - Elide sender name so it fits in its column width
+  - Hide empty chat topic
+* Themes:
+  - Read all colors from CSS
+  - Add Dark Blue builtin theme
+* Show map size in game panel if map is available
+* Allow to open host game dialog while in game
+
 0.26.1
 * Fix breaking `game.prefs` file with no mods selected
 * Fix parsing `[[]]` empty strings in lua files
