@@ -190,6 +190,12 @@ class HostGameWidget(QDialog):
         self.ui.mapPlayersMaximum.valueChanged.connect(self.on_map_max_p_changed)
 
         self.ui.modTypeRadioGroup.buttonToggled.connect(self.on_mod_display_type_changed)
+        mod_type = Settings.get("fa.games/displayed_mods", "All")
+        for button in self.ui.modTypeRadioGroup.buttons():
+            if mod_type == button.text():
+                button.setChecked(True)
+                break
+
         self.ui.mapNameFilter.textChanged.connect(self.filter_maps_by_name)
         self.ui.modNameFilter.textChanged.connect(self.filter_mods_by_name)
 
@@ -221,7 +227,7 @@ class HostGameWidget(QDialog):
         self.ui.mapPlayersMinimum.setValue(0)
         self.ui.mapPlayersMaximum.setValue(16)
 
-    def on_mod_display_type_changed(self, _: QAbstractButton, checked: bool) -> None:
+    def on_mod_display_type_changed(self, button: QAbstractButton, checked: bool) -> None:
         if not checked:
             return
         for i in range(self.ui.modList.count()):
@@ -234,6 +240,7 @@ class HostGameWidget(QDialog):
                 item.setHidden(not mod.ui_only)
             elif self.ui.modSimRadio.isChecked():
                 item.setHidden(mod.ui_only)
+        Settings.set("fa.games/displayed_mods", button.text())
 
     def on_map_min_w_changed(self, v: int) -> None:
         v = min(v, self.ui.mapWidthMaximum.value())
