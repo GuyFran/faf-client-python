@@ -75,7 +75,7 @@ class LiveReplayItem(QtWidgets.QTreeWidgetItem):
 
     def set_filtered_out(self, filtered: bool, /) -> None:
         self._filtered_out = filtered
-        self.setHidden(filtered)
+        self.setHidden(filtered or self._delayed)
 
     def _set_show_delay(self):
         if time.time() - self.launch_time < self.LIVEREPLAY_DELAY:
@@ -84,8 +84,12 @@ class LiveReplayItem(QtWidgets.QTreeWidgetItem):
             elapsed_time = time.time() - self.launch_time
             delay_time = self.LIVEREPLAY_DELAY - elapsed_time
             QtCore.QTimer.singleShot(int(1000 * delay_time), self._show_item)
+            self._delayed = True
+        else:
+            self._delayed = False
 
     def _show_item(self):
+        self._delayed = False
         self.setHidden(self._filtered_out)
 
     def _map_preview_downloaded(self, preview_file: str, pixmap: QtGui.QPixmap) -> None:
