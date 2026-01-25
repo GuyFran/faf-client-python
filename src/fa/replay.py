@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import sys
 
 from compression import zstd
 from PyQt6.QtCore import QByteArray
@@ -145,11 +146,15 @@ def replay(source, detach=False):
             mapname = source.map
             replay_id = source.uid
             sim_mods = source.mods
-            # whip the URL into shape so ForgedAllianceForever.exe
-            # understands it
+            # whip the URL into shape so ForgedAllianceForever.exe understands it
             url.setScheme("gpgnet")
             url.setQuery(QUrlQuery(""))
-            arg_string = url.toString()
+
+            # TODO: handle linux too
+            if sys.platform == "win32" and Settings.get("game/pipe_live_replay", True, type=bool):
+                arg_string = Settings.get("replay_stream/pipe_path", "")
+            else:
+                arg_string = url.toString()
         else:
             QMessageBox.critical(
                 None,

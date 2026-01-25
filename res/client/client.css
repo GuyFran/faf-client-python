@@ -381,6 +381,11 @@ QLineEdit:disabled {
     border-bottom-right-radius: 5px;
 }
 
+QLineEdit#mapName, QLineEdit#playerName
+{
+    background-color: #353535;
+}
+
 QFrame#rankedFrame
 {
     border-style:solid;

@@ -53,6 +53,7 @@ default_values = {
     'replay_server/port': 15000,
     'relay_server/host': 'lobby.{host}',
     'relay_server/port': 8000,
+    'replay_stream/pipe_path': r'\\.\pipe\fafreplay',
     'vault/map_preview_url': 'https://content.{host}/maps/previews/{size}/{name}.png',
     'vault/map_download_url': "https://content.{host}/maps/{name}.zip",
     'JAVA_ICE_ADAPTER_RELEASE_URL': 'https://api.github.com/repos/faforever/java-ice-adapter/releases',  # noqa: E501

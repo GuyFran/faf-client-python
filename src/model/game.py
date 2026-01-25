@@ -8,6 +8,8 @@ from typing import Self
 
 from PyQt6.QtCore import QTimer
 from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QWidget
 
 from src.decorators import with_logger
 from src.model.modelitem import ModelItem
@@ -35,9 +37,9 @@ class GameVisibility(Enum):
 
 
 class GameType(Enum):
-    COOP = "coop"
     CUSTOM = "custom"
     MATCHMAKER = "matchmaker"
+    COOP = "coop"
 
 
 @with_logger
@@ -300,6 +302,19 @@ class Game(ModelItem):
         pretty = pretty.replace("_", " ")
         pretty = string.capwords(pretty)
         return pretty
+
+    def warn_live_delay(self, parent: QWidget | None = None) -> None:
+        assert self.launched_at is not None
+        delta = time.gmtime(self.LIVE_REPLAY_DELAY_SECS - (time.time() - self.launched_at))
+        wait_str = time.strftime('%M Min %S Sec', delta)
+        QMessageBox.information(
+            parent,
+            "5 Minute Live Game Delay",
+            (
+                "It is too early to join the Game.\n"
+                f"You have to wait {wait_str} to join."
+            ),
+        )
 
 
 def message_to_game_args(m: ServerMessage) -> bool:

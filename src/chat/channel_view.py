@@ -351,7 +351,7 @@ class ChatLineFormatter:
             text = self._wrap_me(irc_escape(text), data.meta.my_mention())
 
         sender_name = self._sender_name(data)
-        elided_sender = self._font_metrics.elidedText(sender_name, Qt.TextElideMode.ElideRight, 99)
+        elided_sender = self._font_metrics.elidedText(sender_name, Qt.TextElideMode.ElideRight, 98)
         if mtype in (ChatLineType.MESSAGE, ChatLineType.NOTICE):
             elided_sender += ":"
             text = "&nbsp;" + text

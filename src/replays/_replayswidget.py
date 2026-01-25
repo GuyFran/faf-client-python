@@ -32,6 +32,7 @@ from src.fa.replay import WatchedReplaysTracker
 from src.fa.replay import replay
 from src.model.game import Game
 from src.model.game import GameState
+from src.model.game import GameType
 from src.model.gameset import Gameset
 from src.model.playerset import Playerset
 from src.qt.utils import qpainter
@@ -70,6 +71,11 @@ class LiveReplayItem(QtWidgets.QTreeWidgetItem):
         self._game.updated.connect(self._update_game)
         self._set_show_delay()
         self._update_game(self._game)
+        self._filtered_out = False
+
+    def set_filtered_out(self, filtered: bool, /) -> None:
+        self._filtered_out = filtered
+        self.setHidden(filtered or self._delayed)
 
     def _set_show_delay(self):
         if time.time() - self.launch_time < self.LIVEREPLAY_DELAY:
@@ -78,9 +84,13 @@ class LiveReplayItem(QtWidgets.QTreeWidgetItem):
             elapsed_time = time.time() - self.launch_time
             delay_time = self.LIVEREPLAY_DELAY - elapsed_time
             QtCore.QTimer.singleShot(int(1000 * delay_time), self._show_item)
+            self._delayed = True
+        else:
+            self._delayed = False
 
     def _show_item(self):
-        self.setHidden(False)
+        self._delayed = False
+        self.setHidden(self._filtered_out)
 
     def _map_preview_downloaded(self, preview_file: str, pixmap: QtGui.QPixmap) -> None:
         if util.pretty_decoded_basename(preview_file) != self._game.mapname:
@@ -206,7 +216,7 @@ class LiveReplayItem(QtWidgets.QTreeWidgetItem):
 
 
 class LiveReplaysWidgetHandler:
-    def __init__(self, liveTree, client, gameset):
+    def __init__(self, liveTree, client, gameset, live_tree_filters, splitter):
         self.liveTree = liveTree
         self.liveTree.itemDoubleClicked.connect(self.liveTreeDoubleClicked)
         self.liveTree.itemPressed.connect(self.liveTreePressed)
@@ -219,13 +229,59 @@ class LiveReplaysWidgetHandler:
         self.liveTree.header().setSectionResizeMode(
             2, QtWidgets.QHeaderView.ResizeMode.ResizeToContents,
         )
+        self.game_type_filter = live_tree_filters[0]
+        self.game_type_filter.addItems(typ.value for typ in GameType)
+        self.game_type_filter.currentIndexChanged.connect(self.filter_games)
+
+        self.max_players_filter = live_tree_filters[1]
+        self.max_players_filter.addItems(map(str, range(1, 17)))
+        self.max_players_filter.currentIndexChanged.connect(self.filter_games)
+
+        self.num_players_filter = live_tree_filters[2]
+        self.num_players_filter.addItems(map(str, range(1, 17)))
+        self.num_players_filter.currentIndexChanged.connect(self.filter_games)
+
+        self.featured_mod_filter = live_tree_filters[3]
+        self.featured_mod_filter.currentIndexChanged.connect(self.filter_games)
+        self.modded_games_filter = live_tree_filters[4]
+        self.modded_games_filter.checkStateChanged.connect(self.filter_games)
 
         self.client = client
         self.gameset = gameset
         self.gameset.newLiveGame.connect(self._newGame)
         self._addExistingGames(gameset)
 
+        self.splitter = splitter
+        splitter_sizes = Settings.get_list("replay/live_splitter", type=int, default=[])
+        if len(splitter) == 2:
+            self.splitter.setSizes(splitter_sizes)
+        self.splitter.splitterMoved.connect(self.on_splitter_moved)
+
         self.games = {}
+
+    def on_splitter_moved(self) -> None:
+        Settings.set("replay/live_splitter", self.splitter.sizes())
+
+    def filter_games(self) -> None:
+        self._filter_games()
+
+    def _filter_games(self, count: int | None = None) -> None:
+        game_type = self.game_type_filter.currentText()
+        max_players = self.max_players_filter.currentText()
+        num_players = self.num_players_filter.currentText()
+        mod = self.featured_mod_filter.currentText()
+        hide_modded = self.modded_games_filter.checkState() == QtCore.Qt.CheckState.Checked
+
+        for i in range(count or self.liveTree.topLevelItemCount()):
+            item = self.liveTree.topLevelItem(i)
+            hide = any((
+                game_type != "Any" and item._game.game_type.value != game_type,
+                max_players != "Any" and item._game.max_players != int(max_players),
+                num_players != "Any" and item._game.num_players != int(num_players),
+                mod != "Any" and item._game.featured_mod != mod,
+                hide_modded and item._game.sim_mods,
+            ))
+            item.set_filtered_out(hide)
 
     def liveTreePressed(self, item):
         if QtWidgets.QApplication.mouseButtons() != QtCore.Qt.MouseButton.RightButton:
@@ -279,8 +335,9 @@ class LiveReplaysWidgetHandler:
 
         if self.liveTree.indexOfTopLevelItem(item) == -1:
             # Notify other modules that we're watching a replay
-            self.client.viewing_replay.emit(item.gurl)
-            replay(item.gurl)
+            if not Settings.get("game/replay_process", True, type=bool):
+                self.client.viewing_replay.emit(item.gurl)
+            self.client.live_replay_streamer.start_live_replay(item.gurl)
 
     def _addExistingGames(self, gameset):
         for game in gameset.values():
@@ -292,6 +349,7 @@ class LiveReplaysWidgetHandler:
         self.games[game] = item
         self.liveTree.insertTopLevelItem(0, item)
         game.updated.connect(self._check_game_closed)
+        self._filter_games(1)
 
     def _check_game_closed(self, game):
         if game.state == GameState.CLOSED:
@@ -1107,32 +1165,19 @@ class ReplayVaultWidgetHandler:
                             self._startReplay(name)
                             break
                 else:
-                    delta = time.gmtime(
-                        game.LIVE_REPLAY_DELAY_SECS
-                        - (time.time() - game.launched_at),
-                    )
-                    wait_str = time.strftime('%M Min %S Sec', delta)
-                    QtWidgets.QMessageBox.information(
-                        client.instance,
-                        "5 Minute Live Game Delay",
-                        (
-                            "It is too early to join the Game.\n"
-                            "You have to wait {} to join.".format(wait_str)
-                        ),
-                    )
-            elif item.replay["endTime"] is None and not item.live_delay:
+                    game.warn_live_delay(client.instance)
+            elif item.replay["endTime"] is None:
                 # player probably foed us; hiding started games from foes
                 # makes no sense, but currently server does that
                 name = item.replay["host"]["login"]
-                if (player := self._playerset.get_by_name(name)) is not None:  # still logged in
-                    url = GameUrl(
-                        GameUrlType.LIVE_REPLAY,
-                        item.mapname,
-                        item.mod,
-                        item.uid,
-                        player.id,
-                    )
-                    replay(url)
+                url = GameUrl(
+                    GameUrlType.LIVE_REPLAY,
+                    item.mapname,
+                    item.mod,
+                    item.uid,
+                    name,
+                )
+                self.client.live_replay_streamer.start_live_replay(url)
             else:  # game ended - ask to start replay
                 if QtWidgets.QMessageBox.question(
                     client.instance,
@@ -1150,11 +1195,15 @@ class ReplayVaultWidgetHandler:
                 self.replayDownload.get(req)
 
     def _startReplay(self, name: str | None) -> None:
-        if name is None or (player := self._playerset.get_by_name(name)) is None:
+        if (
+            name is None
+            or (player := self._playerset.get_by_name(name)) is None
+            or player.currentGame is None
+        ):
             return
-        if not player.currentGame:
-            return
-        replay(player.currentGame.url(player.id))
+
+        url = player.currentGame.url(player.id)
+        self.client.live_replay_streamer.start_live_replay(url)
 
     def matchUsernameCheckboxChange(self, state):
         self.match_username = state
@@ -1279,7 +1328,20 @@ class ReplaysWidget(BaseClass, FormClass):
         BaseClass.__init__(self)
         self.setupUi(self)
 
-        self.liveManager = LiveReplaysWidgetHandler(self.liveTree, client, gameset)
+        live_filters = [
+            self.gameTypeComboBox,
+            self.maxPlayersComboBox,
+            self.numPlayersComboBox,
+            self.featuredModComboBox,
+            self.hideModdedCheckBox,
+        ]
+        self.liveManager = LiveReplaysWidgetHandler(
+            self.liveTree,
+            client,
+            gameset,
+            live_filters,
+            self.liveReplaysWidgetSplitter,
+        )
         self.localManager = LocalReplaysWidgetHandler(self.myTree, client)
         self.vaultManager = ReplayVaultWidgetHandler(self, dispatcher, client, gameset, playerset)
         self.currentChanged.connect(self.on_tab_changed)

@@ -55,6 +55,7 @@ from src.fa.game_session import GameSession
 from src.fa.maps import CachedMapsMetadata
 from src.fa.maps import getUserMapsFolder
 from src.fa.replay import WatchedReplaysTracker
+from src.fa.replaylivestreamer import LiveReplayStreamer
 from src.games import GamesWidget
 from src.games.gameitem import GameViewBuilder
 from src.games.gamemodel import GameModel
@@ -449,7 +450,8 @@ class ClientWindow(FormClass, BaseClass):
 
         self._alias_viewer = AliasWindow.build(parent_widget=self)
         self._alias_search_window = AliasSearchWindow(self, self._alias_viewer)
-        self._game_runner = GameRunner(self.gameset, self)
+        self.live_replay_streamer = LiveReplayStreamer()
+        self._game_runner = GameRunner(self.gameset, self.live_replay_streamer, self)
 
         self.connectivity_dialog = None
 
@@ -954,6 +956,8 @@ class ClientWindow(FormClass, BaseClass):
         progress.setLabelText("Closing ForgedAllianceForever.exe")
         if fa.instance.running():
             fa.instance.close()
+        if fa.replay_instance.running():
+            fa.replay_instance.close()
 
         # Terminate Lobby Server connection
         self.lobby_reconnector.enabled = False
@@ -2017,7 +2021,6 @@ class ClientWindow(FormClass, BaseClass):
             self.game_session.game_visibility = game.visibility.value
 
     def handle_matchmaker_info(self, message: ServerMessage) -> None:
-        logger.debug("Handling matchmaker info with message %s", message)
         if not self.me.player:
             return
         self.matchmaker_info.emit(message)
