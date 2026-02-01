@@ -1811,7 +1811,7 @@ class ClientWindow(FormClass, BaseClass):
 
         self.authorized.emit(self.me)
 
-        if self.game_session is None or self.game_session.game_uid is None:
+        if self.game_session is None:
             self.game_session = GameSession(
                 player_id=self.id,
                 player_login=self.login,
