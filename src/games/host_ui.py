@@ -34,7 +34,7 @@ class HostGameDialogUi:
 
         self.titleEdit = QLineEdit()
         self.titleEdit.setFont(QFont("Segoe UI", 11))
-        self.titleEdit.setMaxLength(25)
+        self.titleEdit.setMaxLength(128)
         self.titleEdit.setPlaceholderText("[REQUIRED] Enter game name...")
 
         options_layout = QHBoxLayout()
