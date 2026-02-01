@@ -199,7 +199,6 @@ def replay(source, detach=False):
     if replay_id:
         arguments.append("/replayid")
         arguments.append(str(replay_id))
-        WatchedReplaysTracker.add(replay_id)
 
     # Update the game appropriately
     if not check(mod, mapname, version, featured_mod_versions, sim_mods, game_dir):
@@ -209,6 +208,8 @@ def replay(source, detach=False):
 
     if runner.run(None, arguments, detach):
         logger.info("Viewing Replay.")
+        if replay_id:
+            WatchedReplaysTracker.add(replay_id)
         return True
     else:
         logger.error("Replaying failed. Guru meditation: %s", arguments)
