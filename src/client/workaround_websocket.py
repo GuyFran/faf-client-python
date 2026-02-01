@@ -45,7 +45,6 @@ class Websocket(QObject):
     binaryMessageReceived = pyqtSignal(QByteArray)
     errorOccurred = pyqtSignal(QAbstractSocket.SocketError)
     stateChanged = pyqtSignal(QAbstractSocket.SocketState)
-    sendMessageRequest = pyqtSignal(bytes)
     _start_read = pyqtSignal()
 
     def __init__(self, addresses: list[QHostAddress]) -> None:
