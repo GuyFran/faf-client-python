@@ -109,6 +109,7 @@ class GamePanelUI:
         layout = QVBoxLayout(widget)
         self.mapLabel = ClickableLabel()
         self.mapLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.mapLabel.setFixedHeight(256)
         self.getMapButton = QPushButton("Download/Generate map")
 
         self.titleLabel = QLabel()
