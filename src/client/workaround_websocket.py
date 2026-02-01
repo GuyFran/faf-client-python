@@ -1,7 +1,5 @@
 import logging
 import socket
-from queue import Queue
-from queue import ShutDown
 from typing import cast
 
 from PyQt6.QtCore import QByteArray
@@ -21,61 +19,49 @@ from src.config import Settings
 logger = logging.getLogger(__name__)
 
 
-class SocketReader(QThread):
+class SocketReader(QObject):
     message_received = pyqtSignal(QByteArray)
-    error = pyqtSignal()
+    error = pyqtSignal(object)
 
-    def __init__(self, connection: ClientConnection) -> None:
+    def __init__(self, connection: ClientConnection | None = None) -> None:
         super().__init__()
-        self.connection = connection
+        self.connection: ClientConnection | None = connection
 
-    def run(self) -> None:
+    def set_connection(self, conn: ClientConnection, /) -> None:
+        self.connection = conn
+
+    def read(self) -> None:
+        if self.connection is None:
+            logger.warning("Trying to read without any connection")
+            return
         try:
             for message in self.connection:
                 self.message_received.emit(QByteArray(cast(bytes, message)))
         except (ConnectionAbortedError, ConnectionClosedError) as e:
-            logger.error(e)
-            self.error.emit()
-            return
-
-
-class SocketWriter(QThread):
-    error = pyqtSignal()
-
-    def __init__(self, connection: ClientConnection, send_queue: Queue[bytes]) -> None:
-        super().__init__()
-        self.send_queue = send_queue
-        self.connection = connection
-
-    def run(self) -> None:
-        while True:
-            try:
-                item = self.send_queue.get()
-            except ShutDown:
-                return
-            try:
-                self.connection.send(item)
-            except (ConnectionAbortedError, ConnectionClosedError) as e:
-                logger.error(e)
-                self.error.emit()
-                return
-            self.send_queue.task_done()
+            self.error.emit(e)
 
 
 class Websocket(QObject):
     binaryMessageReceived = pyqtSignal(QByteArray)
     errorOccurred = pyqtSignal(QAbstractSocket.SocketError)
     stateChanged = pyqtSignal(QAbstractSocket.SocketState)
+    sendMessageRequest = pyqtSignal(bytes)
+    _start_read = pyqtSignal()
 
     def __init__(self, addresses: list[QHostAddress]) -> None:
         super().__init__()
         self.addresses = addresses
         self.socket: socket.socket | None = None
-        self.send_queue: Queue[bytes] | None = None
         self._sock_state = QAbstractSocket.SocketState.UnconnectedState
 
-        self.reader_thread: SocketReader | None = None
-        self.writer_thread: SocketWriter | None = None
+        self.reader_thread = QThread()
+
+        self.reader = SocketReader()
+        self.reader.moveToThread(self.reader_thread)
+        self.reader.message_received.connect(self.binaryMessageReceived.emit)
+        self.reader.error.connect(self.handle_error)
+        self._start_read.connect(self.reader.read)
+
         self.connection: ClientConnection | None = None
 
         self._states = (
@@ -106,13 +92,14 @@ class Websocket(QObject):
         self._sock_state = self._states[value]
         self.stateChanged.emit(self._sock_state)
 
-    def sync_state(self) -> None:
-        assert self.connection is not None
-        self.sock_state = self.connection.state
-
     def sendBinaryMessage(self, message: bytes) -> None:
-        assert self.send_queue is not None
-        self.send_queue.put(message)
+        if self.connection is not None:
+            try:
+                self.connection.send(message)
+            except (ConnectionAbortedError, ConnectionClosedError) as e:
+                self.handle_error(e)
+        else:
+            logger.warning("Trying to write without any connection")
 
     def state(self) -> QAbstractSocket.SocketState:
         return self._sock_state
@@ -121,30 +108,19 @@ class Websocket(QObject):
         return "[Not implemented]"
 
     def close(self) -> None:
-        self._sock_state = QAbstractSocket.SocketState.UnconnectedState
-        self.stateChanged.emit(self._sock_state)
-
-        if self.send_queue is not None:
-            self.send_queue.shutdown()
-            self.send_queue = None
-        if self.reader_thread is not None:
-            self.reader_thread.quit()
-            self.reader_thread = None
-        if self.writer_thread is not None:
-            self.writer_thread.quit()
-            self.writer_thread = None
         if self.connection is not None:
             self.connection.close()
-            self.connection = None
+        self.connection = None
         self.socket = None
+        self.sock_state = State.CLOSED
 
-    def reader_writer_error(self) -> None:
-        self.sync_state()
+    def handle_error(self, error: Exception) -> None:
+        logger.error(error)
         self.errorOccurred.emit(QAbstractSocket.SocketError.NetworkError)
+        self.close()
 
     def open(self, url: QUrl) -> None:
-        self._sock_state = QAbstractSocket.SocketState.ConnectingState
-        self.stateChanged.emit(self._sock_state)
+        self.sock_state = State.CONNECTING
 
         self.connect()
         assert self.socket is not None
@@ -158,18 +134,9 @@ class Websocket(QObject):
         self.connection.debug = False
         self.connection.protocol.debug = False
 
-        self.start_read_write()
-        self.sync_state()
+        self.reader.set_connection(self.connection)
+        if not self.reader_thread.isRunning():
+            self.reader_thread.start()
+        self._start_read.emit()
 
-    def start_read_write(self) -> None:
-        assert self.connection is not None
-
-        self.reader_thread = SocketReader(self.connection)
-        self.reader_thread.message_received.connect(self.binaryMessageReceived.emit)
-        self.reader_thread.error.connect(self.reader_writer_error)
-        self.reader_thread.start()
-
-        self.send_queue = Queue()
-        self.writer_thread = SocketWriter(self.connection, self.send_queue)
-        self.writer_thread.error.connect(self.reader_writer_error)
-        self.writer_thread.start()
+        self.sock_state = self.connection.state
