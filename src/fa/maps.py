@@ -364,6 +364,10 @@ def preview(
         ):
             logger.debug("Using fresh preview image for: " + mapname)
             return util.THEME.icon(img['cache'], False, pixmap)
+
+        if "_coop_" in mapname:
+            return util.THEME.icon("games/unknown_map.png")
+
     except Exception:
         logger.debug("Map Preview Exception ('%s')", mapname, exc_info=sys.exc_info())
     return None
