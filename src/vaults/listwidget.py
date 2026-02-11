@@ -120,10 +120,10 @@ class VaultListWidget[T: Map | Mod](QWidget):
         self.set_thumbnail(pixmap)
 
     def set_thumbnail(self, pixmap: QPixmap | None) -> None:
-        if pixmap:
+        if pixmap and not pixmap.isNull():
             ratio = Qt.AspectRatioMode.KeepAspectRatio
             trans_mode = Qt.TransformationMode.SmoothTransformation
             thumbnail = pixmap.scaled(100, 100, ratio, trans_mode)
             self.ui.thumbnailLabel.setPixmap(thumbnail)
         else:
-            self.ui.thumbnailLabel.setText("Error")
+            self.ui.thumbnailLabel.setText("No image")
