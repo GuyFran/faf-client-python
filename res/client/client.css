@@ -381,7 +381,9 @@ QLineEdit:disabled {
     border-bottom-right-radius: 5px;
 }
 
-QLineEdit#mapName, QLineEdit#playerName
+QLineEdit#mapName, QLineEdit#playerName,
+QLineEdit#searchInput, QLineEdit#authorInput,
+QLineEdit#uploaderInput
 {
     background-color: #353535;
 }
@@ -989,7 +991,7 @@ QPushButton#refreshButton:hover, #nextButton::hover, #previousButton::hover, #go
     background-color: #808080;
 }
 
-QPushButton#searchButton, #advSearchButton, #fafDbButton, #spookyDbButton
+QPushButton#searchButton, QPushButton#advSearchButton, #fafDbButton, #spookyDbButton
 {
 	color: silver;
 	border-radius: 5px;
@@ -1114,6 +1116,7 @@ QComboBox, QComboBox:selected
     background-color: #353535;
     selection-background-color: #575656;
     border: 1px solid #555450;
+    padding-left: 2px;
 }
 
 QComboBox::disabled
@@ -1493,6 +1496,10 @@ QFrame#eventButtonsFrame {
 }
 
 QFrame#eventContentFrame {
+    background: #202025;
+}
+
+QGroupBox#vaultSearchParams {
     background: #202025;
 }
 

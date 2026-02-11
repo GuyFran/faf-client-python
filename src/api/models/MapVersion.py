@@ -1,6 +1,5 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
+from typing import Self
 
 from pydantic import Field
 
@@ -14,6 +13,10 @@ from src.api.models.ReviewsSummary import ReviewsSummary
 class MapSize:
     height_px: int
     width_px: int
+
+    @classmethod
+    def from_side_km(cls, s: float, /) -> Self:
+        return cls(int(s * 51.2), int(s * 51.2))
 
     @property
     def width_km(self) -> float:

@@ -7,6 +7,7 @@ from PyQt6.QtGui import QShowEvent
 from PyQt6.QtWidgets import QLabel
 
 from src import util
+from src.api.ApiBase import QueryOptions
 from src.api.models.Map import Map
 from src.api.models.Mod import Mod
 from src.config import Settings
@@ -37,12 +38,19 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
         BaseClass.__init__(self)
         self.client = client
         self._loaded = False
+        self._search_params_ui = ""
 
     def setup(self) -> None:
         self.setupUi(self)
 
-        self.searchButton.clicked.connect(self.search)
-        self.searchInput.returnPressed.connect(self.search)
+        self.searchParams = util.THEME.loadUi(self._search_params_ui)
+        self.searchParamsLayout.addWidget(self.searchParams)
+
+        self.searchParams.searchButton.clicked.connect(self.search)
+        self.searchParams.searchInput.returnPressed.connect(self.search)
+        self.searchParams.authorInput.returnPressed.connect(self.search)
+
+        self.searchParams.allRanksRadio.setChecked(True)
 
         self.itemList.itemDoubleClicked.connect(self.on_item_double_clicked)
         self.itemList.currentItemChanged.connect(self.on_item_selected)
@@ -58,7 +66,6 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
         self.ShowTypeList.clear()
         self.ShowTypeList.currentIndexChanged.connect(self.show_changed)
 
-        self.searchString = ""
         self.searchQuery = {}
         self.apiConnector = None
 
@@ -80,7 +87,7 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
         )
         self.firstButton.clicked.connect(lambda: self.goToPage(1))
         self.lastButton.clicked.connect(lambda: self.goToPage(self.totalPages))
-        self.resetButton.clicked.connect(self.reset_search)
+        self.searchParams.resetButton.clicked.connect(self.reset_search)
 
         self.browseComboBox.addItems([browse.value for browse in BrowseType])
         self.browseComboBox.currentIndexChanged.connect(self.on_browse_type_changed)
@@ -236,23 +243,25 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
 
     @QtCore.pyqtSlot(bool)
     def reset_search(self) -> None:
-        self.searchString = ''
-        self.searchInput.clear()
+        self.reset_search_params()
+        self.goToPage(1)
+
+    def reset_search_params(self) -> None:
+        self.searchParams.searchInput.clear()
+        self.searchParams.authorInput.clear()
+        self.searchParams.allRanksRadio.setChecked(True)
         self.searchQuery.clear()
         with block_signals(self.browseComboBox):
             self.browseComboBox.setCurrentIndex(0)
-        self.goToPage(1)
+
+    def construct_search_filters(self) -> QueryOptions:
+        raise NotImplementedError
 
     def search(self) -> None:
-        self.searchString = self.searchInput.text().lower()
-        if self.searchString == '' or self.searchString.replace(' ', '') == '':
-            self.reset_search()
-        else:
-            self.searchString = self.searchString.strip()
-            self.searchQuery = {"filter": f"displayName=='*{self.searchString}*'"}
-            with block_signals(self.browseComboBox):
-                self.browseComboBox.setCurrentIndex(0)
-            self.goToPage(1)
+        self.searchQuery = self.construct_search_filters()
+        with block_signals(self.browseComboBox):
+            self.browseComboBox.setCurrentIndex(0)
+        self.goToPage(1)
 
     @QtCore.pyqtSlot()
     def busy_entered(self):
