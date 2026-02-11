@@ -101,6 +101,7 @@ class ChannelTab:
             return
         self._ping_timer.start()
         if self._ping_sound.isLoaded():
+            self._ping_sound.stop()
             self._ping_sound.play()
 
     def _stop_blinking(self):

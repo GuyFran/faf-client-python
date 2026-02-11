@@ -69,8 +69,9 @@ class NotificationDialog(FormClass, BaseClass):
 
         self.labelTime.setText(time.strftime("%H:%M:%S", time.localtime()))
         QtCore.QTimer.singleShot(lifetime * 1000, self.hide)
-        if sound and sound_effect(util.THEME).isLoaded():
-            sound_effect(util.THEME).play()
+        if sound and (effect := sound_effect(util.THEME)).isLoaded():
+            effect.stop()
+            effect.play()
         self.setFixedHeight(height or self.baseHeight)
         self.setFixedWidth(width or self.baseWidth)
 
