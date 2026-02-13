@@ -991,7 +991,8 @@ QPushButton#refreshButton:hover, #nextButton::hover, #previousButton::hover, #go
     background-color: #808080;
 }
 
-QPushButton#searchButton, QPushButton#advSearchButton, #fafDbButton, #spookyDbButton
+QPushButton#searchButton, QPushButton#advSearchButton, QPushButton#fafDbButton,
+QPushButton#spookyDbButton, QPushButton#etfreemanDbButton
 {
 	color: silver;
 	border-radius: 5px;
@@ -1001,7 +1002,8 @@ QPushButton#searchButton, QPushButton#advSearchButton, #fafDbButton, #spookyDbBu
     background-color: rgb(39, 39, 45);
 }
 
-QPushButton#searchButton:hover, #advSearchButton::hover, #fafDbButton::hover, #spookyDbButton::hover
+QPushButton#searchButton::hover, QPushButton#advSearchButton::hover, QPushButton#fafDbButton::hover,
+QPushButton#spookyDbButton::hover, QPushButton#etfreemanDbButton::hover
 {
     background-color: #808080;
 }

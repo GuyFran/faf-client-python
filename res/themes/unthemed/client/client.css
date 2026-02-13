@@ -408,7 +408,8 @@ QPushButton#refreshButton, #nextButton, #previousButton, #goToPageButton, #first
     border-radius: 2;
 }
 
-QPushButton#searchButton, #advSearchButton, #fafDbButton, #spookyDbButton
+QPushButton#searchButton, QPushButton#advSearchButton, QPushButton#fafDbButton,
+QPushButton#spookyDbButton, QPushButton#etfreemanDbButton
 {
 	border-radius: 5px;
 	border: 2px solid;
