@@ -1,6 +1,14 @@
 0.x.x
 =====
 
+0.26.3
+* Add more filter options to vaults
+* Fix broken notification sound playback
+* Add ETFreeman unit database link
+* Limit game title length to 128
+* Improve QThreads handling
+* Update dependencies
+
 0.26.2
 * [Windows] Workaround `Premature EOF` in live replays with an option to disable it
 * Fix advanced search in replay vault
