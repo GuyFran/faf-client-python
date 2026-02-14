@@ -1927,7 +1927,6 @@ class ClientWindow(FormClass, BaseClass):
         arguments: list[str] = []
         if message["game_type"] == GameType.MATCHMAKER.value:
             self.launching_ladder.emit(message)
-            self.labelStatusBarInfo.setText("Launching the game...")
             rating_type = message.get("rating_type", RatingType.GLOBAL.value)
             queue_name = MatchmakerQueueType.from_rating_type(rating_type)
             factionSubset = config.Settings.get_list(

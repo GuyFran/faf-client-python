@@ -5,7 +5,9 @@ from PyQt6 import QtCore
 from PyQt6 import QtWidgets
 
 from src import util
+from src.api.ApiBase import QueryOptions
 from src.api.models.Mod import Mod
+from src.api.models.ModType import ModType
 from src.api.vaults_api import ModApiConnector
 from src.downloadManager import ImageDownloader
 from src.vaults.modvault import utils
@@ -26,6 +28,7 @@ logger = logging.getLogger(__name__)
 class ModVault(Vault[Mod]):
     def setup(self) -> None:
         logger.debug("Mod Vault tab instantiating")
+        self._search_params_ui = "vaults/modfilters.ui"
         super().setup()
         self.image_loader = ImageDownloader(util.MOD_PREVIEW_DIR)
         self.UIButton.clicked.connect(self.openUIModForm)
@@ -45,6 +48,39 @@ class ModVault(Vault[Mod]):
         item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEnabled)
 
         self.UIButton.show()
+        self.mod_type_buttons = QtWidgets.QButtonGroup()
+        self.mod_type_buttons.addButton(self.searchParams.allTypesRadio)
+        self.mod_type_buttons.addButton(self.searchParams.simRadio)
+        self.mod_type_buttons.addButton(self.searchParams.uiRadio)
+
+        self.searchParams.allTypesRadio.setChecked(True)
+        self.searchParams.uploaderInput.returnPressed.connect(self.search)
+
+    def construct_search_filters(self) -> QueryOptions:
+        filters: list[str] = []
+        if name := self.searchParams.searchInput.text().lower().strip():
+            filters.append(f"displayName=='*{name}*'")
+        if author := self.searchParams.authorInput.text().lower().strip():
+            filters.append(f"author=='*{author}*'")
+        if uploader := self.searchParams.uploaderInput.text().lower().strip():
+            filters.append(f"uploader.login=='*{uploader}*'")
+
+        if self.searchParams.rankedRadio.isChecked():
+            filters.append("latestVersion.ranked=='true'")
+        elif self.searchParams.unrankedRadio.isChecked():
+            filters.append("latestVersion.ranked=='false'")
+
+        if self.searchParams.simRadio.isChecked():
+            filters.append(f"latestVersion.type=={ModType.SIM.value}")
+        elif self.searchParams.uiRadio.isChecked():
+            filters.append(f"latestVersion.type=={ModType.UI.value}")
+
+        return {"filter": ";".join(filters)} if filters else {}
+
+    def reset_search_params(self) -> None:
+        super().reset_search_params()
+        self.searchParams.uploaderInput.clear()
+        self.searchParams.allTypesRadio.setChecked(True)
 
     def create_item_widget(self, data: Mod) -> ModListWidget:
         return ModListWidget(data, self.image_loader)

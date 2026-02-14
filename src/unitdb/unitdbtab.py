@@ -16,14 +16,14 @@ class UnitDbView(FormClass, BaseClass):
 class UnitDBTab:
     def __init__(self) -> None:
         self.db_widget = UnitDbView()
-        self._db_url = QUrl(Settings.get("UNITDB_URL"))
-        self._db_url_alt = QUrl(Settings.get("UNITDB_SPOOKY_URL"))
+        self._db_urls = (
+            QUrl(Settings.get("UNITDB_URL")),
+            QUrl(Settings.get("UNITDB_SPOOKY_URL")),
+            QUrl(Settings.get("UNITDB_ETFREEMAN_URL")),
+        )
+        self.db_widget.fafDbButton.pressed.connect(lambda: self.open_db_url(0))
+        self.db_widget.spookyDbButton.pressed.connect(lambda: self.open_db_url(1))
+        self.db_widget.etfreemanDbButton.pressed.connect(lambda: self.open_db_url(2))
 
-        self.db_widget.fafDbButton.pressed.connect(self.open_default_tab)
-        self.db_widget.spookyDbButton.pressed.connect(self.open_alternative_tab)
-
-    def open_default_tab(self) -> None:
-        QDesktopServices.openUrl(self._db_url)
-
-    def open_alternative_tab(self) -> None:
-        QDesktopServices.openUrl(self._db_url_alt)
+    def open_db_url(self, index: int, /) -> None:
+        QDesktopServices.openUrl(self._db_urls[index])

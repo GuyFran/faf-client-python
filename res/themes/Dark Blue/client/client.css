@@ -1052,7 +1052,7 @@ QPushButton#searchButton, #advSearchButton {
     font: bold;
 }
 
-QPushButton#fafDbButton, #spookyDbButton {
+QPushButton#fafDbButton, QPushButton#spookyDbButton, QPushButton#etfreemanDbButton {
     font: bold 13pt;
     border-radius: 6px;
 }
