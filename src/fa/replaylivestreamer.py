@@ -11,7 +11,6 @@ from PyQt6.QtCore import QObject
 from PyQt6.QtCore import QUrl
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtNetwork import QAbstractSocket
-from PyQt6.QtNetwork import QNetworkReply
 from PyQt6.QtWebSockets import QWebSocket
 from PyQt6.QtWidgets import QMessageBox
 
@@ -38,7 +37,7 @@ class StreamWriter(QObject):
     _close = pyqtSignal()
     _abort = pyqtSignal()
 
-    def __init__(self, gurl: GameUrl | None = None) -> None:
+    def __init__(self, gurl: GameUrl) -> None:
         super().__init__()
         self.game_url = gurl
 
@@ -46,6 +45,8 @@ class StreamWriter(QObject):
         self.socket.binaryMessageReceived.connect(self.on_server_message)
         self.socket.connected.connect(self.on_socket_connected)
         self.socket.disconnected.connect(self.on_socket_disconnected)
+
+        self.pipe_connected: int | None = None
 
         self.queue: Queue[bytes] = Queue()
         self._thread = Thread(target=self.stream, daemon=True)
@@ -71,22 +72,6 @@ class StreamWriter(QObject):
 
         self._close_intended = False
 
-    def is_finished(self) -> bool:
-        return self._finished
-
-    def reset(self) -> None:
-        self.game_url = None
-
-        self._ready = False
-        self._finished = True
-        self._close_intended = False
-
-        self.queue = Queue()
-        self._thread = Thread(target=self.stream, daemon=True)
-
-    def set_game_url(self, gurl: GameUrl, /) -> None:
-        self.game_url = gurl
-
     def start(self) -> None:
         self._finished = False
         self._logger.debug("Starting named pipe thread...")
@@ -99,12 +84,12 @@ class StreamWriter(QObject):
             win32pipe.PIPE_TYPE_BYTE | win32pipe.PIPE_WAIT,
             1, 65536, 65536, 0, win32security.SECURITY_ATTRIBUTES(),
         )
-        pipe_connected = cast(int, win32pipe.ConnectNamedPipe(pipe, None))
+        self.pipe_connected = cast(int, win32pipe.ConnectNamedPipe(pipe, None))
 
-        if pipe_connected != 0:
+        if self.pipe_connected != 0:
             self._logger.warning(
                 "Coul not connect named pipe. ConnectNamedPipe returned %s",
-                pipe_connected,
+                self.pipe_connected,
             )
             win32file.CloseHandle(pipe)
             self._close.emit()
@@ -134,7 +119,6 @@ class StreamWriter(QObject):
         # in the past presumably to identify from who we want to receive replay data.
         # nowadays replay server merges data from all players, but the format remained
         # the same, because the game uses this format
-        assert self.game_url is not None
         msg = f"G/{self.game_url.uid}/{self.game_url.player}.scfareplay\x00".encode()
         self.socket.sendBinaryMessage(msg)
 
@@ -166,6 +150,8 @@ class StreamWriter(QObject):
 
     def shutdown(self) -> None:
         self.queue.shutdown()
+        self.pipe_connected = None
+
         self._finished = True
 
         self.closed.emit()
@@ -181,34 +167,32 @@ class LiveReplayStreamer(QObject):
         self.api = UserApiAccessor()
 
         self.game_url: GameUrl | None = None
-
-        self.writer = StreamWriter()
-        self.writer.ready.connect(self.on_writer_ready)
-        self.writer.not_ready.connect(self.on_writer_not_ready)
-        self.writer.closed.connect(self.on_writer_closed)
+        self.writer: StreamWriter | None = None
 
     def start_live_replay(self, gurl: GameUrl) -> None:
         # TODO: handle linux too
         if sys.platform == "win32" and Settings.get("game/pipe_live_replay", True, type=bool):
-            if not self.writer.is_finished():
-                self._logger.warning("Another instance of StreamWriter is not finished yet.")
-                QMessageBox.warning(None, "Live Replay", "Another live replay is already running.")
-                return
-
             self.game_url = gurl
-            self.writer.set_game_url(gurl)
-            self.api.get("/replay/access", self.on_replay_access_url, self.on_api_error)
+            self.api.get("/replay/access", self.on_replay_access_url)
         else:
             replay(gurl)
 
     def on_replay_access_url(self, data: dict[str, Any]) -> None:
-        self.writer.connect_to_replay_server(QUrl(data["accessUrl"]))
+        if self.writer is not None:
+            self._logger.warning("Another instance of StreamWriter is not finished yet.")
+            QMessageBox.warning(None, "Live Replay", "Another live replay is already running.")
+            return
 
-    def on_api_error(self, _: QNetworkReply) -> None:
-        QMessageBox.warning(None, "Live Replay", "Could not get access to replay server")
+        assert self.game_url is not None
+        self.writer = StreamWriter(self.game_url)
+        self.writer.ready.connect(self.on_writer_ready)
+        self.writer.not_ready.connect(self.on_writer_not_ready)
+        self.writer.closed.connect(self.on_writer_closed)
+        self.writer.connect_to_replay_server(QUrl(data["accessUrl"]))
 
     def on_writer_ready(self) -> None:
         assert self.game_url is not None
+        assert self.writer is not None
         if replay(self.game_url):
             self.writer.start()
         else:
@@ -220,4 +204,4 @@ class LiveReplayStreamer(QObject):
         self.on_writer_closed()
 
     def on_writer_closed(self) -> None:
-        self.writer.reset()
+        self.writer = None
