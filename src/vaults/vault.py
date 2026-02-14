@@ -102,10 +102,15 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
 
         self.vault_type = type(self).__name__
 
+        self.verticalSplitter.setStretchFactor(1, 1)
         with Settings.group("vaults"):
-            splitter_sizes = Settings.get(f"{self.vault_type}/splitter", type=list, default=[])
-            if len(splitter_sizes) == 2:
-                self.splitter.setSizes(list(map(int, splitter_sizes)))
+            hsplitter_sizes = Settings.get_list(f"{self.vault_type}/splitter", [], type=int)
+            if len(hsplitter_sizes) == 2:
+                self.splitter.setSizes(hsplitter_sizes)
+            vsplitter_sizes = Settings.get_list(f"{self.vault_type}/vsplitter", [], type=int)
+            if len(vsplitter_sizes) == 2:
+                self.verticalSplitter.setSizes(vsplitter_sizes)
+
             flow_type = Settings.get(
                 f"{self.vault_type}/flow",
                 type=self.itemList.Flow,
@@ -114,10 +119,12 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
             self.itemList.setFlow(flow_type)
             self.itemList.setWrapping(flow_type == self.itemList.Flow.LeftToRight)
         self.splitter.splitterMoved.connect(self.save_splitter_sizes)
+        self.verticalSplitter.splitterMoved.connect(self.save_splitter_sizes)
 
     def save_splitter_sizes(self) -> None:
         with Settings.group("vaults"):
             Settings.set(f"{self.vault_type}/splitter", self.splitter.sizes())
+            Settings.set(f"{self.vault_type}/vsplitter", self.verticalSplitter.sizes())
 
     def save_flow_type(self) -> None:
         with Settings.group("vaults"):
