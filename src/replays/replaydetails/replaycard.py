@@ -134,6 +134,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.replay_info_tab.map_obtained.connect(self.heatmap_tab.set_map_foreground)
 
         self.replayTabs = QtWidgets.QTabWidget()
+        self.replayTabs.setEnabled(False)
         self.replayTabs.addTab(self.replay_info_tab, "Info")
         self.replayTabs.addTab(self.chat_tab, "Chat")
         self.replayTabs.addTab(self.events_tab, "Events")
@@ -285,6 +286,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
     @QtCore.pyqtSlot(int)
     def populatePages(self, ms: int) -> None:
         self.statusBar.showMessage(f"Download: {self.download_time} ms; Parse: {ms} ms")
+        self.replayTabs.setEnabled(True)
         self.tab_history.clear()
         self.on_tab_changed(0)
 
