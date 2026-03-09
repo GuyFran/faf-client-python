@@ -1,5 +1,6 @@
 import pytest
 
+from src import config
 from src.model.game import Game
 from src.model.gameset import Gameset
 from src.model.player import Player
@@ -39,6 +40,7 @@ def signal_receiver(application):
 
 @pytest.fixture
 def client_instance():
+    config.VERSION = "0.10.125"
     from src.client import instance
     return instance
 

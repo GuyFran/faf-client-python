@@ -59,20 +59,23 @@ class ChatConfig(QtCore.QObject):
 
     def load_settings(self) -> None:
         s = self._settings
-        self.soundeffects: bool = s.value("chat/soundeffects", True, type=bool)
-        self.joinsparts: bool = s.value("chat/joinsparts", False, type=bool)
-        self.friendsontop: bool = s.value("chat/friendsontop", False, type=bool)
-        self.newbies_channel: bool = s.value("chat/newbiesChannel", True, type=bool)
-        self.ignore_foes: bool = s.value("chat/ignoreFoes", True, type=bool)
+        self.soundeffects = s.value("chat/soundeffects", True, type=bool)
+        self.joinsparts = s.value("chat/joinsparts", False, type=bool)
+        self.friendsontop = s.value("chat/friendsontop", False, type=bool)
+        self.newbies_channel = s.value("chat/newbiesChannel", True, type=bool)
+        self.ignore_foes = s.value("chat/ignoreFoes", True, type=bool)
 
         items = s.value("chat/hide_chatter_items", "")
         items = items.split()
+        hidden = set()
         for item in items:
             try:
                 enum_val = ChatterLayoutElements(item)
-                self.hide_chatter_items.add(enum_val)
+                hidden.add(enum_val)
             except ValueError:
                 pass
+        self.hide_chatter_items.clear()
+        self.hide_chatter_items |= hidden
 
     def save_settings(self):
         s = self._settings

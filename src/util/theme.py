@@ -13,7 +13,7 @@ from PyQt6 import QtWidgets
 from PyQt6 import uic
 from semantic_version import Version
 
-from src.config import Settings
+from src.config import SettingsCls
 
 logger = logging.getLogger(__name__)
 
@@ -146,6 +146,10 @@ class Theme:
         )
 
     @_noneIfNoFile
+    def themepath(self, filename: str) -> str:
+        return self._themepath(filename).replace("\\", "/")
+
+    @_noneIfNoFile
     def readfile(self, filename):
         # Reads and returns the contents of a file in the theme folder.
         with open(self._themepath(filename)) as f:
@@ -190,7 +194,7 @@ class ThemeSet(QtCore.QObject):
         self,
         themeset: Iterable[Theme],
         default_theme: Theme,
-        settings: type[Settings],
+        settings: SettingsCls,
         client_version: str,
         unthemed: Theme | None = None,
     ) -> None:
@@ -203,7 +207,7 @@ class ThemeSet(QtCore.QObject):
         self._client_version = client_version
 
     @property
-    def theme(self):
+    def theme(self) -> Theme:
         return self._theme
 
     @property
@@ -282,10 +286,10 @@ class ThemeSet(QtCore.QObject):
         faf_version = Version(self._client_version)
         return faf_version > theme_version
 
-    def _do_setTheme(self, new_theme: Theme) -> None:
+    def _do_setTheme(self, new_theme: Theme) -> bool:
         old_theme = self._theme
 
-        def theme_changed():
+        def theme_changed() -> bool:
             return old_theme != self._theme
 
         if new_theme == self._theme:
@@ -402,6 +406,10 @@ class ThemeSet(QtCore.QObject):
     @_warn_resource_null
     def themeurl(self, filename: str, *, themed: bool = True):
         return self._theme_callchain("themeurl", filename, themed)
+
+    @_warn_resource_null
+    def themepath(self, filename: str, *, themed: bool = True) -> str:
+        return self._theme_callchain("themepath", filename, themed)
 
     @_warn_resource_null
     def readfile(self, filename: str, *, themed: bool = True):

@@ -15,27 +15,19 @@ from src.model.game import Game
 from src.model.player import Player
 from src.notifications.ns_dialog import NotificationDialog
 from src.notifications.ns_settings import IngameNotification
-from src.notifications.ns_settings import NsSettingsDialog
+from src.notifications.ns_settings import NsSettings
+from src.notifications.ns_type import NsType
 from src.protocol.lobbyprotocol import GameLaunchCommand
 
 
 class Notifications:
-    USER_ONLINE = 'user_online'
-    NEW_GAME = 'new_game'
-    GAME_FULL = 'game_full'
-    CUSTOM_GAME_LAUNCHED = "game_launched_custom"
-    LADDER_GAME_LAUNCHED = "game_launched_ladder"
-    LAUNCHING_LADDER = "launching_ladder"
-    UNOFFICIAL_CLIENT = 'unofficial_client'
-    PARTY_INVITE = 'party_invite'
-
     def __init__(self, client, gameset, playerset, me):
         self.client = client
         self.me = me
 
-        self.settings = NsSettingsDialog(self.client)
+        self.settings = NsSettings
         self.dialog = NotificationDialog(self.client, self.settings)
-        self.events: list[tuple[str, Any]] = []
+        self.events: list[tuple[NsType, Any]] = []
         self.disabledStartup = True
         self.game_running = False
         self.unofficialClientDate = Settings.get(
@@ -64,52 +56,55 @@ class Notifications:
         )
 
     def _newPlayer(self, player: Player) -> None:
-        if self.is_disabled(self.USER_ONLINE):
+        if self.is_disabled(NsType.USER_ONLINE):
             return
 
         if self.me.player is not None and self.me.player == player:
             return
 
-        notify_mode = self.settings.getCustomSetting(self.USER_ONLINE, 'mode')
+        notify_mode = self.settings.getCustomSetting(NsType.USER_ONLINE, 'mode')
         if (
             notify_mode != 'all'
             and not self.client.user_relations.model.is_friend(player.id)
         ):
             return
 
-        self.events.append((self.USER_ONLINE, player.copy()))
+        self.events.append((NsType.USER_ONLINE, player.copy()))
         self.checkEvent()
 
     def _newLobby(self, game: Game) -> None:
-        if self.is_disabled(self.NEW_GAME):
+        if self.is_disabled(NsType.NEW_GAME):
             return
 
         host = game.host_player
-        notify_mode = self.settings.getCustomSetting(self.NEW_GAME, 'mode')
+        notify_mode = self.settings.getCustomSetting(NsType.NEW_GAME, 'mode')
         if notify_mode != 'all':
             if host is None or not self.client.user_relations.model.is_friend(host.id, host.login):
                 return
 
-        self.events.append((self.NEW_GAME, game.copy()))
+        self.events.append((NsType.NEW_GAME, game.copy()))
         self.checkEvent()
 
     def _gamefull(self) -> None:
-        if self.is_disabled(self.GAME_FULL):
+        if self.is_disabled(NsType.GAME_FULL):
             return
-        if (self.GAME_FULL, None) not in self.events:
-            self.events.append((self.GAME_FULL, None))
+        if (NsType.GAME_FULL, None) not in self.events:
+            self.events.append((NsType.GAME_FULL, None))
         self.checkEvent()
 
     def launching_ladder(self, message: GameLaunchCommand) -> None:
-        if self.is_disabled(self.LAUNCHING_LADDER):
+        if self.is_disabled(NsType.LAUNCHING_LADDER):
             return
-        event_data = (self.LAUNCHING_LADDER, message["name"])
+        event_data = (NsType.LAUNCHING_LADDER, message["name"])
         if event_data not in self.events:
             self.events.append(event_data)
         self.checkEvent()
 
     def game_launched(self, mode: LobbyInitMode) -> None:
-        ev = self.LADDER_GAME_LAUNCHED if mode is LobbyInitMode.AUTO else self.CUSTOM_GAME_LAUNCHED
+        if mode is LobbyInitMode.AUTO:
+            ev = NsType.LADDER_GAME_LAUNCHED
+        else:
+            ev = NsType.CUSTOM_GAME_LAUNCHED
         if self.is_disabled(ev):
             return
         if (ev, None) not in self.events:
@@ -125,20 +120,20 @@ class Notifications:
         Settings.set(
             'notifications/unofficialClientDate', self.unofficialClientDate,
         )
-        self.events.append((self.UNOFFICIAL_CLIENT, msg))
+        self.events.append((NsType.UNOFFICIAL_CLIENT, msg))
         self.checkEvent()
 
     def partyInvite(self, message: dict) -> None:
-        if self.is_disabled(self.PARTY_INVITE):
+        if self.is_disabled(NsType.PARTY_INVITE):
             return
 
-        notify_mode = self.settings.getCustomSetting(self.PARTY_INVITE, 'mode')
+        notify_mode = self.settings.getCustomSetting(NsType.PARTY_INVITE, 'mode')
         if (
             notify_mode != 'all'
             and not self.client.user_relations.model.is_friend(message["sender"])
         ):
             return
-        self.events.append((self.PARTY_INVITE, message))
+        self.events.append((NsType.PARTY_INVITE, message))
         self.checkEvent()
 
     def gameEnter(self):
@@ -150,7 +145,7 @@ class Notifications:
         if self.settings.ingame_notifications == IngameNotification.QUEUE:
             self.checkEvent()
 
-    def is_enabled(self, event_type: str) -> bool:
+    def is_enabled(self, event_type: NsType) -> bool:
         if not self.settings.enabled:
             return False
 
@@ -165,19 +160,12 @@ class Notifications:
             )
         return True
 
-    def is_disabled(self, event_type: str) -> bool:
+    def is_disabled(self, event_type: NsType) -> bool:
         return not self.is_enabled(event_type)
 
     def setNotificationEnabled(self, enabled):
         self.settings.enabled = enabled
         self.settings.saveSettings()
-
-    @QtCore.pyqtSlot()
-    def on_showSettings(self):
-        """
-        Shows a Settings Dialg with all registered notifications modules
-        """
-        self.settings.show()
 
     def showEvent(self):
         """
@@ -196,13 +184,13 @@ class Notifications:
         data = event[1]
         pixmap = None
         text = str(data)
-        if eventType == self.USER_ONLINE:
+        if eventType == NsType.USER_ONLINE:
             player = data
             pixmap = self.user
             text = (
                 f'{player.login}<br><font color="{self.secondary_color}" size="-2">is online</font>'
             )
-        elif eventType == self.NEW_GAME:
+        elif eventType == NsType.NEW_GAME:
             game = data
             preview = maps.preview(game.mapname, pixmap=True)
             if preview:
@@ -239,19 +227,19 @@ class Notifications:
                     modhtml,
                 )
             )
-        elif eventType == self.GAME_FULL:
+        elif eventType == NsType.GAME_FULL:
             pixmap = self.user
             text = f'<br><font color="{self.secondary_color}" size="-2">Game is full.</font>'
-        elif eventType in (self.CUSTOM_GAME_LAUNCHED, self.LADDER_GAME_LAUNCHED):
+        elif eventType in (NsType.CUSTOM_GAME_LAUNCHED, NsType.LADDER_GAME_LAUNCHED):
             text = "Game Launched"
-        elif eventType == self.LAUNCHING_LADDER:
+        elif eventType == NsType.LAUNCHING_LADDER:
             text = f"<font size='-2'>Launching game:</font><br>{data}"
-        elif eventType == self.UNOFFICIAL_CLIENT:
+        elif eventType == NsType.UNOFFICIAL_CLIENT:
             pixmap = self.user
             text = f'<br><font color="{self.secondary_color}" size="-2">{data}</font>'
             self.dialog.newEvent(pixmap, text, 10, False, 200)
             return
-        elif eventType == self.PARTY_INVITE:
+        elif eventType == NsType.PARTY_INVITE:
             pixmap = self.user
             login = self.client.players[data["sender"]].login
             text = (

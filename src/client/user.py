@@ -14,7 +14,7 @@ from src.api.models.LeagueSeasonScore import LeagueSeasonScore
 from src.api.stats_api import LeagueSeasonScoreApiConnector
 from src.client.connection import LobbyInfo
 from src.client.connection import ServerConnection
-from src.config import Settings
+from src.config import SettingsCls
 from src.model.chat.chatter import Chatter
 from src.model.chat.chatterset import Chatterset
 from src.model.modelitem import ModelItem
@@ -229,7 +229,7 @@ class IrcRelationController:
         keyname: str,
         set_: SignallingSet[str],
         me: User,
-        settings: type[Settings],
+        settings: SettingsCls,
     ) -> None:
         self._keyname = keyname
         self._set = set_
@@ -245,7 +245,7 @@ class IrcRelationController:
         keyname: str,
         set_: SignallingSet[str],
         me: User,
-        settings: type[Settings],
+        settings: SettingsCls,
         **kwargs: Any,
     ) -> Self:
         return cls(keyname, set_, me, settings)

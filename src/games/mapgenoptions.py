@@ -39,7 +39,6 @@ class MapGenOption(OptionMixin):
             typ: type = str,
             default: Any = None,
     ) -> None:
-        self.conf = config.Settings()
         self.name = name
         self.ui_elem = ui_elem
         self.typ = typ
@@ -51,7 +50,7 @@ class MapGenOption(OptionMixin):
 
     def load(self) -> None:
         self.set_value(
-            self.conf.get(
+            config.Settings.get(
                 f"mapGenerator/{self.ui_elem.objectName()}",
                 default=self.default,
                 type=self.typ,
@@ -59,7 +58,7 @@ class MapGenOption(OptionMixin):
         )
 
     def save(self) -> None:
-        self.conf.set(
+        config.Settings.set(
             f"mapGenerator/{self.ui_elem.objectName()}",
             self.value(),
         )

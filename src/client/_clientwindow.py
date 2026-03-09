@@ -1,7 +1,6 @@
 import logging
 import time
 from functools import partial
-from operator import itemgetter
 
 from PyQt6 import QtCore
 from PyQt6 import QtGui
@@ -19,9 +18,7 @@ from src.chat.chat_announcer import ChatAnnouncer
 from src.chat.chat_controller import ChatController
 from src.chat.chat_greeter import ChatGreeter
 from src.chat.chat_view import ChatView
-from src.chat.chatter_model import ChatterLayoutElements
 from src.chat.ircconnection import IrcConnection
-from src.chat.language_channel_config import LanguageChannelConfig
 from src.chat.line_restorer import ChatLineRestorer
 from src.client.aliasviewer import AliasSearchWindow
 from src.client.aliasviewer import AliasWindow
@@ -35,14 +32,12 @@ from src.client.connection import ServerReconnecter
 from src.client.gameannouncer import GameAnnouncer
 from src.client.login import LoginWidget
 from src.client.playercolors import PlayerColors
-from src.client.theme_menu import ThemeMenu
 from src.client.user import User
 from src.client.user import UserRelationController
 from src.client.user import UserRelationModel
 from src.client.user import UserRelations
 from src.client.user import UserRelationTrackers
 from src.connectivity.ConnectivityDialog import ConnectivityDialog
-from src.connectivity.IceAdapterVersionSelector import IceAdapterVersionSettingsDialog
 from src.connectivity.relay.GPGProtocol import LobbyInitMode
 from src.contextmenu.playercontextmenu import PlayerContextMenu
 from src.coop import CoopWidget
@@ -94,8 +89,7 @@ from src.unitdb.unitdbtab import UnitDBTab
 from src.updater import ClientUpdateTools
 from src.util import crash
 from src.util.gameurl import GameUrl
-from src.util.settings_menus import show_cache_settings
-from src.util.settings_menus import show_game_settings
+from src.util.settings_menus import OptionsDialog
 from src.vaults.mapvault.mapvault import MapVault
 from src.vaults.modvault.modvault import ModVault
 from src.vaults.modvault.utils import getModFolder
@@ -137,9 +131,6 @@ class ClientWindow(FormClass, BaseClass):
     matchmaker_info = QtCore.pyqtSignal(dict)
     party_invite = QtCore.pyqtSignal(dict)
 
-    remember = config.Settings.persisted_property(
-        'user/remember', type=bool, default_value=True,
-    )
     refresh_token = config.Settings.persisted_property(
         'user/refreshToken', persist_if=lambda self: self.remember,
     )
@@ -166,6 +157,7 @@ class ClientWindow(FormClass, BaseClass):
         self.oauth_flow.granted.connect(self.save_refresh_token)
         self.oauth_flow.requestFailed.connect(self.on_login_attempt_failed)
 
+        self.remember = config.Settings.get("user/remember", True, type=bool)
         self.unique_id = None
         self._chat_config = ChatConfig(util.settings)
 
@@ -390,10 +382,15 @@ class ClientWindow(FormClass, BaseClass):
 
         self.power = 0  # current user power
         self.id = 0
-        # Initialize the Menu Bar according to settings etc.
-        self._language_channel_config = LanguageChannelConfig(
-            self, config.Settings, util.THEME,
+        self._update_tools = ClientUpdateTools.build(
+            config.VERSION, self, self._network_access_manager,
         )
+        self._update_tools.mandatory_update_aborted.connect(self.close)
+
+        self.options = OptionsDialog(self, self._update_tools)
+        config.Settings.changed.connect(self.update_options)
+
+        # Initialize the Menu Bar according to settings etc.
         self.initMenus()
 
         # Load the icons for the tabs
@@ -888,11 +885,8 @@ class ClientWindow(FormClass, BaseClass):
         self.mainGridLayout.addLayout(self.warning, 2, 0)
         self.warningHide()
 
-        self._update_tools = ClientUpdateTools.build(
-            config.VERSION, self, self._network_access_manager,
-        )
-        self._update_tools.mandatory_update_aborted.connect(self.close)
-        self._update_tools.checker.check()
+        if config.Settings.get("updater/autocheck", True, type=bool):
+            self._update_tools.checker.check()
         BackgroundImporter.start()
 
     def _connect_chat(self, me: Player) -> None:
@@ -1038,12 +1032,6 @@ class ClientWindow(FormClass, BaseClass):
         return QtWidgets.QMainWindow.closeEvent(self, event)
 
     def initMenus(self) -> None:
-        # TODO: make proper widgets/dialogs for some/all options?
-        self.actionCheck_for_Updates.triggered.connect(self.check_for_updates)
-        self.actionUpdate_Settings.triggered.connect(self.show_update_settings)
-        self.actionLink_account_to_Steam.triggered.connect(
-            partial(self.open_url, config.Settings.get("STEAMLINK_URL")),
-        )
         self.actionLinkWebsite.triggered.connect(
             partial(self.open_url, config.Settings.get("WEBSITE_URL")),
         )
@@ -1063,15 +1051,6 @@ class ClientWindow(FormClass, BaseClass):
             partial(self.open_url, config.Settings.get("GITHUB_URL")),
         )
 
-        self.actionNsSettings.triggered.connect(
-            lambda: self.notificationSystem.on_showSettings(),
-        )
-        self.actionNsEnabled.triggered.connect(
-            lambda enabled: self.notificationSystem.setNotificationEnabled(
-                enabled,
-            ),
-        )
-
         self.actionWiki.triggered.connect(
             partial(self.open_url, config.Settings.get("WIKI_URL")),
         )
@@ -1083,15 +1062,6 @@ class ClientWindow(FormClass, BaseClass):
             partial(self.open_url, config.Settings.get("SUPPORT_URL")),
         )
         self.actionAbout.triggered.connect(self.linkAbout)
-
-        self.actionClearCache.triggered.connect(self.clearCache)
-        self.actionClearSettings.triggered.connect(self.clearSettings)
-        self.actionClearGameFiles.triggered.connect(self.clearGameFiles)
-        self.actionClearMapGenerators.triggered.connect(
-            self.clearMapGenerators,
-        )
-
-        self.actionSetGamePath.triggered.connect(self.switchPath)
 
         self.actionShowMapsDir.triggered.connect(
             lambda: util.showDirInFileBrowser(getUserMapsFolder()),
@@ -1109,345 +1079,30 @@ class ClientWindow(FormClass, BaseClass):
             lambda: util.showDirInFileBrowser(util.LOCALFOLDER),
         )
         self.actionShowClientConfigFile.triggered.connect(util.showConfigFile)
-
-        # Toggle-Options
-        self.actionSetAutoLogin.triggered.connect(self.update_options)
-        self.actionSetAutoLogin.setChecked(self.remember)
-        self.actionSetAutoDownloadMods.toggled.connect(
-            self.on_action_auto_download_mods_toggled,
-        )
-        self.actionSetAutoDownloadMods.setChecked(
-            config.Settings.get('mods/autodownload', type=bool, default=False),
-        )
-        self.actionSetAutoDownloadMaps.toggled.connect(
-            self.on_action_auto_download_maps_toggled,
-        )
-        self.actionSetAutoDownloadMaps.setChecked(
-            config.Settings.get('maps/autodownload', type=bool, default=False),
-        )
-        self.actionSetAutoGenerateMaps.toggled.connect(
-            self.on_action_auto_generate_maps_toggled,
-        )
-        self.actionSetAutoGenerateMaps.setChecked(
-            config.Settings.get(
-                'mapGenerator/autostart',
-                type=bool,
-                default=False,
-            ),
-        )
-        self.actionSetSoundEffects.triggered.connect(self.update_options)
-        self.actionSetOpenGames.triggered.connect(self.update_options)
-        self.actionSetJoinsParts.triggered.connect(self.update_options)
-        self.actionSetNewbiesChannel.triggered.connect(self.update_options)
-        self.actionIgnoreFoes.triggered.connect(self.update_options)
-        self.actionSetLiveReplays.triggered.connect(self.update_options)
-        self.actionColoredNicknames.triggered.connect(self.update_options)
-        self.actionFriendsOnTop.triggered.connect(self.update_options)
-        self.actionSetAutoJoinChannels.triggered.connect(
-            self.show_autojoin_settings_dialog,
-        )
-        self.actionLanguageChannels.triggered.connect(
-            self._language_channel_config.run,
-        )
-
-        self.actionEnableIceAdapterInfoWindow.triggered.connect(
-            self.on_action_enable_ice_adapter_info_window,
-        )
-        self.actionEnableIceAdapterInfoWindow.setChecked(
-            config.Settings.get(
-                'iceadapter/info_window',
-                type=bool,
-                default=False,
-            ),
-        )
-        self.actionSetIceAdapterWindowLaunchDelay.triggered.connect(
-            self.set_ice_adapter_window_launch_delay,
-        )
-
-        self.selectIceAdapterActionGroup = QtGui.QActionGroup(self.menuICE_Adapter)
-        self.selectJavaIceAdapterAction = QtGui.QAction(
-            "Use Java ICE Adapter",
-            self.menuICE_Adapter,
-        )
-        self.selectJavaIceAdapterAction.setCheckable(True)
-        self.selectJavaIceAdapterAction.setData("java")
-        self.selectGoIceAdapterAction = QtGui.QAction(
-            "Use faf-pioneer (Go) ICE Adapter",
-            self.menuICE_Adapter,
-        )
-        self.selectGoIceAdapterAction.setCheckable(True)
-        self.selectGoIceAdapterAction.setData("go")
-        self.selectIceAdapterActionGroup.addAction(self.selectJavaIceAdapterAction)
-        self.selectIceAdapterActionGroup.addAction(self.selectGoIceAdapterAction)
-        self.menuICE_Adapter.addSeparator()
-        self.menuICE_Adapter.addAction(self.selectJavaIceAdapterAction)
-        self.menuICE_Adapter.addAction(self.selectGoIceAdapterAction)
-
-        self.selectJavaIceAdapterAction.setChecked(
-            config.Settings.get("iceadapter/kind", "java") == "java",
-        )
-        self.selectGoIceAdapterAction.setChecked(
-            config.Settings.get("iceadapter/kind", "java") == "go",
-        )
-        self.selectIceAdapterActionGroup.triggered.connect(
-            lambda action: config.Settings.set("iceadapter/kind", action.data()),
-        )
-
-        self.menuICE_Adapter.addSeparator()
-        self.setIceAdapterVersionsAction = QtGui.QAction(
-            "Use specific versions...",
-            self.menuICE_Adapter,
-        )
-        self.menuICE_Adapter.addAction(self.setIceAdapterVersionsAction)
-        self.setIceAdapterVersionsAction.triggered.connect(
-            lambda: IceAdapterVersionSettingsDialog(self).exec(),
-        )
-
-        self.menuICE_Adapter.addSeparator()
-        self.forceRelayICEOptionMenu = QtWidgets.QMenu("Force relay", self.menuICE_Adapter)
-        self.forceRelayICEOptionGroup = QtGui.QActionGroup(self.forceRelayICEOptionMenu)
-        self.menuICE_Adapter.addMenu(self.forceRelayICEOptionMenu)
-
-        self.enableForceRelayOption = QtGui.QAction(
-            "Enabled",
-            self.forceRelayICEOptionMenu,
-        )
-        self.enableForceRelayOption.setCheckable(True)
-        self.enableForceRelayOption.setData("enabled")
-        self.enableForceRelayOption.setChecked(
-            config.Settings.get("iceadapter/force_relay", "auto") == "enabled",
-        )
-        self.autoForceRelayOption = QtGui.QAction(
-            "Use API provided value",
-            self.forceRelayICEOptionMenu,
-        )
-        self.autoForceRelayOption.setCheckable(True)
-        self.autoForceRelayOption.setData("auto")
-        self.autoForceRelayOption.setChecked(
-            config.Settings.get("iceadapter/force_relay", "auto") == "auto",
-        )
-        self.disableForceRelayICEOption = QtGui.QAction(
-            "Disabled",
-            self.forceRelayICEOptionMenu,
-        )
-        self.disableForceRelayICEOption.setChecked(
-            config.Settings.get("iceadapter/force_relay", "auto") == "disabled",
-        )
-        self.disableForceRelayICEOption.setCheckable(True)
-        self.disableForceRelayICEOption.setData("disabled")
-
-        self.forceRelayICEOptionGroup.addAction(self.enableForceRelayOption)
-        self.forceRelayICEOptionGroup.addAction(self.autoForceRelayOption)
-        self.forceRelayICEOptionGroup.addAction(self.disableForceRelayICEOption)
-        self.forceRelayICEOptionMenu.addAction(self.enableForceRelayOption)
-        self.forceRelayICEOptionMenu.addAction(self.autoForceRelayOption)
-        self.forceRelayICEOptionMenu.addAction(self.disableForceRelayICEOption)
-
-        self.forceRelayICEOptionGroup.triggered.connect(
-            lambda action: config.Settings.set("iceadapter/force_relay", action.data()),
-        )
-
-        self.actionCacheSettings.triggered.connect(lambda: show_cache_settings(self))
-        self.actionGameSettings.triggered.connect(lambda: show_game_settings(self))
-
-        self.actionCheckPlayerAliases.triggered.connect(
-            self.checkPlayerAliases,
-        )
-
-        self._menuThemeHandler = ThemeMenu(self.menuTheme)
-        self._menuThemeHandler.setup(util.THEME.listThemes())
-        self._menuThemeHandler.themeSelected.connect(
-            lambda theme: util.THEME.setTheme(theme, True),
-        )
-
-        self._chat_vis_actions = {
-            ChatterLayoutElements.RANK: self.actionHideChatterRank,
-            ChatterLayoutElements.AVATAR: self.actionHideChatterAvatar,
-            ChatterLayoutElements.COUNTRY: self.actionHideChatterCountry,
-            ChatterLayoutElements.NICK: self.actionHideChatterNick,
-            ChatterLayoutElements.STATUS: self.actionHideChatterStatus,
-            ChatterLayoutElements.MAP: self.actionHideChatterMap,
-        }
-        for action in self._chat_vis_actions.values():
-            action.triggered.connect(self.update_options)
-
-    def _setup_log_settings(self) -> None:
-        self.menuOptions.addSeparator()
-        self._setup_log_level_menu()
-        self._setup_log_filesize_menu()
-
-    def _setup_log_level_menu(self) -> None:
-        logLevelMenu = QtWidgets.QMenu("Set Log Level...", self.menuOptions)
-        self.menuOptions.addMenu(logLevelMenu)
-        logLevelActionGroup = QtGui.QActionGroup(self)
-        current_level = config.Settings.get("client/logs/level", type=int, default=logging.INFO)
-
-        levels = logging.getLevelNamesMapping()
-        for name, level in sorted(levels.items(), key=itemgetter(1), reverse=True):
-            action = QtGui.QAction(name.title(), logLevelMenu)
-            action.setCheckable(True)
-            action.setData(level)
-            logLevelMenu.addAction(action)
-            logLevelActionGroup.addAction(action)
-            if level == current_level:
-                action.setChecked(True)
-
-        logLevelActionGroup.triggered.connect(self._set_log_level)
-
-    def _set_log_level(self, action: QtGui.QAction) -> None:
-        logging.getLogger().setLevel(action.data())
-        config.Settings.set("client/logs/level", action.data())
-
-    def _setup_log_filesize_menu(self) -> None:
-        menu = QtWidgets.QMenu("Log File Settings...", self.menuOptions)
-
-        filesize_action = QtGui.QAction("Set log file size...", menu)
-        filesize_action.setCheckable(False)
-        filesize_action.triggered.connect(self._set_log_file_size)
-        menu.addAction(filesize_action)
-
-        filecount_action = QtGui.QAction("Set log file backup count...", menu)
-        filecount_action.setCheckable(False)
-        filecount_action.triggered.connect(self._set_log_file_backup_count)
-        menu.addAction(filecount_action)
-
-        self.menuOptions.addMenu(menu)
-
-    def _set_log_file_size(self) -> None:
-        newsize, ok = QtWidgets.QInputDialog.getDouble(
-            self,
-            "Set size",
-            "New log file size (MiB):",
-            config.Settings.get("client/logs/max_size", default=0.5, type=float) / 1024 / 1024,
-            min=0.5,
-            max=100,
-            step=0.5,
-        )
-        if ok:
-            bytes_size = newsize * 1024 * 1024
-            config.Settings.set("client/logs/max_size", int(bytes_size))
-            QtWidgets.QMessageBox.warning(
-                self,
-                "",
-                "Changes will take effect after restarting the client",
-            )
-
-    def _set_log_file_backup_count(self) -> None:
-        newcount, ok = QtWidgets.QInputDialog.getInt(
-            self,
-            "Set count",
-            "New backup count:",
-            config.Settings.get("client/logs/backup_count", default=1, type=int),
-            min=1,
-        )
-        if ok:
-            config.Settings.set("client/logs/backup_count", newcount)
-            QtWidgets.QMessageBox.warning(
-                self,
-                "",
-                "Changes will take effect after restarting the client",
-            )
+        self.actionSettings.triggered.connect(self.options.show)
+        self.actionCheckPlayerAliases.triggered.connect(self.checkPlayerAliases)
 
     @QtCore.pyqtSlot()
     def update_options(self) -> None:
-        chat_config = self._chat_config
-
-        self.remember = self.actionSetAutoLogin.isChecked()
+        self.remember = config.Settings.get("user/remember", True, type=bool)
         if self.remember and self.refresh_token:
             config.Settings.set('user/refreshToken', self.refresh_token)
-        chat_config.soundeffects = self.actionSetSoundEffects.isChecked()
-        chat_config.joinsparts = self.actionSetJoinsParts.isChecked()
-        chat_config.newbies_channel = self.actionSetNewbiesChannel.isChecked()
-        chat_config.ignore_foes = self.actionIgnoreFoes.isChecked()
-        chat_config.friendsontop = self.actionFriendsOnTop.isChecked()
 
-        invisible_items = [
-            i for i, a in self._chat_vis_actions.items() if a.isChecked()
-        ]
-        chat_config.hide_chatter_items.clear()
-        chat_config.hide_chatter_items |= invisible_items  # type: ignore
+        self._chat_config.load_settings()
 
-        announce_games = self.actionSetOpenGames.isChecked()
+        with config.Settings.group("chat") as group:
+            announce_games = group.value("opengames")
+            announce_replays = group.value("livereplays")
+            colored_nicknames = group.value("coloredNicknames")
+
         self.game_announcer.announce_games = announce_games
-        announce_replays = self.actionSetLiveReplays.isChecked()
         self.game_announcer.announce_replays = announce_replays
-
-        colored_nicknames = self.actionColoredNicknames.isChecked()
         self.player_colors.colored_nicknames = colored_nicknames
 
-        self.saveChat()
-
-    @QtCore.pyqtSlot(bool)
-    def on_action_auto_download_mods_toggled(self, value):
-        config.Settings.set('mods/autodownload', value is True)
-
-    @QtCore.pyqtSlot(bool)
-    def on_action_auto_download_maps_toggled(self, value):
-        config.Settings.set('maps/autodownload', value is True)
-
-    @QtCore.pyqtSlot(bool)
-    def on_action_auto_generate_maps_toggled(self, value):
-        config.Settings.set('mapGenerator/autostart', value is True)
-
-    @QtCore.pyqtSlot(bool)
-    def on_action_enable_ice_adapter_info_window(self, value):
-        config.Settings.set('iceadapter/info_window', value is True)
-
-    @QtCore.pyqtSlot()
-    def set_ice_adapter_window_launch_delay(self):
-        seconds, ok = QtWidgets.QInputDialog().getInt(
-            self,
-            'Set time interval',
-            'Delay the launch of the info window by seconds:',
-            config.Settings.get(
-                'iceadapter/delay_ui_seconds', type=int, default=10,
-            ),
-            min=0,
-            max=2147483647,
-            step=1,
-        )
-        if ok and seconds:
-            config.Settings.set('iceadapter/delay_ui_seconds', seconds)
-
-    @QtCore.pyqtSlot()
-    def switchPath(self):
-        fa.wizards.Wizard(self).exec()
-
-    @QtCore.pyqtSlot()
-    def clearSettings(self):
-        result = QtWidgets.QMessageBox.question(
-            self,
-            "Clear Settings",
-            "Are you sure you wish to clear all settings, "
-            "login info, etc. used by this program?",
-            QtWidgets.QMessageBox.StandardButton.Yes,
-            QtWidgets.QMessageBox.StandardButton.No,
-        )
-        if result == QtWidgets.QMessageBox.StandardButton.Yes:
-            util.settings.clear()
-            util.settings.sync()
-            QtWidgets.QMessageBox.information(
-                self, "Restart Needed", "FAF will quit now.",
-            )
-            QtWidgets.QApplication.quit()
-
-    @QtCore.pyqtSlot()
-    def clearGameFiles(self):
-        util.clearDirectory(util.BIN_DIR)
-        util.clearDirectory(util.GAMEDATA_DIR)
-
-    @QtCore.pyqtSlot()
-    def clearCache(self):
-        changed = util.clearDirectory(util.CACHE_DIR)
-        if changed:
-            QtWidgets.QMessageBox.information(
-                self, "Restart Needed", "FAF will quit now.",
-            )
-            QtWidgets.QApplication.quit()
-
-    @QtCore.pyqtSlot()
-    def clearMapGenerators(self):
-        util.clearDirectory(util.MAPGEN_DIR)
+        if (current_style := QtWidgets.QApplication.style()) is not None:
+            preferred = config.Settings.get("theme/style", "windowsvista")
+            if current_style.name() != preferred:
+                QtWidgets.QApplication.setStyle(QtWidgets.QStyleFactory.create(preferred))
 
     # Clear the online users lists
     def clear_players(self):
@@ -1484,15 +1139,6 @@ class ClientWindow(FormClass, BaseClass):
         dialog.version_label.setText(f"Version: {util.VERSION_STRING}")
         dialog.exec()
 
-    @QtCore.pyqtSlot()
-    def check_for_updates(self):
-        self._update_tools.checker.check(always_notify=True)
-
-    @QtCore.pyqtSlot()
-    def show_update_settings(self):
-        dialog = self._update_tools.settings_dialog()
-        dialog.show()
-
     def checkPlayerAliases(self):
         self._alias_search_window.run()
 
@@ -1502,45 +1148,7 @@ class ClientWindow(FormClass, BaseClass):
         util.settings.setValue("maximized", self.is_window_maximized)
         util.settings.endGroup()
 
-    def show_autojoin_settings_dialog(self):
-        autojoin_channels_list = config.Settings.get(
-            'chat/auto_join_channels',
-            default=[],
-        )
-        text_of_autojoin_settings_dialog = """
-        Enter the list of channels you want to autojoin at startup, separated
-        by ; For example: #poker;#newbie To disable autojoining channels,
-        leave the box empty and press OK.
-        """
-        channels_input_of_user, ok = QtWidgets.QInputDialog.getText(
-            self,
-            'Set autojoin channels',
-            text_of_autojoin_settings_dialog,
-            QtWidgets.QLineEdit.EchoMode.Normal,
-            ';'.join(autojoin_channels_list),
-        )
-        if ok:
-            channels = [
-                c.strip()
-                for c in channels_input_of_user.split(';')
-                if c
-            ]
-            config.Settings.set('chat/auto_join_channels', channels)
-
-    def saveChat(self):
-        util.settings.beginGroup("chat")
-        util.settings.setValue(
-            "livereplays", self.game_announcer.announce_replays,
-        )
-        util.settings.setValue("opengames", self.game_announcer.announce_games)
-        util.settings.setValue(
-            "coloredNicknames", self.player_colors.colored_nicknames,
-        )
-        util.settings.endGroup()
-        self._chat_config.save_settings()
-
     def load_settings(self) -> None:
-        self._setup_log_settings()
         self.load_chat()
         util.settings.beginGroup("window")
         geometry = util.settings.value("geometry", None)
@@ -1555,39 +1163,14 @@ class ClientWindow(FormClass, BaseClass):
             self.restoreGeometry(geometry)
 
     def load_chat(self):
-        cc = self._chat_config
         try:
-            util.settings.beginGroup("chat")
-            self.game_announcer.announce_games = (
-                util.settings.value("opengames", "true") == "true"
-            )
-            self.game_announcer.announce_replays = (
-                util.settings.value("livereplays", "true") == "true"
-            )
-            self.player_colors.colored_nicknames = (
-                util.settings.value("coloredNicknames", "false") == "true"
-            )
-            util.settings.endGroup()
-            cc.load_settings()
-            self.actionColoredNicknames.setChecked(
-                self.player_colors.colored_nicknames,
-            )
-            self.actionFriendsOnTop.setChecked(cc.friendsontop)
-
-            for item in ChatterLayoutElements:
-                self._chat_vis_actions[item].setChecked(
-                    item in cc.hide_chatter_items,
+            with config.Settings.group("chat") as group:
+                self.game_announcer.announce_games = group.value("opengames", True, type=bool)
+                self.game_announcer.announce_replays = group.value("livereplays", True, type=bool)
+                self.player_colors.colored_nicknames = group.value(
+                    "coloredNicknames", False, type=bool,
                 )
-            self.actionSetSoundEffects.setChecked(cc.soundeffects)
-            self.actionSetLiveReplays.setChecked(
-                self.game_announcer.announce_replays,
-            )
-            self.actionSetOpenGames.setChecked(
-                self.game_announcer.announce_games,
-            )
-            self.actionSetJoinsParts.setChecked(cc.joinsparts)
-            self.actionSetNewbiesChannel.setChecked(cc.newbies_channel)
-            self.actionIgnoreFoes.setChecked(cc.ignore_foes)
+            self._chat_config.load_settings()
         except Exception:
             pass
 
@@ -1608,10 +1191,10 @@ class ClientWindow(FormClass, BaseClass):
         self.lobby_connection.do_connect()
         return True
 
-    def set_remember(self, remember):
+    def set_remember(self, remember: bool, /) -> None:
         self.remember = remember
         # FIXME - option updating is silly
-        self.actionSetAutoLogin.setChecked(self.remember)
+        config.Settings.set("user/remember", remember)
 
     def try_to_auto_login(self) -> None:
         if (
@@ -1806,8 +1389,6 @@ class ClientWindow(FormClass, BaseClass):
         logger.info("Login success")
 
         crash.CRASH_REPORT_USER = self.login
-
-        self.update_options()
 
         self.authorized.emit(self.me)
 

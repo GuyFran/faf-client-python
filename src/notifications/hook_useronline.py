@@ -3,15 +3,15 @@ Settings for notifications: if a player comes online
 """
 from PyQt6 import QtCore
 
-import src.notifications as ns
 from src import util
 from src.config import Settings
 from src.notifications.ns_hook import NsHook
+from src.notifications.ns_type import NsType
 
 
 class NsHookUserOnline(NsHook):
     def __init__(self):
-        NsHook.__init__(self, ns.Notifications.USER_ONLINE)
+        NsHook.__init__(self, NsType.USER_ONLINE)
         self.button.setEnabled(True)
         self.dialog = UserOnlineDialog(self, self.eventType)
         self.button.clicked.connect(self.dialog.show)
@@ -25,6 +25,7 @@ FormClass, BaseClass = util.THEME.loadUiType(
 class UserOnlineDialog(FormClass, BaseClass):
     def __init__(self, parent, eventType):
         BaseClass.__init__(self)
+        self.setModal(True)
         self.parent = parent
         self.eventType = eventType
         self._settings_key = f'notifications/{eventType}'

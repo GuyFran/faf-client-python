@@ -43,7 +43,7 @@ class IrcLogFilter(logging.Filter):
 
 log.addFilter(IrcLogFilter())
 log.propagate = False
-log.addHandler(config.setup_file_handler("irc"))
+log.addHandler(config.setup_file_handler("irc.log"))
 
 
 def user2name(user: str) -> str:
@@ -173,7 +173,7 @@ class IrcConnection(SimpleIRCClient, IrcSignals):
         self._keepalive_timer.timeout.connect(self.ping)
 
     @classmethod
-    def build(cls, settings: type[config.Settings]) -> IrcConnection:
+    def build(cls, settings: config.SettingsCls) -> IrcConnection:
         port = settings.get("chat/port", 443, int)
         host = settings.get("chat/host", "chat." + cast(str, config.defaults["main"]["host"]), str)
         return cls(host, port)

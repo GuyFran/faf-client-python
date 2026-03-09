@@ -354,6 +354,10 @@ QTableView::item:selected
     border:none;
 }
 
+QTableView::item:disabled {
+    color: gray;
+}
+
 /* Text controls */
 QTextEdit, QPlainTextEdit, QLineEdit, QListWidget, QListView, QTableWidget, QTreeWidget, QFrame#rankedFrame, #teamFaction, #teamSearch, #partyInfo
 {
@@ -508,6 +512,10 @@ QHeaderView#VerticalHeader::section:hover
     width: auto;
 }
 
+QHeaderView::section:disabled {
+    color: gray;
+}
+
 /* Nicklist controls */
 
 QTableWidget::item
@@ -599,6 +607,10 @@ QListWidget::item:selected
     color: orange;
     background-color: #505050;
     border: none;
+}
+
+QListView::item:disabled {
+    color: gray;
 }
 
 QListWidget#newsList::item:selected
@@ -822,6 +834,24 @@ QGroupBox
     background-color: rgb(32, 32, 37);
     color: silver;
     padding-top: 15px;
+}
+
+QGroupBox::indicator:unchecked
+{
+    background: #303035;
+}
+
+QGroupBox::indicator:checked
+{
+    image: url('%THEMEPATH%/client/chboxChecked.png');
+}
+
+QGroupBox::indicator:disabled {
+    border-color: #202025;
+}
+
+QGroupBox::indicator:hover {
+    border-color: gray;
 }
 
 QGroupBox#mapsGroup,#previewGroup,#modsGroup {
@@ -1168,7 +1198,14 @@ QStatusBar
     color: yellow;
 }
 
-QWidget#tech_widget,#overview_content,#overview_widget
+QWidget#tech_widget,#overview_content,#overview_widget,
+QWidget#scrollAreaWidgetContents,
+QWidget#scrollAreaWidgetContents_1,
+QWidget#scrollAreaWidgetContents_2,
+QWidget#scrollAreaWidgetContents_3,
+QWidget#scrollAreaWidgetContents_4,
+QWidget#scrollAreaWidgetContents_5,
+QWidget#scrollAreaWidgetContents_6
 {
     background: #202025;
     padding: 0px;

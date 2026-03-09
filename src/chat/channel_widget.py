@@ -11,6 +11,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtCore import QUrl
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QFont
 from PyQt6.QtGui import QKeySequence
 from PyQt6.QtGui import QShortcut
 from PyQt6.QtGui import QSyntaxHighlighter
@@ -25,6 +26,7 @@ from PyQt6.QtWidgets import QLineEdit
 from PyQt6.QtWidgets import QPushButton
 
 from src.client.chat_config import ChatConfig
+from src.config import Settings
 from src.model.chat.channel import Channel
 from src.qt.utils import monkeypatch_method
 from src.util.theme import ThemeSet
@@ -93,6 +95,7 @@ class ChannelWidget(QObject):
         self.current_search_index = -1
         self.search_term = ""
         self.highlighter = SearchHighlighter(self.chat_area.document(), theme)
+        Settings.changed.connect(self._set_font)
 
     @classmethod
     def build(
@@ -165,9 +168,20 @@ class ChannelWidget(QObject):
         self.chat_area.anchorClicked.connect(self._url_clicked)
         self._override_widget_methods()
         self._load_css()
+        self._set_font()
         self._sticky_scroll = ChatAreaStickyScroll(
             self.chat_area.verticalScrollBar(),
         )
+
+    def _set_font(self) -> None:
+        cur_font = self.chat_area.font()
+        with Settings.group("chat/font") as group:
+            font = QFont(group.value("family", cur_font.family()))
+            font.setPointSize(group.value("size", cur_font.pointSize(), type=int))
+        self.chat_area.setFont(font)
+
+    def font(self) -> QFont:
+        return self.chat_area.currentFont()
 
     def _override_widget_methods(self):
 

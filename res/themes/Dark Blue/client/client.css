@@ -338,6 +338,10 @@ QTableView::item:selected
     border: none;
 }
 
+QTableView::item:disabled {
+    color: #6B7280;
+}
+
 /* Text controls */
 QTextEdit, QPlainTextEdit, QListWidget, QListView, QTableWidget, QTreeWidget, QFrame#rankedFrame, #teamFaction, #teamSearch, #partyInfo
 {
@@ -487,6 +491,10 @@ QHeaderView#VerticalHeader::section:hover
     border-bottom: 1px solid;
     border-color: #1A1B2C;
     width: auto;
+}
+
+QHeaderView::section:disabled {
+    color: #6B7280;
 }
 
 /* Nicklist controls */
@@ -894,6 +902,25 @@ QGroupBox
     padding-top: 15px;
 }
 
+QGroupBox::indicator:unchecked
+{
+    background: #23253C;
+}
+
+QGroupBox::indicator:checked
+{
+    background: orange;
+    border-color: black;
+}
+
+QGroupBox::indicator:disabled {
+    border-color: #1A1B2C;
+}
+
+QGroupBox::indicator:hover {
+    border-color: #6B7280;
+}
+
 QGroupBox#mapsGroup,#previewGroup,#modsGroup {
     font-size: 10pt;
     font-weight: bold;
@@ -1167,7 +1194,14 @@ QStatusBar
     color: #FCD34D;
 }
 
-QWidget#tech_widget,#overview_content,#overview_widget
+QWidget#tech_widget,#overview_content,#overview_widget,
+QWidget#scrollAreaWidgetContents,
+QWidget#scrollAreaWidgetContents_1,
+QWidget#scrollAreaWidgetContents_2,
+QWidget#scrollAreaWidgetContents_3,
+QWidget#scrollAreaWidgetContents_4,
+QWidget#scrollAreaWidgetContents_5,
+QWidget#scrollAreaWidgetContents_6
 {
     background: #1A1B2C;
     padding: 0px;

@@ -62,7 +62,7 @@ class UpdaterWorker(QObject):
         self.nam = QNetworkAccessManager(self)
         self.result = UpdaterResult.NONE
 
-        self.cache_enabled = Settings.get("cache/store_duration", default=30, type=int) > -1
+        self.cache_enabled = Settings.get("cache/enabled", default=True, type=bool)
 
         self.dlers: list[FileDownload] = []
         self.interruption_requested = False

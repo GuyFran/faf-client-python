@@ -7,7 +7,6 @@ from PyQt6.QtCore import QProcess
 from PyQt6.QtCore import pyqtSignal
 
 from src import client
-from src.config import Settings
 from src.config import setup_file_handler
 from src.connectivity.IceAdapterClient import IceAdapterClient
 from src.connectivity.IceAdapterManager import IceAdapterManager
@@ -108,11 +107,9 @@ class GameSession(QObject):
             player_login=self.player_login,
             game_id=self.game_uid,
             port=ice_port,
-            force_relay={
-                "enabled": True,
-                "auto": self.ice_servers_poller.force_relay,
-                "disabled": False,
-            }[Settings.get("iceadapter/force_relay", "auto")],
+            force_relay=IceAdapterProcess.ForceRelay.preferred_value(
+                default=self.ice_servers_poller.force_relay,
+            ),
         )
         self._relay_port = self.ice_adapter_process.gpg_port()
         self.ice_adapter_process.start()

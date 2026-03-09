@@ -83,7 +83,7 @@ EXTRA_DIR = os.path.join(APPDATA_DIR, "extra")
 REPLAY_DIR = os.path.join(APPDATA_DIR, "replays")
 
 # This contains all Lobby, Chat and Game logs
-LOG_DIR = os.path.join(APPDATA_DIR, "logs")
+LOG_DIR = Settings.get("client/logs/path", default=os.path.join(APPDATA_DIR, "logs"))
 LOG_FILE_FAF = os.path.join(LOG_DIR, 'forever.log')
 LOG_FILE_MAPGEN = os.path.join(LOG_DIR, 'map_generator.log')
 LOG_FILE_GAME_PREFIX = os.path.join(LOG_DIR, 'game')
@@ -196,7 +196,11 @@ def remove_obsolete_logs(location: str, pattern: str, max_number: int) -> None:
 
 
 try:
-    remove_obsolete_logs(LOG_DIR, LOG_FILE_GAME_INFIX, 30)
+    remove_obsolete_logs(
+        LOG_DIR,
+        LOG_FILE_GAME_INFIX,
+        Settings.get("game/logs_max_count", 30, type=int),
+    )
 except Exception:
     pass
 
@@ -211,18 +215,17 @@ def setAccessTime(file: str) -> None:
 
 # Get rid of cached files that are stored for too long
 def clear_game_cache() -> None:
-    fmod_dir = os.path.join(CACHE_DIR, 'featured_mod')
+    if Settings.get("cache/enabled", True, type=bool):
+        max_storage_time = Settings.get("cache/store_duration", 30, type=int)
+    else:
+        max_storage_time = -1
 
-    if not os.path.exists(fmod_dir):
-        return
-
-    max_storage_time = Settings.get("cache/store_duration", 30, type=int)
     if max_storage_time >= 9999:
         return
 
     curr_time = datetime.now()
     for _dir in ("bin", "gamedata"):
-        dir_to_check = os.path.join(fmod_dir, _dir)
+        dir_to_check = os.path.join(GAME_CACHE_DIR, _dir)
         if not os.path.exists(dir_to_check):
             continue
         for entry in os.scandir(dir_to_check):
@@ -234,8 +237,9 @@ def clear_game_cache() -> None:
                 os.remove(entry.path)
 
 
-# Get rid of generated maps
 def clearGeneratedMaps() -> None:
+    if not Settings.get("maps/autodelete_generated", True, type=bool):
+        return
     map_dir = os.path.join(VAULTS_BASE_DIR, "maps")
     if not os.path.exists(map_dir):
         return
@@ -245,7 +249,11 @@ def clearGeneratedMaps() -> None:
 
 
 def clear_unused_ice_adapters() -> None:
-    store_duration = Settings.get("iceadapter/store_duration", 30, type=int)
+    if Settings.get("iceadapter/cache", True, type=bool):
+        store_duration = Settings.get("iceadapter/store_duration", 30, type=int)
+    else:
+        store_duration = -1
+
     if store_duration >= 9999 or not os.path.isdir(ICE_ADAPTER_DIR):
         return
 
@@ -270,7 +278,11 @@ def clear_unused_ice_adapters() -> None:
 
 
 def clear_unused_map_generators() -> None:
-    store_duration = Settings.get("mapGenerator/store_duration", 30, type=int)
+    if Settings.get("mapGenerator/cache", True, type=bool):
+        store_duration = Settings.get("mapGenerator/store_duration", 30, type=int)
+    else:
+        store_duration = -1
+
     if store_duration >= 9999 or not os.path.isdir(MAPGEN_DIR):
         return
 
