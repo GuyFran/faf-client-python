@@ -148,6 +148,7 @@ class HostGameDialogUi:
         self.mapList = QListWidget()
         self.mapList.setMinimumWidth(256)
         self.mapList.setAlternatingRowColors(True)
+        self.mapList.setVerticalScrollMode(QListWidget.ScrollMode.ScrollPerPixel)
         maps_layout.addWidget(self.mapList)
 
         maps_bottom_layout = QHBoxLayout()
