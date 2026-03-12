@@ -252,7 +252,7 @@ class HostGameWidget(QDialog):
         with block_signals(self.ui.mapWidthSlider) as slider:
             _, high = slider.get_position()
             slider.update_position(v, high)
-        self.filter_maps_by_width(*slider.get_position())
+        self.filter_maps_by_size()
 
     def on_map_max_w_changed(self, v: int) -> None:
         v = max(v, self.ui.mapWidthMinimum.value())
@@ -261,7 +261,7 @@ class HostGameWidget(QDialog):
         with block_signals(self.ui.mapWidthSlider) as slider:
             low, _ = slider.get_position()
             slider.update_position(low, v)
-        self.filter_maps_by_width(*slider.get_position())
+        self.filter_maps_by_size()
 
     def on_map_min_h_changed(self, v: int) -> None:
         v = min(v, self.ui.mapHeightMaximum.value())
@@ -270,7 +270,7 @@ class HostGameWidget(QDialog):
         with block_signals(self.ui.mapHeightSlider) as slider:
             _, high = slider.get_position()
             slider.update_position(v, high)
-        self.filter_maps_by_height(*slider.get_position())
+        self.filter_maps_by_size()
 
     def on_map_max_h_changed(self, v: int) -> None:
         v = max(v, self.ui.mapHeightMinimum.value())
@@ -279,7 +279,7 @@ class HostGameWidget(QDialog):
         with block_signals(self.ui.mapHeightSlider) as slider:
             low, _ = slider.get_position()
             slider.update_position(low, v)
-        self.filter_maps_by_height(*slider.get_position())
+        self.filter_maps_by_size()
 
     def on_map_min_p_changed(self, v: int) -> None:
         v = min(v, self.ui.mapPlayersMaximum.value())
@@ -315,34 +315,26 @@ class HostGameWidget(QDialog):
             sb.setValue(mn)
         with block_signals(self.ui.mapWidthMaximum) as sb:
             sb.setValue(mx)
-        self.filter_maps_by_width(mn, mx)
-
-    def filter_maps_by_width(self, mn: int, mx: int) -> None:
-        for row in range(self.ui.mapList.count()):
-            item = self.ui.mapList.item(row)
-            if item is None:
-                continue
-            map_info = item.data(QtCore.Qt.ItemDataRole.UserRole)
-            w, _ = map_info["map_size"].values()
-            w_km = int(w) / 51.2
-            item.setHidden(not (mn <= w_km <= mx))
+        self.filter_maps_by_size()
 
     def on_map_h_slider_moved(self, mn: int, mx: int) -> None:
         with block_signals(self.ui.mapHeightMinimum) as sb:
             sb.setValue(mn)
         with block_signals(self.ui.mapHeightMaximum) as sb:
             sb.setValue(mx)
-        self.filter_maps_by_height(mn, mx)
+        self.filter_maps_by_size()
 
-    def filter_maps_by_height(self, mn: int, mx: int) -> None:
+    def filter_maps_by_size(self) -> None:
+        w_min, w_max = self.ui.mapWidthMinimum.value(), self.ui.mapWidthMaximum.value()
+        h_min, h_max = self.ui.mapHeightMinimum.value(), self.ui.mapHeightMaximum.value()
         for row in range(self.ui.mapList.count()):
             item = self.ui.mapList.item(row)
             if item is None:
                 continue
             map_info = item.data(QtCore.Qt.ItemDataRole.UserRole)
-            _, h = map_info["map_size"].values()
-            h_km = int(h) / 51.2
-            item.setHidden(not (mn <= h_km <= mx))
+            size = MapSize(*map(int, map_info["map_size"].values()))
+            hide = w_min <= size.width_km <= w_max and h_min <= size.height_km <= h_max
+            item.setHidden(not hide)
 
     def on_map_p_slider_moved(self, mn: int, mx: int) -> None:
         with block_signals(self.ui.mapPlayersMinimum) as sb:
