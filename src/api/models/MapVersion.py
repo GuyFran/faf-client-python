@@ -11,8 +11,8 @@ from src.api.models.ReviewsSummary import ReviewsSummary
 
 @dataclass
 class MapSize:
-    height_px: int
     width_px: int
+    height_px: int
 
     @classmethod
     def from_side_km(cls, s: float, /) -> Self:
@@ -33,7 +33,7 @@ class MapSize:
         return not self.__lt__(other)
 
     def __str__(self) -> str:
-        return f"{self.width_km} x {self.height_km} km"
+        return f"{self.width_km:g} x {self.height_km:g} km"
 
 
 # FIXME/HACK: duplicate of the Map model, which can't be imported due to circular imports
@@ -69,7 +69,7 @@ class MapVersion(AbstractEntity):
 
     @property
     def size(self) -> MapSize:
-        return MapSize(self.height, self.width)
+        return MapSize(self.width, self.height)
 
     @property
     def thumbnail_url(self) -> str:

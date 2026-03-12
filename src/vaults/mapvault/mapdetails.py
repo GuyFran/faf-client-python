@@ -81,11 +81,9 @@ class MapDetailsWidget(DetailsWidget[Map]):
         self.ui.additionalInfoLabel.setText(f"{self.item_data.games_played} games played")
 
     def version_info(self) -> list[tuple[str, str]]:
-        height = self.item_version.size.height_km
-        width = self.item_version.size.width_km
         return [
             ("Version:", str(self.item_version.version)),
-            ("Dimensions (km):", f"{width:g} x {height:g}"),
+            ("Dimensions:", str(self.item_version.size)),
             ("Max Players:", str(self.item_version.max_players)),
             ("Games Played:", str(self.item_version.games_played)),
             ("Ranked:", "Yes" if self.item_version.ranked else "No"),

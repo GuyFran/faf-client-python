@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import QWidget
 
 from src import fa
 from src import util
+from src.api.models.MapVersion import MapSize
 from src.client.playercolors import PlayerColors
 from src.client.user import UserRelations
 from src.contextmenu.playercontextmenu import PlayerContextMenu
@@ -351,7 +352,7 @@ class GamePanelWidget(QWidget):
             self.ui.mapSizeLabel.setText("???")
             return
         w, h = map(int, map_info["map_size"].values())
-        self.ui.mapSizeLabel.setText(f"{w/51.2:g} x {h/51.2:g} km")
+        self.ui.mapSizeLabel.setText(str(MapSize(w, h)))
 
     def show_large_map_preview(self) -> None:
         if self.game is None or (map_folder := fa.maps.folderForMap(self.game.mapname)) is None:

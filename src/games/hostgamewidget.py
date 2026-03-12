@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import QListWidgetItem
 
 from src import fa
 from src import util
+from src.api.models.MapVersion import MapSize
 from src.client.user import User
 from src.config import Settings
 from src.fa import maps
@@ -588,7 +589,7 @@ class HostGameWidget(QDialog):
         self.ui.mapNameLabel.setText(item.text())
 
         w, h = map(int, map_info["map_size"].values())
-        self.ui.mapSizeLabel.setText(f"⛶ {w/51.2:g} x {h/51.2:g} km")
+        self.ui.mapSizeLabel.setText(f"⛶  {MapSize(w, h)}")
 
         self.ui.mapPlayersLabel.setText(f"🧑‍🤝‍🧑 {map_info['max_players']}")
 
