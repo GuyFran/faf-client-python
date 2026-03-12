@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 
 from PyQt6.QtCore import QEventLoop
@@ -32,8 +33,7 @@ class MapGeneratorProcess:
         self._progress.setAutoReset(False)
         self._progress.setModal(1)
         bar = QProgressBar()
-        bar.setMinimum(0)
-        bar.setMaximum(0)
+        bar.setRange(0, 0)
         bar.setTextVisible(False)
         self._progress.setBar(bar)
         self._progress.canceled.connect(self.close)
@@ -47,6 +47,7 @@ class MapGeneratorProcess:
 
         self.map_generator_process.finished.connect(self.on_exit)
         self.map_name = None
+        self.map_names: list[str] = []
 
         self.java_path = fafpath.get_java_path()
         self.args = ["-jar", gen_path]
@@ -71,23 +72,27 @@ class MapGeneratorProcess:
             self.waitForCompletion()
 
     @property
-    def mapname(self):
-        return str(self.map_name)
+    def mapname(self) -> str:
+        return self.map_name or ""
 
-    def on_log_ready(self):
+    @property
+    def mapnames(self) -> list[str]:
+        return sorted(self.map_names)
+
+    def on_log_ready(self) -> None:
         standard_output = self.map_generator_process.readAllStandardOutput()
-        data = standard_output.data().decode('utf8').split('\n')
+        data = standard_output.data().strip().decode().split(os.linesep)
         for line in data:
-            if (
-                re.match(mapgenUtils.generatedMapPattern, line)
-                and self.map_name is None
-            ):
-                self.map_name = line.strip()
-            if line != '':
-                generatorLogger.info(line.strip())
+            if line == "":
+                continue
+            if re.match(mapgenUtils.generatedMapPattern, line):
+                if self.map_name is None:
+                    self.map_name = line.strip()
+                self.map_names.append(line.strip())
+            generatorLogger.info(line.strip())
             # Kinda fake progress bar. Better than nothing :)
-            if len(line) > 4:
-                self._progress.setLabelText(line[:25] + "...")
+            # some 'lines' have multiple lines in them, display only the first
+            self._progress.setLabelText(line.splitlines()[0][:25] + "...")
 
     def on_error_ready(self) -> None:
         self._error_msgs_received += 1

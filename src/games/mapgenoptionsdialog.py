@@ -121,7 +121,7 @@ class OptionsExtractor(QtCore.QObject):
 
 
 class MapGenDialog(FormClass, BaseClass):
-    map_generated = QtCore.pyqtSignal(str)
+    map_generated = QtCore.pyqtSignal(list)
 
     def __init__(self, parent: ClientWindow, mapgen_manager: MapGeneratorManager) -> None:
         BaseClass.__init__(self, parent)

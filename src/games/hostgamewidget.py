@@ -143,6 +143,7 @@ class HostGameWidget(QDialog):
         self.ui = HostGameDialogUi()
         self.ui.setupUi(self)
 
+        self._new_maplist_names = []
         self.client = client
         self.game = None
         self.mods: dict[str, ModInfo] = {}
@@ -444,6 +445,28 @@ class HostGameWidget(QDialog):
                 self.ui.mapList.setCurrentRow(i)
                 return
 
+    def set_maps(self, mapnames: list[str]) -> None:
+        if not mapnames:
+            return
+
+        if len(mapnames) > 1:
+            self.ui.mapList.setSelectionMode(self.ui.mapList.SelectionMode.MultiSelection)
+            self._new_maplist_names = mapnames.copy()
+
+        names_i = 0
+        for i in range(self.ui.mapList.count()):
+            item = self.ui.mapList.item(i)
+            mapname = mapnames[names_i]
+            if item is not None and item.data(QtCore.Qt.ItemDataRole.UserRole)["name"] == mapname:
+                if names_i == 0:
+                    self.ui.mapList.setCurrentRow(i)
+                else:
+                    item.setSelected(True)
+
+                names_i += 1
+                if names_i >= len(mapnames):
+                    break
+
     def select_random_map(self) -> None:
         self.ui.mapList.setCurrentRow(random.randint(0, max(0, self.ui.mapList.count() - 1)))
 
@@ -469,11 +492,23 @@ class HostGameWidget(QDialog):
             ),
         )
 
-    def map_changed(self, index: int) -> None:
-        item = self.ui.mapList.item(index)
+    def map_changed(self, row: int) -> None:
+        item = self.ui.mapList.item(row)
         if item is None:
             return
+
         map_info = item.data(QtCore.Qt.ItemDataRole.UserRole)
+
+        if self._new_maplist_names:
+            try:
+                self._new_maplist_names.remove(map_info["name"])
+            except ValueError:
+                self._new_maplist_names.clear()
+
+            if not self._new_maplist_names:
+                self.ui.mapList.setSelectionMode(self.ui.mapList.SelectionMode.SingleSelection)
+                self.ui.mapList.clearSelection()
+
         self.game.update(mapname=map_info["folder_name"], max_players=map_info["max_players"])
         self.update_map_preview(item)
 
@@ -543,9 +578,9 @@ class HostGameWidget(QDialog):
         dialog.exec()
         dialog.deleteLater()
 
-    def on_map_generated(self, mapname: str) -> None:
+    def on_map_generated(self, maplist: list[str]) -> None:
         self.setup_maplist()
-        self.set_map(mapname)
+        self.set_maps(maplist)
 
     def update_map_preview(self, item: QListWidgetItem) -> None:
         map_info = cast(maps.CachedMapInfo, item.data(QtCore.Qt.ItemDataRole.UserRole))

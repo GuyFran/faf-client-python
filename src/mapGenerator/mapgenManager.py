@@ -1,6 +1,5 @@
 import logging
 import os
-import random
 
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QEventLoop
@@ -45,7 +44,7 @@ class MapGeneratorManager(QObject):
         self.check_updates()
         self.set_current_version_number(self.latestVersion)
 
-    def generateMap(self, mapname: str | None = None, args: list[str] | None = None) -> str:
+    def generateMap(self, mapname: str | None = None, args: list[str] | None = None) -> list[str]:
         if mapname is None:
             # Requests latest version once per session
             if self.currentVersion == "0" or not self.latestVersion:
@@ -61,7 +60,7 @@ class MapGeneratorManager(QObject):
 
         generator_path = self.get_generator(version)
         if not generator_path:
-            return ""
+            return []
 
         auto = Settings.get("mapGenerator/autostart", default=False, type=bool)
         if not auto and mapname is not None:
@@ -83,7 +82,7 @@ class MapGeneratorManager(QObject):
             )
             result = msgbox.exec()
             if result == QtWidgets.QMessageBox.StandardButton.No:
-                return ""
+                return []
             elif result == QtWidgets.QMessageBox.StandardButton.YesToAll:
                 Settings.set("mapGenerator/autostart", True)
 
@@ -96,39 +95,11 @@ class MapGeneratorManager(QObject):
         process.run()
 
         # Check if map exists or generator failed
-        if os.path.isdir(os.path.join(maps_folder, process.mapname)):
-            return process.mapname
+        for name in process.mapnames:
+            if not os.path.isdir(os.path.join(maps_folder, name)):
+                return []
         else:
-            return ""
-
-    def generateRandomMap(self):
-        '''
-        Called when user click "generate map" in host widget.
-        Prepares seed and requests latest version once per session
-        '''
-
-        if self.currentVersion == "0" or not self.latestVersion:
-            self.check_updates()
-
-            if (
-                self.latestVersion
-                and self.get_generator(self.latestVersion)
-            ):
-                # mapgen is up-to-date
-                self.currentVersion = self.latestVersion
-                Settings.set('mapGenerator/version', self.currentVersion)
-
-            # if not "0", use older version, otherwise we don't have any
-            # generator at all
-            elif self.currentVersion == "0":
-                return False
-
-        seed = random.randint(-9223372036854775808, 9223372036854775807)
-        mapName = "neroxis_map_generator_{}_{}".format(
-            self.currentVersion, seed,
-        )
-
-        return self.generateMap(mapName)
+            return process.mapnames
 
     def get_generator(self, version: str) -> str:
         if not version:
