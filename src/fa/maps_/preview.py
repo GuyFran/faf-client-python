@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 import struct
 
@@ -7,8 +8,11 @@ from PyQt6.QtGui import QPixmap
 from PyQt6.QtGui import QScreen
 
 from src.fa.maps_._preview import add_markers
+from src.fa.maps_.map_utils import get_dds_file
 from src.fa.maps_.map_utils import get_scmap_file
 from src.fa.maps_.mapdata import MapData
+
+logger = logging.getLogger(__name__)
 
 
 def extract_dds(scmap: str, dest: str) -> bool:
@@ -67,7 +71,17 @@ def create_large_preview(
 ) -> QPixmap:
     scmap = get_scmap_file(mapdir)
     assert scmap is not None
-    mapdata = map_data_from_scmap(scmap).scale_image_by(scale)
+    try:
+        mapdata = map_data_from_scmap(scmap).scale_image_by(scale)
+    except struct.error as e:
+        logger.warning("Could not extract map data from .scmap file: %s", e)
+        dds_file = get_dds_file(mapdir)
+        assert dds_file is not None
+        image = image_from_dds(dds_file)
+        mapdata = MapData(image.width(), image.height(), image).scale_image_by(scale)
+    except Exception as e:
+        logger.warning("Could not extract map data %s", e)
+        return QPixmap()
     add_markers(mapdir, mapdata, armies, scale=scale)
     return QPixmap(mapdata.image)
 

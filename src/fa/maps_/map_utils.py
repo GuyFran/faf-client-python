@@ -14,3 +14,9 @@ def get_save_file(folder: str) -> str | None:
         if entry.name.lower().endswith("_save.lua"):
             return entry.path
     return None
+
+
+def get_dds_file(folder: str) -> str | None:
+    for entry in os.scandir(folder):
+        if entry.name.lower().endswith(".dds"):
+            return entry.path
