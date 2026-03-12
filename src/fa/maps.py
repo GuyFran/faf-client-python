@@ -459,6 +459,7 @@ class InstalledMapsCache(QtCore.QObject):
         super().__init__()
         self.path = path
         self.installed_maps = self.load()
+        self.sanitize()
 
     def parse_metadata(self, folder: str) -> CachedMapInfo | None:
         for entry in os.scandir(folder):
@@ -526,6 +527,7 @@ class InstalledMapsCache(QtCore.QObject):
                 map_info["folder_name"] = dr.name.lower()
                 self.installed_maps[dr.name.lower()] = map_info
                 logger.debug("Loaded %s into maps cached metadata", dr.path)
+        self.sanitize()
         return self.installed_maps
 
     def get_map(self, name: str) -> CachedMapInfo | None:

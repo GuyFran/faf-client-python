@@ -1006,19 +1006,25 @@ QPushButton:hover
 }
 
 QPushButton#refreshButton, #nextButton, #previousButton, #goToPageButton, #firstButton, #lastButton,
-#resetButton, #searchPlayerButton, #UIButton, #uploadButton, #kickButton, #leaveButton
+#resetButton, #searchPlayerButton, #UIButton, #uploadButton, #kickButton, #leaveButton,
+QPushButton#buttonManageInstalled
 {
     color: silver;
     background: #202025;
     border: 1 solid #555450;
     border-radius: 2;
+    padding-left: 2px;
+    padding-right: 2px;
 }
 
 QPushButton#refreshButton:hover, #nextButton::hover, #previousButton::hover, #goToPageButton::hover,
 #firstButton:hover, #lastButton::hover, #resetButton::hover, #searchPlayerButton::hover,
-#UIButton:hover, #uploadButton::hover,  #kickButton::hover, #leaveButton::hover
+#UIButton:hover, #uploadButton::hover,  #kickButton::hover, #leaveButton::hover,
+QPushButton#buttonManageInstalled:hover
 {
     background-color: #808080;
+    padding-left: 2px;
+    padding-right: 2px;
 }
 
 QPushButton#searchButton, QPushButton#advSearchButton, QPushButton#fafDbButton,

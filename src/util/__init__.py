@@ -536,3 +536,14 @@ def pretty_decoded_basename(path: str) -> str:
 
 def decapitalize(s: str, /) -> str:
     return s[0].lower() + s[1:]
+
+
+def dir_size(path: str, /) -> float:
+    size = 0
+    with os.scandir(path) as it:
+        for dir_entry in it:
+            if dir_entry.is_dir():
+                size += dir_size(dir_entry.path)
+            else:
+                size += dir_entry.stat().st_size
+    return size

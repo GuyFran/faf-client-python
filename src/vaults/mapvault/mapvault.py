@@ -19,6 +19,7 @@ from src.vaults.mapvault.maplistitem import MapDisplayType
 from src.vaults.mapvault.maplistitem import MapListItem
 from src.vaults.mapvault.maplistitem import MapSortType
 from src.vaults.mapvault.maplistwidget import MapListWidget
+from src.vaults.mapvault.mapsmanager import MapsManagerDialog
 from src.vaults.vault import Vault
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,8 @@ class MapVault(Vault[Map]):
         self.mapApiConnector.data_ready.connect(self.items_info)
 
         self.apiConnector = self.mapApiConnector
+        self.manager_dialog = MapsManagerDialog(self.client)
+        self.buttonManageInstalled.clicked.connect(self.manager_dialog.run)
 
     def create_item_widget(self, data: Map) -> MapListWidget:
         return MapListWidget(data, self.image_loader)
