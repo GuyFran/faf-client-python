@@ -62,7 +62,6 @@ class TeamWidgetUI:
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
         self.teamList = QListWidget()
-        self.teamList.setMaximumHeight(140)
         self.teamList.setSelectionMode(QListWidget.SelectionMode.NoSelection)
         self.teamLabel = QLabel()
         self.numPlayersLabel = QLabel()
