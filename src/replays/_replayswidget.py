@@ -292,7 +292,7 @@ class LiveReplaysWidgetHandler:
 
         self.splitter = splitter
         splitter_sizes = Settings.get_list("replay/live_splitter", type=int, default=[])
-        if len(splitter) == 2:
+        if len(splitter_sizes) == 2:
             self.splitter.setSizes(splitter_sizes)
         self.splitter.splitterMoved.connect(self.on_splitter_moved)
 
