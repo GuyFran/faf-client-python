@@ -64,10 +64,10 @@
         <bool>true</bool>
        </property>
        <property name="columnCount">
-        <number>3</number>
+        <number>9</number>
        </property>
        <attribute name="headerVisible">
-        <bool>false</bool>
+        <bool>true</bool>
        </attribute>
        <attribute name="headerDefaultSectionSize">
         <number>39</number>
@@ -77,17 +77,47 @@
        </attribute>
        <column>
         <property name="text">
-         <string notr="true">1</string>
+         <string>Map</string>
         </property>
        </column>
        <column>
         <property name="text">
-         <string notr="true">2</string>
+         <string notr="true">Start time</string>
         </property>
        </column>
        <column>
         <property name="text">
-         <string notr="true">3</string>
+         <string notr="true">Title</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Host</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Avg. Rating</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Players</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Max Players</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Mods</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Featured Mod</string>
         </property>
        </column>
       </widget>

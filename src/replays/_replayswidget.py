@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import time
+from enum import IntEnum
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import cast
@@ -56,9 +57,22 @@ FormClass, BaseClass = util.THEME.loadUiType("replays/replays.ui")
 
 
 class LiveReplayItem(QtWidgets.QTreeWidgetItem):
+    class Columns(IntEnum):
+        (
+            MAP,
+            START_TIME,
+            TITLE,
+            HOST,
+            AVG_RATING,
+            PLAYERS,
+            MAX_PLAYERS,
+            MODS,
+            FEATURED_MOD,
+        ) = range(9)
+
     LIVEREPLAY_DELAY = 5 * 60
 
-    def __init__(self, game):
+    def __init__(self, game: Game) -> None:
         QtWidgets.QTreeWidgetItem.__init__(self)
         self._game = game
         if game.launched_at is not None:
@@ -126,22 +140,29 @@ class LiveReplayItem(QtWidgets.QTreeWidgetItem):
                 icon = util.THEME.icon("games/unknown_map.png")
         self.setIcon(0, icon)
 
-    def _set_misc_formatting(self, game):
+    def _set_misc_formatting(self, game: Game) -> None:
         self.setToolTip(0, fa.maps.getDisplayName(game.mapname))
 
         time_fmt = "%Y-%m-%d  -  %H:%M"
         launch_time = time.strftime(time_fmt, time.localtime(self.launch_time))
-        self.setText(0, launch_time)
+        self.setText(self.Columns.START_TIME, launch_time)
 
         colors = client.instance.player_colors
-        self.setForeground(0, QtGui.QColor(colors.get_color("default")))
-        if game.featured_mod == "ladder1v1":
-            self.setText(1, game.title)
-        else:
-            self.setText(1, game.title + "    -    [host: " + game.host + "]")
-        self.setForeground(1, QtGui.QColor(colors.get_color("player")))
-        self.setText(2, game.featured_mod)
-        self.setTextAlignment(2, QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.setForeground(self.Columns.START_TIME, QtGui.QColor(colors.get_color("default")))
+        self.setForeground(self.Columns.TITLE, QtGui.QColor(colors.get_color("player")))
+        self.setText(self.Columns.TITLE, game.title)
+        self.setToolTip(self.Columns.TITLE, game.title)
+        self.setText(self.Columns.HOST, game.host)
+        self.setText(self.Columns.AVG_RATING, f"{game.average_rating:.0f}")
+        self.setTextAlignment(self.Columns.AVG_RATING, QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.setText(self.Columns.PLAYERS, str(len(game.playing_players)))
+        self.setTextAlignment(self.Columns.PLAYERS, QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.setText(self.Columns.MAX_PLAYERS, str(game.max_players))
+        self.setTextAlignment(self.Columns.MAX_PLAYERS, QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.setText(self.Columns.MODS, ",".join(game.sim_mods.values()))
+        self.setToolTip(self.Columns.MODS, "\n".join(game.sim_mods.values()))
+        self.setText(self.Columns.FEATURED_MOD, game.featured_mod)
+        self.setTextAlignment(self.Columns.FEATURED_MOD, QtCore.Qt.AlignmentFlag.AlignCenter)
 
     def _is_me(self, name):
         return client.instance.login == name
@@ -163,7 +184,7 @@ class LiveReplayItem(QtWidgets.QTreeWidgetItem):
         else:
             my_color = "player"
         colors = client.instance.player_colors
-        self.setForeground(1, QtGui.QColor(colors.get_color(my_color)))
+        self.setForeground(self.Columns.TITLE, QtGui.QColor(colors.get_color(my_color)))
 
     def _generate_player_subitems(self, game):
         if not game.teams:
@@ -175,7 +196,7 @@ class LiveReplayItem(QtWidgets.QTreeWidgetItem):
 
     def _create_playeritem(self, game, name):
         item = QtWidgets.QTreeWidgetItem()
-        item.setText(0, name)
+        item.setText(1, name)
 
         if self._is_me(name):
             player_color = "self"
@@ -186,7 +207,7 @@ class LiveReplayItem(QtWidgets.QTreeWidgetItem):
         else:
             player_color = "default"
         colors = client.instance.player_colors
-        item.setForeground(0, QtGui.QColor(colors.get_color(player_color)))
+        item.setForeground(1, QtGui.QColor(colors.get_color(player_color)))
 
         if self._is_online(name):
             item.gurl = self._generate_livereplay_link(game, name)
@@ -202,17 +223,30 @@ class LiveReplayItem(QtWidgets.QTreeWidgetItem):
             game.featured_mod, game.uid, name,
         )
 
-    def __lt__(self, other):
-        return self.launch_time < other.launch_time
-
-    def __le__(self, other):
-        return self.launch_time <= other.launch_time
-
-    def __gt__(self, other):
-        return self.launch_time > other.launch_time
-
-    def __ge__(self, other):
-        return self.launch_time >= other.launch_time
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, LiveReplayItem):
+            return NotImplemented
+        match self.treeWidget().sortColumn():
+            case self.Columns.MAP:
+                return self._game.mapname < other._game.mapname
+            case self.Columns.START_TIME:
+                return self.launch_time < other.launch_time
+            case self.Columns.TITLE:
+                return self._game.title < other._game.title
+            case self.Columns.HOST:
+                return self._game.host < other._game.host
+            case self.Columns.AVG_RATING:
+                return self._game.average_rating < other._game.average_rating
+            case self.Columns.PLAYERS:
+                return len(self._game.playing_players) < len(other._game.playing_players)
+            case self.Columns.MAX_PLAYERS:
+                return self._game.max_players < other._game.max_players
+            case self.Columns.MODS:
+                return len(self._game.sim_mods) < len(other._game.sim_mods)
+            case self.Columns.FEATURED_MOD:
+                return self._game.featured_mod < other._game.featured_mod
+            case _:
+                return self.launch_time < other.launch_time
 
 
 class LiveReplaysWidgetHandler:
@@ -220,15 +254,20 @@ class LiveReplaysWidgetHandler:
         self.liveTree = liveTree
         self.liveTree.itemDoubleClicked.connect(self.liveTreeDoubleClicked)
         self.liveTree.itemPressed.connect(self.liveTreePressed)
-        self.liveTree.header().setSectionResizeMode(
-            0, QtWidgets.QHeaderView.ResizeMode.ResizeToContents,
+        self.liveTree.sortByColumn(
+            LiveReplayItem.Columns.START_TIME, QtCore.Qt.SortOrder.DescendingOrder,
         )
-        self.liveTree.header().setSectionResizeMode(
-            1, QtWidgets.QHeaderView.ResizeMode.Stretch,
-        )
-        self.liveTree.header().setSectionResizeMode(
-            2, QtWidgets.QHeaderView.ResizeMode.ResizeToContents,
-        )
+        self.liveTree.header().setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        for column in LiveReplayItem.Columns:
+            if column in (LiveReplayItem.Columns.TITLE, LiveReplayItem.Columns.MODS):
+                self.liveTree.header().setSectionResizeMode(
+                    column, QtWidgets.QHeaderView.ResizeMode.Stretch,
+                )
+            else:
+                self.liveTree.header().setSectionResizeMode(
+                    column, QtWidgets.QHeaderView.ResizeMode.ResizeToContents,
+                )
+        self.liveTree.setAlternatingRowColors(True)
         self.game_type_filter = live_tree_filters[0]
         self.game_type_filter.addItems(typ.value for typ in GameType)
         self.game_type_filter.currentIndexChanged.connect(self.filter_games)
