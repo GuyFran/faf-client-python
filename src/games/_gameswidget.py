@@ -318,17 +318,13 @@ class GamesWidget(FormClass, BaseClass):
         self._game_launcher.host_game(item.name, item.mod)
 
     def teamListItemClicked(self, item):
-        if QtWidgets.QApplication.mouseButtons() == Qt.MouseButton.LeftButton:
-            # for no good reason doesn't always work as expected
-            item.setSelected(False)
-
         if (
             QtWidgets.QApplication.mouseButtons() == Qt.MouseButton.RightButton
             and self.party.owner_id == self._me.id
         ):
             self.teamList.setCurrentItem(item)
             playerLogin = item.data(0)
-            playerId = self.client.players[playerLogin].id
+            playerId = self.client.players.getID(playerLogin)
             menu = QtWidgets.QMenu(self)
             actionKick = QAction("Kick from party", menu)
             actionKick.triggered.connect(
