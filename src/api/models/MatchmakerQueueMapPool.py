@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from pydantic import Field
 
 from src.api.models.AbstractEntity import AbstractEntity
@@ -12,7 +10,7 @@ class MatchmakerQueueMapPool(AbstractEntity):
     max_rating:     float | None           = Field(alias="maxRating")
     tokens:         int                    = Field(alias="vetoTokensPerPlayer")
     max_map_tokens: int                    = Field(alias="maxTokensPerMap")
-    min_size:       int                    = Field(alias="minimumMapsAfterVeto")
+    min_size:       float                  = Field(alias="minimumMapsAfterVeto")
 
     map_pool:       MapPool | None         = Field(None, alias="mapPool")
     queue:          MatchmakerQueue | None = Field(None, alias="matchmakerQueue")
