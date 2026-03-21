@@ -6,9 +6,11 @@ from typing import Any
 from typing import cast
 
 from PyQt6.QtCore import QByteArray
+from PyQt6.QtCore import QIODevice
 from PyQt6.QtCore import QObject
 from PyQt6.QtCore import QUrl
 from PyQt6.QtCore import QUrlQuery
+from PyQt6.QtNetwork import QHttpMultiPart
 from PyQt6.QtNetwork import QNetworkAccessManager
 from PyQt6.QtNetwork import QNetworkReply
 from PyQt6.QtNetwork import QNetworkRequest
@@ -46,8 +48,10 @@ class JsonApiBase(QObject):
         return handle
 
     def decode_reply(self, reply: QNetworkReply) -> dict[str, Any]:
-        message_bytes = reply.readAll().data()
-        return cast(dict[str, Any], json.loads(message_bytes.decode("utf-8")))
+        if message_bytes := reply.readAll().data():
+            return cast(dict[str, Any], json.loads(message_bytes.decode("utf-8")))
+        else:
+            return {}
 
     def build_query_url(self, query_dict: QueryOptions) -> QUrl:
         query = QUrlQuery()
@@ -84,7 +88,7 @@ class JsonApiBase(QObject):
     def post(
         self,
         endpoint: str,
-        data: QByteArray,
+        data: QByteArray | QIODevice | QHttpMultiPart,
         response_handler: Callable[[dict[str, Any]], None] = _do_nothing,
         error_handler: Callable[[QNetworkReply], None] = _do_nothing,
     ) -> QNetworkReply:
@@ -155,13 +159,14 @@ class ApiAccessManager(QObject):
     def post(
         self,
         url: QUrl,
-        data: QByteArray,
+        data: QByteArray | QIODevice | QHttpMultiPart,
         response_handler: Callable[[QNetworkReply], None] = _do_nothing,
         error_handler: Callable[[QNetworkReply], None] = _do_nothing,
     ) -> QNetworkReply:
         logger.debug("Sending POST API request with URL: %s", url.toString())
         request = self.prepare_request(url)
-        request.setRawHeader(b"Content-Type", b"application/vnd.api+json;charset=utf-8")
+        if isinstance(data, QByteArray):
+            request.setRawHeader(b"Content-Type", b"application/vnd.api+json;charset=utf-8")
         reply = self.manager.post(request, data)
         if reply is None:
             logger.error("Error sending POST request to: '%s' with %s", url.toString(), data.data())
@@ -208,14 +213,41 @@ class ApiAccessManager(QObject):
         self.error_handlers[reply] = error_handler
         return reply
 
+    def put(
+        self,
+        url: QUrl,
+        data: QByteArray | QIODevice,
+        response_handler: Callable[[QNetworkReply], None] = _do_nothing,
+        error_handler: Callable[[QNetworkReply], None] = _do_nothing,
+        *,
+        authorize: bool = True,
+    ) -> QNetworkReply:
+        auth_status = "" if authorize else "unauthorized"
+        logger.debug("Sending %s PUT API request with URL: %s", auth_status, url.toString())
+
+        if authorize:
+            request = self.prepare_request(url)
+        else:
+            request = QNetworkRequest(url)
+
+        reply = self.manager.put(request, data)
+        if reply is None:
+            logger.error("Error sending PUT request to: %s", url.toString())
+            raise RuntimeError("QNetworkAccessManager failed to create a QNetworkReply instance!")
+
+        self.handlers[reply] = response_handler
+        self.error_handlers[reply] = error_handler
+        return reply
+
     def on_request_finished(self, reply: QNetworkReply) -> None:
         if reply.error() != QNetworkReply.NetworkError.NoError:
+            details = reply.peek(reply.bytesAvailable())
             logger.error(
                 "API request error. URL: %s. Error: %s (%s). [%s]",
                 reply.url().url(),
                 reply.error(),
                 reply.errorString(),
-                reply.readAll().data().decode(),
+                details.decode() if details else "",
             )
             self.error_handlers[reply](reply)
         else:

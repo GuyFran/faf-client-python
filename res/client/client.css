@@ -887,6 +887,10 @@ QDialog#MapGenOptionsDialog
     alternate-background-color: #303035;
 }
 
+QDialog#ModUploadDialog,QDialog#MapUploadDialog {
+    background: #2f2f2f;
+}
+
 QCheckBox::enabled
 {
     color: silver;
@@ -1008,7 +1012,7 @@ QPushButton:disabled
 
 QPushButton:hover
 {
-    border: 1px solid #888;
+    background: #808080;
 }
 
 QPushButton#refreshButton, #nextButton, #previousButton, #goToPageButton, #firstButton, #lastButton,
@@ -1190,6 +1194,16 @@ QFrame#settingsFrame {
 #line,#line_2
 {
     background-color: #202025;
+}
+
+QProgressBar {
+    color: silver;
+    border: none;
+    background: #1f1f1f;
+}
+
+QProgressBar::chunk {
+    background: green;
 }
 
 QProgressBar#achievementBar
@@ -1554,6 +1568,10 @@ QGroupBox#vaultSearchParams {
     background: #202025;
 }
 
+QMessageBox {
+    background: #2f2f2f;
+    messagebox-text-interaction-flags: 1;
+}
 
 /* CUSTOM RULES */
 QTextBrowser::custom {

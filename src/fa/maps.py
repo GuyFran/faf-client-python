@@ -6,8 +6,6 @@ import shutil
 import stat
 import string
 import sys
-import tempfile
-import zipfile
 from collections.abc import Callable
 from collections.abc import Iterator
 from typing import TypedDict
@@ -94,18 +92,18 @@ def getScenarioFile(folder):
     return None
 
 
-def isMapFolderValid(folder):
+def isMapFolderValid(folder: str) -> bool:
     """
     Check if the folder got all the files needed to be a map folder.
     """
-    baseName = os.path.basename(folder).split('.')[0]
+    baseName = os.path.basename(folder).split('.')[0].lower()
     files_required = {
         baseName + ".scmap",
         baseName + "_save.lua",
         baseName + "_scenario.lua",
         baseName + "_script.lua",
     }
-    files_present = set(os.listdir(folder))
+    files_present = set(map(str.lower, os.listdir(folder)))
 
     return files_required.issubset(files_present)
 
@@ -400,48 +398,7 @@ def _doDownloadMap(name: str, link: str, silent: bool) -> tuple[bool, Callable[[
     )
 
 
-def processMapFolderForUpload(mapDir: str) -> None:
-    """
-    Zipping the file and creating thumbnails
-    """
-    # creating thumbnail
-    exported = export_preview_from_map(mapDir)
-
-    if exported is None:
-        return
-
-    files = exported["tozip"]
-    # abort zipping if there is insufficient previews
-    if files is None or len(files) != 3:
-        logger.debug("Insufficient previews for making an archive.")
-        return None
-
-    # mapName = os.path.basename(mapDir).split(".v")[0]
-
-    # making sure we pack only necessary files and not random garbage
-    for entry in os.scandir(mapDir):
-        endings = ['.lua', 'preview.jpg', '.scmap', '.dds']
-        # stupid trick: False + False == 0, True + False == 1
-        if sum(entry.name.endswith(x) for x in endings) > 0:
-            files.append(entry.path)
-
-    temp = tempfile.NamedTemporaryFile(mode='w+b', suffix=".zip", delete=False)
-
-    # creating the zip
-    zipped = zipfile.ZipFile(temp, "w", zipfile.ZIP_DEFLATED)
-
-    for filename in files:
-        zipped.write(
-            filename,
-            os.path.join(os.path.basename(mapDir), os.path.basename(filename)),
-        )
-
-    temp.flush()
-
-    return temp
-
-
-class CachedMapInfo(TypedDict):
+class MapInfo(TypedDict):
     name: str
     version: str
     map_size: dict[str, str]
@@ -449,6 +406,9 @@ class CachedMapInfo(TypedDict):
     max_players: int
     map_type: str
     battle_type: str
+
+
+class CachedMapInfo(MapInfo):
     folder_name: str
 
 

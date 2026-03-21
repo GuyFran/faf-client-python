@@ -58,6 +58,7 @@ class ModVault(Vault[Mod]):
         self.searchParams.uploaderInput.returnPressed.connect(self.search)
         self.manage_installed_dialog = ModsManagerDialog(self.client)
         self.buttonManageInstalled.clicked.connect(self.manage_installed_dialog.run)
+        self.uploadButton.clicked.connect(self.openUploadForm)
 
     def construct_search_filters(self) -> QueryOptions:
         filters: list[str] = []
@@ -110,7 +111,6 @@ class ModVault(Vault[Mod]):
             self.client,
             "Select the mod directory to upload",
             utils.MODFOLDER,
-            QtWidgets.QFileDialog.ShowDirsOnly,
         )
         logger.debug("Uploading mod from: " + modDir)
         if modDir != "":

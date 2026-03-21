@@ -98,7 +98,6 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
         self._items: dict[str, VaultListItem[T]] = {}
 
         self.UIButton.hide()
-        self.uploadButton.hide()
 
         self.vault_type = type(self).__name__
 
