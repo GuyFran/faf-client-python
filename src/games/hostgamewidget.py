@@ -193,11 +193,6 @@ class HostGameWidget(QDialog):
         self.ui.mapPlayersMaximum.valueChanged.connect(self.on_map_max_p_changed)
 
         self.ui.modTypeRadioGroup.buttonToggled.connect(self.on_mod_display_type_changed)
-        mod_type = Settings.get("fa.games/displayed_mods", "All")
-        for button in self.ui.modTypeRadioGroup.buttons():
-            if mod_type == button.text():
-                button.setChecked(True)
-                break
 
         self.ui.mapNameFilter.textChanged.connect(self.filter_maps_by_name)
         self.ui.modNameFilter.textChanged.connect(self.filter_mods_by_name)
@@ -399,6 +394,15 @@ class HostGameWidget(QDialog):
             logger.debug("found item: %s", ml[0].text())
             if ml:
                 ml[0].setSelected(True)
+
+        mod_type = Settings.get("fa.games/displayed_mods", "All")
+        for button in self.ui.modTypeRadioGroup.buttons():
+            if mod_type == button.text():
+                if button.isChecked():
+                    self.on_mod_display_type_changed(button, True)
+                else:
+                    button.setChecked(True)
+                break
 
     def _reset(self) -> None:
         self.ui.mapList.clear()
