@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from enum import Enum
 
 from PyQt6.QtWidgets import QListWidget
@@ -44,6 +42,8 @@ class MapListItem(VaultListItem[Map]):
         self.on_display_type_changed(index)
 
     def should_be_visible(self) -> bool:
+        if self.item_version.hidden:
+            return False
         match self.display_type:
             case MapDisplayType.ALL:
                 return True

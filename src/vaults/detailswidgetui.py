@@ -107,6 +107,9 @@ class DetailsWidgetUI:
         version_box.setLayout(self.versionLayout)
         content_layout.addWidget(version_box, 2, 1)
 
+        self.hideButton = QPushButton("Hide")
+        self.hideButton.setMaximumWidth(300)
+
         self.overviewLayout.addLayout(content_layout)
 
         description_box = QGroupBox("Description")

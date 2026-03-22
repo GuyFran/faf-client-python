@@ -40,6 +40,7 @@ from src.vaults.reviewwidget import convert_review
 
 class DetailsWidget[T: Map | Mod](QWidget):
     item_availability_changed = pyqtSignal()
+    item_hidden_changed = pyqtSignal()
 
     def __init__(
             self,
