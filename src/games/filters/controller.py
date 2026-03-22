@@ -75,7 +75,10 @@ class GamesSortFilterController:
         else:
             safe_sort_index = 0
 
-        self.sortGamesComboBox.setCurrentIndex(safe_sort_index)
+        if self.sortGamesComboBox.currentIndex() == safe_sort_index:
+            self.on_sort_games_combo_changed(safe_sort_index)
+        else:
+            self.sortGamesComboBox.setCurrentIndex(safe_sort_index)
 
     def on_games_count_changed(self) -> None:
         shown = self.game_filter_model.rowCount()
