@@ -1662,3 +1662,7 @@ PlayerColors::custom {
   chatterbox: darkgoldenrod;
   game_host: gold;
 }
+
+SpecialListWidgetColors::custom {
+    background: green;
+}

@@ -54,6 +54,7 @@ from src.fa.replaylivestreamer import LiveReplayStreamer
 from src.games import GamesWidget
 from src.games.gameitem import GameViewBuilder
 from src.games.gamemodel import GameModel
+from src.games.hostgamewidget import UnseenMapgenNames
 from src.games.hostgamewidget import build_launcher
 from src.heavy_modules import BackgroundImporter
 from src.mapGenerator.mapgenManager import MapGeneratorManager
@@ -985,6 +986,7 @@ class ClientWindow(FormClass, BaseClass):
 
         # Get rid of generated maps
         util.clearGeneratedMaps()
+        UnseenMapgenNames.cleanup()
 
         CachedMapsMetadata.sanitize()
         CachedMapsMetadata.save()
