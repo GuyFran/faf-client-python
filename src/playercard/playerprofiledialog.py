@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 FormClass, BaseClass = util.THEME.loadUiType("player_card/playercard.ui")
 
 
-class PlayerInfoDialog(FormClass, BaseClass):
+class PlayerProfileDialog(FormClass, BaseClass):
     def __init__(
         self,
         avatar_dler: CachedImageDownloader,
