@@ -1,4 +1,5 @@
 import logging
+import sys
 from os import environ
 from os.path import join
 
@@ -53,7 +54,7 @@ default_values = {
     'replay_server/port': 15000,
     'relay_server/host': 'lobby.{host}',
     'relay_server/port': 8000,
-    'replay_stream/pipe_path': r'\\.\pipe\fafreplay',
+    'replay_stream/pipe_path': ('/tmp/fafreplay', r'\\.\pipe\fafreplay')[sys.platform == 'win32'],
     'vault/map_preview_url': 'https://content.{host}/maps/previews/{size}/{name}.png',
     'vault/map_download_url': "https://content.{host}/maps/{name}.zip",
     'vault/map_validation_url': 'https://api.{host}/maps/validate',

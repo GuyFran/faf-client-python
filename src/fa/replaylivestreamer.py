@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 from queue import Queue
 from threading import Thread
@@ -73,10 +74,37 @@ class StreamWriter(QObject):
 
     def start(self) -> None:
         self._finished = False
-        self._logger.debug("Starting named pipe thread...")
+        self._logger.debug("Starting stream thread...")
         self._thread.start()
 
-    def stream(self) -> None:
+    def _stream_linux(self) -> None:
+        fifo_path = Settings.get("replay_stream/pipe_path", "")
+
+        if os.path.exists(fifo_path):
+            os.unlink(fifo_path)
+        os.mkfifo(fifo_path)
+
+        try:
+            with open(fifo_path, "wb") as fifo:
+                while True:
+                    data = self.queue.get()
+                    try:
+                        fifo.write(data)
+                        fifo.flush()
+                        if data == self._terminator:
+                            self._logger.debug("Ending live replay normally...")
+                            self._close.emit()
+                            break
+                    except OSError as e:
+                        self._logger.debug("Ending live replay abruptly: %s", e)
+                        self._abort.emit()
+                        break
+                    else:
+                        self.queue.task_done()
+        finally:
+            os.unlink(fifo_path)
+
+    def _stream_win32(self) -> None:
         pipe = win32pipe.CreateNamedPipe(
             Settings.get("replay_stream/pipe_path", ""),
             win32pipe.PIPE_ACCESS_OUTBOUND,
@@ -87,7 +115,7 @@ class StreamWriter(QObject):
 
         if pipe_connected != 0:
             self._logger.warning(
-                "Coul not connect named pipe. ConnectNamedPipe returned %s",
+                "Could not connect named pipe. ConnectNamedPipe returned %s",
                 pipe_connected,
             )
             win32file.CloseHandle(pipe)
@@ -99,16 +127,22 @@ class StreamWriter(QObject):
             try:
                 win32file.WriteFile(pipe, data)
                 if data == self._terminator:
-                    self._logger.debug("Ending live replay normaly...")
+                    self._logger.debug("Ending live replay normally...")
                     self._close.emit()
                     break
             except Exception as e:
-                self._logger.debug("Ending live replay abrubtly: %s", e)
+                self._logger.debug("Ending live replay abruptly: %s", e)
                 self._abort.emit()
                 break
             else:
                 self.queue.task_done()
         win32file.CloseHandle(pipe)
+
+    def stream(self) -> None:
+        if sys.platform == "win32":
+            self._stream_win32()
+        else:
+            self._stream_linux()
 
     def connect_to_replay_server(self, url: QUrl) -> None:
         self.socket.open(url)
@@ -169,8 +203,7 @@ class LiveReplayStreamer(QObject):
         self.writer: StreamWriter | None = None
 
     def start_live_replay(self, gurl: GameUrl) -> None:
-        # TODO: handle linux too
-        if sys.platform == "win32" and Settings.get("game/pipe_live_replay", True, type=bool):
+        if Settings.get("game/pipe_live_replay", True, type=bool):
             if self.writer is not None:
                 self._logger.warning("Another instance of StreamWriter is not finished yet.")
                 QMessageBox.warning(None, "Live Replay", "Another live replay is already running.")
