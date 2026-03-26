@@ -26,7 +26,6 @@ from src.config import _settings  # Stolen from Config because reasons
 from src.config.production import APPDATA_DIR as _APPDATA_DIR
 from src.connectivity.IceAdapterPlatformOptions import GoIceAdapterPlatformOptions
 from src.connectivity.IceAdapterPlatformOptions import JavaIceAdapterPlatformOptions
-from src.mapGenerator import mapgenUtils
 from src.util.theme import Theme
 from src.util.theme import ThemeSet
 
@@ -235,17 +234,6 @@ def clear_game_cache() -> None:
             access_time = datetime.fromtimestamp(access_timestamp)
             if (curr_time - access_time).days >= max_storage_time:
                 os.remove(entry.path)
-
-
-def clearGeneratedMaps() -> None:
-    if not Settings.get("maps/autodelete_generated", True, type=bool):
-        return
-    map_dir = os.path.join(VAULTS_BASE_DIR, "maps")
-    if not os.path.exists(map_dir):
-        return
-    for entry in os.scandir(map_dir):
-        if entry.is_dir() and re.match(mapgenUtils.generatedMapPattern, entry.name):
-            shutil.rmtree(entry.path)
 
 
 def clear_unused_ice_adapters() -> None:

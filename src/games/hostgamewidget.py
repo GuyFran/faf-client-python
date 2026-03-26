@@ -206,6 +206,9 @@ class HostGameWidget(QDialog):
         self.ui.mapNameFilter.textChanged.connect(self.filter_maps_by_name)
         self.ui.modNameFilter.textChanged.connect(self.filter_mods_by_name)
 
+        self.ui.showFavouritesOnlyCheck.toggled.connect(self.filter_maps_by_default)
+        self.ui.toggleFavouriteButton.clicked.connect(self.toggle_favourite_map)
+
         self.ui.mapPreviewLabel.clicked.connect(self.show_large_map_preview)
 
     def show_large_map_preview(self) -> None:
@@ -304,15 +307,23 @@ class HostGameWidget(QDialog):
         self.filter_maps_by_players(*slider.get_position())
 
     def filter_maps_by_name(self, text: str) -> None:
-        lower_text = text.lower()
+        self.filter_maps_by_default()
+        if text == "" and (items := self.ui.mapList.selectedItems()):
+            item, = items
+            self.ui.mapList.scrollToItem(item)
+
+    def filter_maps_by_default(self) -> None:
         for row in range(self.ui.mapList.count()):
             item = self.ui.mapList.item(row)
             if item is None:
                 continue
-            item.setHidden(lower_text not in item.text().lower())
-        if text == "" and (items := self.ui.mapList.selectedItems()):
-            item, = items
-            self.ui.mapList.scrollToItem(item)
+            map_info = item.data(QtCore.Qt.ItemDataRole.UserRole)
+            name_matches = self.ui.mapNameFilter.text().lower() in item.text().lower()
+            is_favourite = map_info["folder_name"] in maps.FavouriteMaps
+            if self.ui.showFavouritesOnlyCheck.isChecked():
+                item.setHidden(not name_matches or not is_favourite)
+            else:
+                item.setHidden(not name_matches)
 
     def on_map_w_slider_moved(self, mn: int, mx: int) -> None:
         with block_signals(self.ui.mapWidthMinimum) as sb:
@@ -374,6 +385,7 @@ class HostGameWidget(QDialog):
                 item.setHidden(not text_matches or mod.ui_only)
 
     def setup(self, title: str, game: Game) -> None:
+        maps.FavouriteMaps.load_from_cache()
         UnseenMapgenNames.load_from_cache()
         self._reset()
         self.game = game
@@ -439,6 +451,7 @@ class HostGameWidget(QDialog):
                     item.setForeground(self._unseen_mapgen_brush)
 
             self.ui.mapList.sortItems()
+            self.filter_maps_by_name(self.ui.mapNameFilter.text())
             self.ui.mapsGroup.show()
             self.ui.previewGroup.show()
             if current_map_item is not None:
@@ -512,8 +525,24 @@ class HostGameWidget(QDialog):
             UnseenMapgenNames.discard(name)
             item.setForeground(QBrush())
 
+        if map_info["folder_name"] in maps.FavouriteMaps:
+            self.ui.toggleFavouriteButton.setText("★ Remove from Favourites")
+        else:
+            self.ui.toggleFavouriteButton.setText("☆ Add to Favourites")
+
         self.game.update(mapname=map_info["folder_name"], max_players=map_info["max_players"])
         self.update_map_preview(item)
+
+    def toggle_favourite_map(self) -> None:
+        item = self.ui.mapList.currentItem()
+        if item is None:
+            return
+        map_info = item.data(QtCore.Qt.ItemDataRole.UserRole)
+        if maps.FavouriteMaps.toggle(map_info["folder_name"]):
+            self.ui.toggleFavouriteButton.setText("★ Remove from Favourites")
+        else:
+            self.ui.toggleFavouriteButton.setText("☆ Add to Favourites")
+            self.filter_maps_by_default()
 
     def hosting(self) -> None:
         if not fa.instance.available():

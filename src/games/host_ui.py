@@ -141,9 +141,15 @@ class HostGameDialogUi:
         map_filters_layout.addWidget(self.resetMapFiltersButton, 6, 1, 1, 1)
         maps_layout.addWidget(self.mapFiltersWidget)
 
+        map_search_layout = QHBoxLayout()
         self.mapNameFilter = QLineEdit()
         self.mapNameFilter.setPlaceholderText("Search maps...")
-        maps_layout.addWidget(self.mapNameFilter)
+        self.showFavouritesOnlyCheck = QCheckBox("★")
+        self.showFavouritesOnlyCheck.setToolTip("Show favourites only")
+        self.showFavouritesOnlyCheck.setMinimumWidth(40)
+        map_search_layout.addWidget(self.mapNameFilter)
+        map_search_layout.addWidget(self.showFavouritesOnlyCheck)
+        maps_layout.addLayout(map_search_layout)
 
         self.mapList = QListWidget()
         self.mapList.setMinimumWidth(256)
@@ -192,6 +198,9 @@ class HostGameDialogUi:
         self.mapNameLabel.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
         self.mapNameLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        self.toggleFavouriteButton = QPushButton("☆ Add to Favourites")
+        self.toggleFavouriteButton.setToolTip("Toggle favourite status for this map")
+
         self.mapDescription = QTextEdit("No description available")
         self.mapDescription.setReadOnly(True)
         self.mapDescription.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -201,6 +210,7 @@ class HostGameDialogUi:
         preview_layout.addWidget(self.mapPreviewLabel, alignment=Qt.AlignmentFlag.AlignCenter)
         preview_layout.addWidget(self.mapNameLabel)
         preview_layout.addLayout(self.mapInfoLayout)
+        preview_layout.addWidget(self.toggleFavouriteButton)
         preview_layout.addWidget(self.mapDescription)
 
         self.modsGroup = QGroupBox("Mods")

@@ -985,7 +985,7 @@ class ClientWindow(FormClass, BaseClass):
         util.clear_game_cache()
 
         # Get rid of generated maps
-        util.clearGeneratedMaps()
+        fa.maps.clear_generated_maps()
         UnseenMapgenNames.cleanup()
 
         CachedMapsMetadata.sanitize()

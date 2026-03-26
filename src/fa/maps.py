@@ -20,6 +20,7 @@ from src.fa.maps_.map_utils import get_scmap_file
 from src.fa.maps_.preview import create_large_preview
 from src.fa.maps_.preview import extract_dds
 from src.fa.maps_.preview import image_from_dds
+from src.mapGenerator import mapgenUtils
 from src.mapGenerator.mapgenUtils import isGeneratedMap
 from src.model.game import OFFICIAL_MAPS as maps
 from src.vaults.dialogs import downloadVaultAssetNoMsg
@@ -541,3 +542,71 @@ class InstalledMapsCache(QtCore.QObject):
 
 
 CachedMapsMetadata = InstalledMapsCache(os.path.join(util.MAP_CACHE_DIR, "mapscenarios.json"))
+
+
+class _FavouriteMaps:
+    def __init__(self) -> None:
+        self._favourites: set[str] = set()
+        self._loaded = False
+        self._path = os.path.join(util.CACHE_DIR, "maps", "favourites")
+
+    def load_from_cache(self) -> None:
+        if self._loaded:
+            return
+        try:
+            with open(self._path) as f:
+                self._favourites = set(f.read().splitlines())
+        except FileNotFoundError:
+            pass
+        self._loaded = True
+        self.cleanup()
+
+    def cleanup(self) -> None:
+        favourites_base = {m for m in self._favourites if isBase(m)}
+        removed = self._favourites - set(getUserMaps()) - favourites_base
+        if removed:
+            self._favourites -= removed
+            self.save_to_cache()
+
+    def save_to_cache(self) -> None:
+        os.makedirs(os.path.dirname(self._path), exist_ok=True)
+        with open(self._path, "w") as f:
+            f.write("\n".join(self._favourites))
+
+    def __contains__(self, x: object) -> bool:
+        return x in self._favourites
+
+    def add(self, value: str) -> None:
+        self._favourites.add(value)
+        self.save_to_cache()
+
+    def discard(self, value: str) -> None:
+        self._favourites.discard(value)
+        self.save_to_cache()
+
+    def toggle(self, value: str) -> bool:
+        if value in self._favourites:
+            self._favourites.discard(value)
+            self.save_to_cache()
+            return False
+        else:
+            self._favourites.add(value)
+            self.save_to_cache()
+            return True
+
+
+FavouriteMaps = _FavouriteMaps()
+
+
+def clear_generated_maps() -> None:
+    if not Settings.get("maps/autodelete_generated", True, type=bool):
+        return
+
+    map_dir = os.path.join(util.VAULTS_BASE_DIR, "maps")
+    if not os.path.exists(map_dir):
+        return
+    for entry in os.scandir(map_dir):
+        if entry.name.lower() in FavouriteMaps:
+            continue
+        if entry.is_dir() and re.match(mapgenUtils.generatedMapPattern, entry.name):
+            shutil.rmtree(entry.path)
