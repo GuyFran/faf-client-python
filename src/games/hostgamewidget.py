@@ -493,7 +493,13 @@ class HostGameWidget(QDialog):
                     break
 
     def select_random_map(self) -> None:
-        self.ui.mapList.setCurrentRow(random.randint(0, max(0, self.ui.mapList.count() - 1)))
+        visible_rows = [
+            row for row in range(self.ui.mapList.count())
+            if not self.ui.mapList.isRowHidden(row)
+            and row != self.ui.mapList.currentRow()
+        ]
+        if visible_rows:
+            self.ui.mapList.setCurrentRow(random.choice(visible_rows))
 
     def update_text(self, text: str) -> None:
         self.game.update(title=text.strip())
