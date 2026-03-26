@@ -194,7 +194,7 @@ class HostGameDialogUi:
         self.mapInfoLayout.addWidget(self.mapVersionLabel)
         self.mapInfoLayout.addStretch()
 
-        self.mapNameLabel = QLabel("No map selected")
+        self.mapNameLabel = ClickableLabel("No map selected")
         self.mapNameLabel.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
         self.mapNameLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
 

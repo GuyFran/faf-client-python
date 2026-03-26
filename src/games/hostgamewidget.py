@@ -15,6 +15,7 @@ from PyQt6.QtGui import QColor
 from PyQt6.QtGui import QIcon
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QAbstractButton
+from PyQt6.QtWidgets import QApplication
 from PyQt6.QtWidgets import QDialog
 from PyQt6.QtWidgets import QListWidgetItem
 
@@ -209,6 +210,7 @@ class HostGameWidget(QDialog):
         self.ui.showFavouritesOnlyCheck.toggled.connect(self.filter_maps_by_default)
         self.ui.toggleFavouriteButton.clicked.connect(self.toggle_favourite_map)
 
+        self.ui.mapNameLabel.clicked.connect(self.copy_map_name_to_clipboard)
         self.ui.mapPreviewLabel.clicked.connect(self.show_large_map_preview)
 
     def show_large_map_preview(self) -> None:
@@ -617,6 +619,7 @@ class HostGameWidget(QDialog):
     def update_map_preview(self, item: QListWidgetItem) -> None:
         map_info = cast(maps.CachedMapInfo, item.data(QtCore.Qt.ItemDataRole.UserRole))
         self.ui.mapNameLabel.setText(item.text())
+        self.ui.mapNameLabel.setToolTip(map_info["name"])
 
         w, h = map(int, map_info["map_size"].values())
         self.ui.mapSizeLabel.setText(f"⛶  {MapSize(w, h)}")
@@ -640,6 +643,13 @@ class HostGameWidget(QDialog):
             self.ui.mapPreviewLabel.setPixmap(img.pixmap(256, 256))
         else:
             self.ui.mapPreviewLabel.setPixmap(img.scaled(256, 256))
+
+    def copy_map_name_to_clipboard(self) -> None:
+        map_name = self.ui.mapNameLabel.text()
+        if map_name != "Copied!":
+            QApplication.clipboard().setText(self.ui.mapNameLabel.toolTip())
+            self.ui.mapNameLabel.setText("Copied!")
+            QtCore.QTimer.singleShot(500, lambda: self.ui.mapNameLabel.setText(map_name))
 
 
 def build_launcher(
