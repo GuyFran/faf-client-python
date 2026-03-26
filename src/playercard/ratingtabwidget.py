@@ -95,6 +95,7 @@ class RatingsPlotTab(QObject):
             self.leaderboard.technical_name,
         )
         self.ratings_history_api.ratings_ready.connect(self.process_rating_history)
+        self.ratings_history_api.max_ready.connect(self.process_max_rating)
         self.ratings_history_api.api_error.connect(self.on_rating_api_error)
         self.plot = plot
         self.workers: list[LineSeriesParser] = []
@@ -123,6 +124,7 @@ class RatingsPlotTab(QObject):
     def enter(self) -> None:
         if self._current_page == 0:
             self.load_ratings()
+            self.ratings_history_api.get_max_rating()
 
     @property
     def _loaded(self) -> bool:
@@ -187,6 +189,40 @@ class RatingsPlotTab(QObject):
         self.plot.update()
         if self._loaded:
             self.finish()
+
+    def process_max_rating(self, message: dict[str, Any]) -> None:
+        mx = -10_000
+        date = ""
+
+        journal = message["data"]
+        journal_leng = len(journal)
+
+        if journal_leng == 0:
+            return
+
+        stats = message["included"]
+        stats_leng = len(stats)
+
+        stats_index = journal_index = 0
+        while stats_index < stats_leng and journal_index < journal_leng:
+            if (
+                stats[stats_index]["id"]
+                != journal[journal_index]["relationships"]["gamePlayerStats"]["data"]["id"]
+            ):
+                journal_index += 1
+                continue
+
+            rating = Rating(
+                journal[journal_index]["attributes"]["meanAfter"],
+                journal[journal_index]["attributes"]["deviationAfter"],
+            )
+            if (est := rating.displayed()) >= mx:
+                mx = est
+                date = stats[stats_index]["attributes"]["scoreTime"]
+
+            stats_index += 1
+            journal_index += 1
+        self.plot.set_max_rating(mx, date)
 
 
 class RatingTabWidgetController:

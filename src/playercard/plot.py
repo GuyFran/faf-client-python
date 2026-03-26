@@ -1,7 +1,9 @@
 from bisect import bisect_left
+from typing import Any
 
 from PyQt6.QtCore import QDateTime
 from PyQt6.QtCore import QPointF
+from PyQt6.QtCore import Qt
 
 from src.heavy_modules import np
 from src.heavy_modules import pg
@@ -28,7 +30,7 @@ class Crosshairs:
 
         self.series = series
 
-        pen = pg.mkPen(self.COLOR, width=3)
+        pen = pg.mkPen(self.COLOR, width=1, style=Qt.PenStyle.DashLine)
         self.xLine = pg.InfiniteLine(angle=90, pen=pen)
         self.yLine = pg.InfiniteLine(angle=0, pen=pen)
 
@@ -174,6 +176,15 @@ class LineSeries:
         return QPointF(self._x[index], self._y[index])
 
 
+class MaxRatingLabel:
+    def __init__(self, line: pg.InfiniteLine, **opts: Any) -> None:
+        self.label = pg.InfLineLabel(line, **opts)
+
+    def setRating(self, rating: float, iso_date: str) -> None:
+        date = QDateTime.fromString(iso_date, Qt.DateFormat.ISODate).toString("dd-MM-yyyy")
+        self.label.setText(f"{rating:g}\n({date})")
+
+
 class PlotController:
     def __init__(self, widget: pg.PlotWidget) -> None:
         self.widget = widget
@@ -194,6 +205,22 @@ class PlotController:
         )
         self.plot_item: pg.PlotDataItem = self.widget.plot(pen=pg.mkPen(pen_color))
 
+        max_rating_color = THEME.find_stylesheet_attribute(
+            "RatingPlotWidget::custom",
+            "max-rating-color",
+            fallback="c",
+        )
+        self.max_rating_line = self.widget.addLine(
+            y=0,
+            angle=0,
+            pen=pg.mkPen(max_rating_color, style=Qt.PenStyle.DashLine),
+        )
+        self.max_rating_line.hide()
+        self.max_rating_label = MaxRatingLabel(
+            self.max_rating_line,
+            **{"position": 0.1, "movable": True},
+        )
+
     def clear(self) -> None:
         self.widget.clear()
 
@@ -206,6 +233,12 @@ class PlotController:
 
     def prepend_data(self, series: LineSeries) -> None:
         self.series.prextend(series)
+
+    def set_max_rating(self, rating: float, iso_date: str) -> None:
+        self.max_rating_line.show()
+        self.max_rating_line.setValue(rating)
+        self.max_rating_label.setRating(rating, iso_date)
+        self.widget.autoRange()
 
     def hide_scene_actions(self) -> None:
         # hide the 'Export...' action
@@ -227,3 +260,8 @@ class PlotController:
             return
 
         menu.addAction("Show/Hide crosshair", self.crosshairs.change_visibility)
+        menu.addAction("Show/Hide max rating", self.change_max_rating_visibility)
+
+    def change_max_rating_visibility(self) -> None:
+        visible = self.max_rating_line.isVisible()
+        self.max_rating_line.setVisible(not visible)

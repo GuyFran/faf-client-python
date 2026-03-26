@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Iterator
+from copy import copy
 from operator import methodcaller
 from typing import cast
 
@@ -65,6 +66,8 @@ class LeaderboardRatingJournalApiConnector(ApiAccessor):
     ratings_ready = pyqtSignal(dict)
     api_error = pyqtSignal(str)
 
+    max_ready = pyqtSignal(dict)
+
     def __init__(self, pid: str, leaderboard: str) -> None:
         super().__init__("/data/leaderboardRatingJournal")
         self.query: QueryOptions = {
@@ -85,6 +88,14 @@ class LeaderboardRatingJournalApiConnector(ApiAccessor):
             "page[totals]": "",
         })
         self.replies.append(self.get(self.query, self.ratings_ready.emit, self.on_error))
+
+    def get_max_rating(self) -> None:
+        query = copy(self.query)
+        query.update({
+            "sort": "-meanAfter",
+            "page[size]": 100,
+        })
+        self.replies.append(self.get(query, self.max_ready.emit, self.on_error))
 
     def on_error(self, reply: QNetworkReply) -> None:
         self.api_error.emit(reply.errorString())
