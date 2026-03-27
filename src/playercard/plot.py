@@ -4,6 +4,7 @@ from typing import Any
 from PyQt6.QtCore import QDateTime
 from PyQt6.QtCore import QPointF
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QCheckBox
 
 from src.heavy_modules import np
 from src.heavy_modules import pg
@@ -24,7 +25,12 @@ class Crosshairs:
         "background-color",
     )
 
-    def __init__(self, plotwidget: pg.PlotWidget, series: LineSeries) -> None:
+    def __init__(
+        self,
+        plotwidget: pg.PlotWidget,
+        series: LineSeries,
+        visibility_box: QCheckBox,
+    ) -> None:
         self.plotwidget = plotwidget
         self.plotwidget.scene().sigMouseMoved.connect(self.update_lines_and_text)
 
@@ -44,7 +50,10 @@ class Crosshairs:
         self.plotwidget.scene().addItem(self.yText)
 
         self.plotwidget.plotItem.getAxis("left").setWidth(40)
-        self._visible = True
+
+        self.visibility_box = visibility_box
+        self.set_visible(self.visibility_box.isChecked())
+        self.visibility_box.toggled.connect(self.change_visibility)
 
     def set_series(self, series: LineSeries) -> None:
         self.series = series
@@ -56,7 +65,7 @@ class Crosshairs:
         self.yText.setVisible(visible)
 
     def display(self, *, seen: bool) -> None:
-        if not self._visible:
+        if not self.visibility_box.isChecked():
             return
         self.set_visible(seen)
 
@@ -66,13 +75,11 @@ class Crosshairs:
     def show(self) -> None:
         self.set_visible(True)
 
-    def change_visibility(self) -> None:
-        new_state = not self._visible
-        self.set_visible(new_state)
-        self._visible = new_state
+    def change_visibility(self, visible: bool) -> None:
+        self.set_visible(visible)
 
-    def is_visible(self) -> bool:
-        return self._visible
+    def toggle_visibility(self) -> None:
+        self.visibility_box.toggle()
 
     def _closest_index(self, lst: np.typing.NDArray[np.float64], value: float) -> int:
         pos = bisect_left(lst, value)
@@ -186,7 +193,18 @@ class MaxRatingLabel:
 
 
 class PlotController:
-    def __init__(self, widget: pg.PlotWidget) -> None:
+    MAX_RATING_COLOR = THEME.find_stylesheet_attribute(
+        "RatingPlotWidget::custom",
+        "max-rating-color",
+        fallback="c",
+    )
+
+    def __init__(
+        self,
+        widget: pg.PlotWidget,
+        crosshair_box: QCheckBox,
+        max_rating_box: QCheckBox,
+    ) -> None:
         self.widget = widget
         background = THEME.find_stylesheet_attribute(
             "RatingPlotWidget::custom",
@@ -195,7 +213,11 @@ class PlotController:
         self.widget.setBackground(background)
         self.widget.setAxisItems({"bottom": pg.DateAxisItem()})
         self.series = LineSeries()
-        self.crosshairs = Crosshairs(self.widget, self.series)
+        self.crosshairs = Crosshairs(self.widget, self.series, crosshair_box)
+
+        self.max_rating_box = max_rating_box
+        self.max_rating_box.toggled.connect(self.change_max_rating_visibility)
+
         self.hide_scene_actions()
         self.hide_irrelevant_plot_actions()
         self.add_custom_menu_actions()
@@ -205,15 +227,10 @@ class PlotController:
         )
         self.plot_item: pg.PlotDataItem = self.widget.plot(pen=pg.mkPen(pen_color))
 
-        max_rating_color = THEME.find_stylesheet_attribute(
-            "RatingPlotWidget::custom",
-            "max-rating-color",
-            fallback="c",
-        )
         self.max_rating_line = self.widget.addLine(
             y=0,
             angle=0,
-            pen=pg.mkPen(max_rating_color, style=Qt.PenStyle.DashLine),
+            pen=pg.mkPen(self.MAX_RATING_COLOR, style=Qt.PenStyle.DashLine),
         )
         self.max_rating_line.hide()
         self.max_rating_label = MaxRatingLabel(
@@ -235,7 +252,7 @@ class PlotController:
         self.series.prextend(series)
 
     def set_max_rating(self, rating: float, iso_date: str) -> None:
-        self.max_rating_line.show()
+        self.max_rating_line.setVisible(self.max_rating_box.isChecked())
         self.max_rating_line.setValue(rating)
         self.max_rating_label.setRating(rating, iso_date)
         self.widget.autoRange()
@@ -259,9 +276,12 @@ class PlotController:
         if menu is None:
             return
 
-        menu.addAction("Show/Hide crosshair", self.crosshairs.change_visibility)
-        menu.addAction("Show/Hide max rating", self.change_max_rating_visibility)
+        menu.addAction("Show/Hide crosshair", self.crosshairs.toggle_visibility)
+        menu.addAction("Show/Hide max rating", self.toggle_max_rating_visibility)
 
-    def change_max_rating_visibility(self) -> None:
-        visible = self.max_rating_line.isVisible()
-        self.max_rating_line.setVisible(not visible)
+    def toggle_max_rating_visibility(self) -> None:
+        self.max_rating_box.toggle()
+
+    def change_max_rating_visibility(self, visible: bool) -> None:
+        self.max_rating_line.setVisible(visible)
+        self.widget.autoRange()

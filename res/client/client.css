@@ -1636,7 +1636,7 @@ RatingPlotCrosshairs::custom {
 
 RatingPlotWidget::custom {
     color: orange;
-    max-rating-color: cyan;
+    max-rating-color: #A78BFA;
     background-color: #202025;
 }
 

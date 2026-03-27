@@ -6,6 +6,7 @@ from PyQt6.QtCore import QPointF
 from PyQt6.QtCore import Qt
 from PyQt6.QtCore import QThread
 from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtWidgets import QCheckBox
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtWidgets import QPushButton
 from PyQt6.QtWidgets import QSpinBox
@@ -13,6 +14,7 @@ from PyQt6.QtWidgets import QTabWidget
 
 from src.api.models.LeaderboardRating import LeaderboardRating
 from src.api.stats_api import LeaderboardRatingJournalApiConnector
+from src.config import Settings
 from src.heavy_modules import pg
 from src.model.rating import Rating
 from src.playercard.plot import LineSeries
@@ -241,6 +243,22 @@ class RatingTabWidgetController:
         load_more_button.clicked.connect(self.load_more_ratings)
         self.default_pages_box = default_pages_box
 
+        self.crosshair_box = QCheckBox()
+        self.crosshair_box.setChecked(
+            Settings.get("playercard/plot/show_crosshair", True, type=bool),
+        )
+        self.crosshair_box.toggled.connect(
+            lambda visible: Settings.set("playercard/plot/show_crosshair", visible),
+        )
+
+        self.max_rating_box = QCheckBox()
+        self.max_rating_box.setChecked(
+            Settings.get("playercard/plot/show_max_rating", True, type=bool),
+        )
+        self.max_rating_box.toggled.connect(
+            lambda visible: Settings.set("playercard/plot/show_max_rating", visible),
+        )
+
         self.tabs: dict[int, RatingsPlotTab] = {}
 
     def setup(self, ratings: list[LeaderboardRating]) -> None:
@@ -250,7 +268,7 @@ class RatingTabWidgetController:
                 index,
                 self.player_id,
                 rating,
-                PlotController(widget),
+                PlotController(widget, self.crosshair_box, self.max_rating_box),
                 self.default_pages_box,
             )
             tab.name_changed.connect(self.widget.setTabText)
