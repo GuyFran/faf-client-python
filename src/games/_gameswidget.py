@@ -141,6 +141,7 @@ class GamesWidget(FormClass, BaseClass):
 
         self.gamePanelWidget = GamePanelWidget(
             self,
+            self.client.map_generator,
             self.client.player_colors,
             self.client.player_ctx_menu,
             self.client.user_relations,

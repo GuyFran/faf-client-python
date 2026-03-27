@@ -184,6 +184,7 @@ class GamePanelWidget(QWidget):
     def __init__(
         self,
         parent: QWidget,
+        mapgen_manager: MapGeneratorManager,
         player_colors: PlayerColors,
         ctx_menu: PlayerContextMenu,
         user_relations: UserRelations,
@@ -193,7 +194,7 @@ class GamePanelWidget(QWidget):
         self.event_filter = TeamListEventFilter(ctx_menu)
         self.user_relations = user_relations
         self.user_relations.trackers.players.updated.connect(self.refresh_ui)
-        self._mapgen_manager = MapGeneratorManager()
+        self._mapgen_manager = mapgen_manager
         self.ui = GamePanelUI()
         self.ui.setupUi(self)
         self.ui.simModsButton.clicked.connect(self.toggle_mods)

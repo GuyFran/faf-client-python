@@ -715,7 +715,7 @@ class ClientWindow(FormClass, BaseClass):
             ("", "black", "+1"),
         ]
 
-        self.gameview_builder = GameViewBuilder(self.me, self.player_colors)
+        self.gameview_builder = GameViewBuilder(self.me, self.player_colors, self.map_generator)
         self.game_launcher = build_launcher(self.players, self.me, self)
         self._avatar_widget_builder = AvatarWidget.builder(
             parent_widget=self,

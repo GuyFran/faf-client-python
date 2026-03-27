@@ -758,7 +758,7 @@ class LocalReplaysWidgetHandler:
         self.myTree.update()
 
     def show_replay_details(self, replay_path: str) -> None:
-        replay_details = ReplayDetailsCard(self.client)
+        replay_details = ReplayDetailsCard(self.client.map_generator, self.client)
         replay_details.replay(replay_path)
         replay_details.exec()
         replay_details.deleteLater()
@@ -956,7 +956,7 @@ class ReplayVaultWidgetHandler:
     def show_replay_details(self) -> None:
         item = self._w.onlineTree.currentItem()
         if item is not None and hasattr(item, "url"):
-            replay_details = ReplayDetailsCard(self.client)
+            replay_details = ReplayDetailsCard(self.client.map_generator, self.client)
             replay_details.download_by_url(QtCore.QUrl(item.url))
             replay_details.exec()
             replay_details.deleteLater()

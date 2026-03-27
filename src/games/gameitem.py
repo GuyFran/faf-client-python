@@ -8,6 +8,8 @@ from PyQt6 import QtGui
 from PyQt6 import QtWidgets
 
 from src import util
+from src.client.playercolors import PlayerColors
+from src.client.user import User
 from src.fa import maps
 from src.fa.maps_.preview import create_largest_preview
 from src.fa.maps_.previewdialog import MapPreviewDialog
@@ -24,8 +26,14 @@ class GameView(QtCore.QObject):
     """
     game_double_clicked = QtCore.pyqtSignal(object)
 
-    def __init__(self, model, view, delegate):
-        QtCore.QObject.__init__(self)
+    def __init__(
+        self,
+        model: QtCore.QAbstractListModel,
+        view: QtWidgets.QListView,
+        delegate: QtWidgets.QAbstractItemDelegate,
+        mapgen_manager: MapGeneratorManager,
+    ) -> None:
+        super().__init__()
         self._model = model
         self._view = view
         self._delegate = delegate
@@ -35,7 +43,7 @@ class GameView(QtCore.QObject):
         self._view.doubleClicked.connect(self._game_double_clicked)
         self._view.pressed.connect(self._game_clicked)
         self._view.viewport().installEventFilter(self._delegate.tooltip_filter)
-        self._mapgen_manager = MapGeneratorManager()
+        self._mapgen_manager = mapgen_manager
 
     # TODO make it a utility function?
     def _model_items(self):
@@ -379,12 +387,18 @@ class GameTooltipFormatter:
 
 
 class GameViewBuilder:
-    def __init__(self, me, player_colors):
+    def __init__(
+        self,
+        me: User,
+        player_colors: PlayerColors,
+        mapgen_manager: MapGeneratorManager,
+    ) -> None:
         self._me = me
         self._player_colors = player_colors
+        self._mapgen_manager = mapgen_manager
 
-    def __call__(self, model, view):
+    def __call__(self, model: QtCore.QAbstractListModel, view: QtWidgets.QListView) -> GameView:
         game_formatter = GameItemFormatter(self._player_colors, self._me)
         game_delegate = GameItemDelegate(game_formatter)
-        gameview = GameView(model, view, game_delegate)
+        gameview = GameView(model, view, game_delegate, self._mapgen_manager)
         return gameview
