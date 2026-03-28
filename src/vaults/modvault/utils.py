@@ -123,8 +123,8 @@ def iconPathToFull(moddir: str, iconpath: str) -> str:
 
 
 def fullPathToIcon(moddir: str, path: str) -> str:
-    p = os.path.normpath(os.path.abspath(path))
-    return os.path.join("/mods", p.removeprefix(os.path.normpath(moddir)).lstrip(os.sep))
+    rel = os.path.relpath(os.path.abspath(path), start=os.path.abspath(moddir))
+    return f"/mods/{rel.replace(os.sep, '/')}"
 
 
 def getIcon(name):
