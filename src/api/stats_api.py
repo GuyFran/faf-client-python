@@ -93,6 +93,7 @@ class LeaderboardRatingJournalApiConnector(ApiAccessor):
         query = copy(self.query)
         query.update({
             "sort": "-meanAfter",
+            "page[number]": 1,
             "page[size]": 100,
         })
         self.replies.append(self.get(query, self.max_ready.emit, self.on_error))
