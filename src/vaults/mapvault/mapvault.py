@@ -30,7 +30,6 @@ class MapVault(Vault[Map]):
         logger.debug("Map Vault tab instantiating")
         super().setup()
         self.image_loader = ImageDownloader(util.MAP_PREVIEW_SMALL_DIR)
-        self.installed_maps = maps.getUserMaps()
 
         for sort_type in MapSortType:
             self.SortTypeList.addItem(sort_type.value)
