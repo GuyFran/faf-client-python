@@ -29,7 +29,7 @@ class OAuthReplyHandler(QOAuthHttpServerReplyHandler):
 class OAuth2Flow(QOAuth2AuthorizationCodeFlow):
     _logger: ClassVar[Logger]
 
-    token_recieved = pyqtSignal()
+    token_received = pyqtSignal()
     scope_mismatched = pyqtSignal()
 
     def __init__(
@@ -88,14 +88,14 @@ class OAuth2Flow(QOAuth2AuthorizationCodeFlow):
         granted_scopes = {scope.data().decode() for scope in self.grantedScopeTokens()}
         if expected_scopes != granted_scopes:
             self._logger.warning(
-                "Excpedted scopes '%s' do not match granted '%s'",
+                "Expected scopes '%s' do not match granted '%s'",
                 expected_scopes,
                 granted_scopes,
             )
             self.scope_mismatched.emit()
         else:
             self.start_checking_expiration()
-            self.token_recieved.emit()
+            self.token_received.emit()
 
     def on_request_failed(self, error: QOAuth2AuthorizationCodeFlow.Error) -> None:
         self._logger.error("Request failed with an error: %s", error)

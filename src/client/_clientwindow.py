@@ -154,8 +154,8 @@ class ClientWindow(FormClass, BaseClass):
         self._network_access_manager = QNetworkAccessManager(self)
         self.oauth_flow = OAuth2FlowInstance
         self.oauth_flow.setParent(self)
-        self.oauth_flow.token_recieved.connect(self.do_connect)
-        self.oauth_flow.token_recieved.connect(self.save_refresh_token)
+        self.oauth_flow.token_received.connect(self.do_connect)
+        self.oauth_flow.token_received.connect(self.save_refresh_token)
         self.oauth_flow.requestFailed.connect(self.on_login_attempt_failed)
         self.oauth_flow.scope_mismatched.connect(self.on_login_attempt_failed)
 
