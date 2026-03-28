@@ -5,6 +5,7 @@ from PyQt6.QtCore import QDateTime
 from PyQt6.QtCore import QObject
 from PyQt6.QtCore import QTimer
 from PyQt6.QtCore import QUrl
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtNetwork import QNetworkAccessManager
 from PyQt6.QtNetworkAuth import QOAuth2AuthorizationCodeFlow
@@ -27,6 +28,9 @@ class OAuthReplyHandler(QOAuthHttpServerReplyHandler):
 @with_logger
 class OAuth2Flow(QOAuth2AuthorizationCodeFlow):
     _logger: ClassVar[Logger]
+
+    token_recieved = pyqtSignal()
+    scope_mismatched = pyqtSignal()
 
     def __init__(
             self,
@@ -77,7 +81,21 @@ class OAuth2Flow(QOAuth2AuthorizationCodeFlow):
 
     def on_granted(self) -> None:
         self._logger.info("Token granted successfuly!")
-        self.start_checking_expiration()
+        self.check_token_scopes()
+
+    def check_token_scopes(self) -> None:
+        expected_scopes = set(Settings.get("oauth/scope", []))
+        granted_scopes = {scope.data().decode() for scope in self.grantedScopeTokens()}
+        if expected_scopes != granted_scopes:
+            self._logger.warning(
+                "Excpedted scopes '%s' do not match granted '%s'",
+                expected_scopes,
+                granted_scopes,
+            )
+            self.scope_mismatched.emit()
+        else:
+            self.start_checking_expiration()
+            self.token_recieved.emit()
 
     def on_request_failed(self, error: QOAuth2AuthorizationCodeFlow.Error) -> None:
         self._logger.error("Request failed with an error: %s", error)
