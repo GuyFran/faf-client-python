@@ -605,6 +605,7 @@ def clear_generated_maps() -> None:
     map_dir = os.path.join(util.VAULTS_BASE_DIR, "maps")
     if not os.path.exists(map_dir):
         return
+    FavouriteMaps.load_from_cache()
     for entry in os.scandir(map_dir):
         if entry.name.lower() in FavouriteMaps:
             continue
