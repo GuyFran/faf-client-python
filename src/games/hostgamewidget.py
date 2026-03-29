@@ -483,19 +483,14 @@ class HostGameWidget(QDialog):
         if len(mapnames) > 1:
             UnseenMapgenNames.update(set(mapnames))
 
-        names_i = 0
-        for i in range(self.ui.mapList.count()):
-            item = self.ui.mapList.item(i)
-            mapname = mapnames[names_i]
-            if item is not None and item.data(QtCore.Qt.ItemDataRole.UserRole)["name"] == mapname:
-                if names_i == 0:
-                    self.ui.mapList.setCurrentRow(i)
-                else:
-                    item.setForeground(self._unseen_mapgen_brush)
-
-                names_i += 1
-                if names_i >= len(mapnames):
-                    break
+        allmaps = maps.CachedMapsMetadata.get_installed_maps()
+        for name in reversed(mapnames):
+            item = QListWidgetItem(name)
+            item.setData(QtCore.Qt.ItemDataRole.UserRole, allmaps[name])
+            item.setForeground(self._unseen_mapgen_brush)
+            self.ui.mapList.addItem(item)
+        self.ui.mapList.sortItems()
+        self.ui.mapList.setCurrentItem(item)
 
     def select_random_map(self) -> None:
         visible_rows = [
@@ -618,14 +613,10 @@ class HostGameWidget(QDialog):
     @QtCore.pyqtSlot()
     def generateMap(self) -> None:
         dialog = MapGenDialog(self.client, self.client.map_generator)
-        dialog.map_generated.connect(self.on_map_generated)
+        dialog.map_generated.connect(self.set_maps)
         dialog.load_cmd_options()
         dialog.exec()
         dialog.deleteLater()
-
-    def on_map_generated(self, maplist: list[str]) -> None:
-        self.setup_maplist()
-        self.set_maps(maplist)
 
     def update_map_preview(self, item: QListWidgetItem) -> None:
         map_info = cast(maps.CachedMapInfo, item.data(QtCore.Qt.ItemDataRole.UserRole))
