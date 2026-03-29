@@ -6,6 +6,7 @@ from PyQt6.QtCore import QPointF
 from PyQt6.QtCore import Qt
 from PyQt6.QtCore import QThread
 from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtWidgets import QCheckBox
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtWidgets import QPushButton
 from PyQt6.QtWidgets import QSpinBox
@@ -13,6 +14,7 @@ from PyQt6.QtWidgets import QTabWidget
 
 from src.api.models.LeaderboardRating import LeaderboardRating
 from src.api.stats_api import LeaderboardRatingJournalApiConnector
+from src.config import Settings
 from src.heavy_modules import pg
 from src.model.rating import Rating
 from src.playercard.plot import LineSeries
@@ -95,6 +97,7 @@ class RatingsPlotTab(QObject):
             self.leaderboard.technical_name,
         )
         self.ratings_history_api.ratings_ready.connect(self.process_rating_history)
+        self.ratings_history_api.max_ready.connect(self.process_max_rating)
         self.ratings_history_api.api_error.connect(self.on_rating_api_error)
         self.plot = plot
         self.workers: list[LineSeriesParser] = []
@@ -123,6 +126,7 @@ class RatingsPlotTab(QObject):
     def enter(self) -> None:
         if self._current_page == 0:
             self.load_ratings()
+            self.ratings_history_api.get_max_rating()
 
     @property
     def _loaded(self) -> bool:
@@ -188,6 +192,40 @@ class RatingsPlotTab(QObject):
         if self._loaded:
             self.finish()
 
+    def process_max_rating(self, message: dict[str, Any]) -> None:
+        mx = -10_000
+        date = ""
+
+        journal = message["data"]
+        journal_leng = len(journal)
+
+        if journal_leng == 0:
+            return
+
+        stats = message["included"]
+        stats_leng = len(stats)
+
+        stats_index = journal_index = 0
+        while stats_index < stats_leng and journal_index < journal_leng:
+            if (
+                stats[stats_index]["id"]
+                != journal[journal_index]["relationships"]["gamePlayerStats"]["data"]["id"]
+            ):
+                journal_index += 1
+                continue
+
+            rating = Rating(
+                journal[journal_index]["attributes"]["meanAfter"],
+                journal[journal_index]["attributes"]["deviationAfter"],
+            )
+            if (est := rating.displayed()) >= mx:
+                mx = est
+                date = stats[stats_index]["attributes"]["scoreTime"]
+
+            stats_index += 1
+            journal_index += 1
+        self.plot.set_max_rating(mx, date)
+
 
 class RatingTabWidgetController:
     def __init__(
@@ -205,6 +243,22 @@ class RatingTabWidgetController:
         load_more_button.clicked.connect(self.load_more_ratings)
         self.default_pages_box = default_pages_box
 
+        self.crosshair_box = QCheckBox()
+        self.crosshair_box.setChecked(
+            Settings.get("playercard/plot/show_crosshair", True, type=bool),
+        )
+        self.crosshair_box.toggled.connect(
+            lambda visible: Settings.set("playercard/plot/show_crosshair", visible),
+        )
+
+        self.max_rating_box = QCheckBox()
+        self.max_rating_box.setChecked(
+            Settings.get("playercard/plot/show_max_rating", True, type=bool),
+        )
+        self.max_rating_box.toggled.connect(
+            lambda visible: Settings.set("playercard/plot/show_max_rating", visible),
+        )
+
         self.tabs: dict[int, RatingsPlotTab] = {}
 
     def setup(self, ratings: list[LeaderboardRating]) -> None:
@@ -214,7 +268,7 @@ class RatingTabWidgetController:
                 index,
                 self.player_id,
                 rating,
-                PlotController(widget),
+                PlotController(widget, self.crosshair_box, self.max_rating_box),
                 self.default_pages_box,
             )
             tab.name_changed.connect(self.widget.setTabText)

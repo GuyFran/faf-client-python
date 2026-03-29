@@ -81,8 +81,12 @@ class RangeSlider(QtWidgets.QSlider):
         This class emits the same signals as the QSlider base class, with the
         exception of valueChanged
     """
-    def __init__(self, *args):
-        QtWidgets.QSlider.__init__(self, *args)
+    def __init__(
+        self,
+        orientation: Qt.Orientation = Qt.Orientation.Horizontal,
+        parent: QtWidgets.QWidget | None = None,
+    ) -> None:
+        super().__init__(orientation, parent)
 
         self._low: int = self.minimum()
         self._high: int = self.maximum()

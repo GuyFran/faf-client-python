@@ -14,6 +14,7 @@ from PyQt6 import QtWidgets
 from src import config
 from src import fafpath
 from src import util
+from src.api.models.MapVersion import MapSize
 from src.decorators import with_logger
 from src.games.mapgenoptions import ComboBoxOption
 from src.games.mapgenoptions import RangeOption
@@ -121,7 +122,7 @@ class OptionsExtractor(QtCore.QObject):
 
 
 class MapGenDialog(FormClass, BaseClass):
-    map_generated = QtCore.pyqtSignal(str)
+    map_generated = QtCore.pyqtSignal(list)
 
     def __init__(self, parent: ClientWindow, mapgen_manager: MapGeneratorManager) -> None:
         BaseClass.__init__(self, parent)
@@ -365,14 +366,14 @@ class MapGenDialog(FormClass, BaseClass):
             self.save_preferences()
 
     def set_arguments(self) -> list[str]:
-        args = []
+        args: list[str] = []
         if mapname := self.mapNamePlainTextEdit.toPlainText().strip():
             args.extend(["--map-name", mapname])
         else:
             for option in self.cmd_options:
                 if option.name == "map-size":
                     args.append("--map-size")
-                    size_px = int(option.value() * 51.2)
+                    size_px = MapSize.from_side_km(option.value()).width_px
                     args.append(str(size_px))
                 elif option.active():
                     args.extend(option.as_cmd_arg())

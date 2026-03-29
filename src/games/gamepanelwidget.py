@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import QWidget
 
 from src import fa
 from src import util
+from src.api.models.MapVersion import MapSize
 from src.client.playercolors import PlayerColors
 from src.client.user import UserRelations
 from src.contextmenu.playercontextmenu import PlayerContextMenu
@@ -61,7 +62,6 @@ class TeamWidgetUI:
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
         self.teamList = QListWidget()
-        self.teamList.setMaximumHeight(140)
         self.teamList.setSelectionMode(QListWidget.SelectionMode.NoSelection)
         self.teamLabel = QLabel()
         self.numPlayersLabel = QLabel()
@@ -184,6 +184,7 @@ class GamePanelWidget(QWidget):
     def __init__(
         self,
         parent: QWidget,
+        mapgen_manager: MapGeneratorManager,
         player_colors: PlayerColors,
         ctx_menu: PlayerContextMenu,
         user_relations: UserRelations,
@@ -193,7 +194,7 @@ class GamePanelWidget(QWidget):
         self.event_filter = TeamListEventFilter(ctx_menu)
         self.user_relations = user_relations
         self.user_relations.trackers.players.updated.connect(self.refresh_ui)
-        self._mapgen_manager = MapGeneratorManager()
+        self._mapgen_manager = mapgen_manager
         self.ui = GamePanelUI()
         self.ui.setupUi(self)
         self.ui.simModsButton.clicked.connect(self.toggle_mods)
@@ -351,7 +352,7 @@ class GamePanelWidget(QWidget):
             self.ui.mapSizeLabel.setText("???")
             return
         w, h = map(int, map_info["map_size"].values())
-        self.ui.mapSizeLabel.setText(f"{w/51.2:g} x {h/51.2:g} km")
+        self.ui.mapSizeLabel.setText(str(MapSize(w, h)))
 
     def show_large_map_preview(self) -> None:
         if self.game is None or (map_folder := fa.maps.folderForMap(self.game.mapname)) is None:

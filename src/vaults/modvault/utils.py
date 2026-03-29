@@ -107,26 +107,24 @@ def isModFolderValid(folder):
     return os.path.exists(os.path.join(folder, "mod_info.lua"))
 
 
-def iconPathToFull(path):
+def iconPathToFull(moddir: str, iconpath: str) -> str:
     """
     Converts a path supplied in the icon field of mod_info with an absolute
     path to that file. So "/mods/modname/data/icons/icon.dds" becomes
     "C:\\Users\\user\\Documents\\My Games\\Gas Powered Games\\Supreme Commander
     ...Forged Alliance\\Mods\\modname\\data\\icons\\icon.dds"
     """
-    if not (path.startswith("/mods") or path.startswith("mods")):
-        logger.info("Something went wrong parsing the path %s", path)
+    if not (iconpath.startswith("/mods") or iconpath.startswith("mods")):
+        logger.info("Something went wrong parsing the path %s", iconpath)
         return ""
 
     # yay for dirty hacks
-    return os.path.join(
-        MODFOLDER, os.path.normpath(path[5 + int(path[0] == "/"):]),
-    )
+    return os.path.join(moddir, iconpath.removeprefix("/").split("/", 2)[2])
 
 
-def fullPathToIcon(path):
-    p = os.path.normpath(os.path.abspath(path))
-    return p[len(MODFOLDER) - 5:].replace('\\', '/')
+def fullPathToIcon(moddir: str, path: str) -> str:
+    rel = os.path.relpath(os.path.abspath(path), start=os.path.abspath(moddir))
+    return f"/mods/{rel.replace(os.sep, '/')}"
 
 
 def getIcon(name):

@@ -1,21 +1,28 @@
 import logging
+import os
 import random
 import re
 import time
+from collections.abc import Iterable
 from functools import partial
 from typing import TYPE_CHECKING
 from typing import cast
 
 from PyQt6 import QtCore
 from PyQt6.QtCore import QThread
+from PyQt6.QtCore import QTimer
+from PyQt6.QtGui import QBrush
+from PyQt6.QtGui import QColor
 from PyQt6.QtGui import QIcon
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QAbstractButton
+from PyQt6.QtWidgets import QApplication
 from PyQt6.QtWidgets import QDialog
 from PyQt6.QtWidgets import QListWidgetItem
 
 from src import fa
 from src import util
+from src.api.models.MapVersion import MapSize
 from src.client.user import User
 from src.config import Settings
 from src.fa import maps
@@ -131,6 +138,11 @@ class GameLauncher:
         )
 
 
+class MapsMetadataParserThread(QThread):
+    def run(self) -> None:
+        maps.CachedMapsMetadata.initial_parse()
+
+
 class HostGameWidget(QDialog):
     launch = QtCore.pyqtSignal(object, object)
 
@@ -149,14 +161,20 @@ class HostGameWidget(QDialog):
         self.connect_signals()
         self.ui.mapFiltersWidget.hide()
 
-        self.maps_metadata_parser_thread = QThread()
-        self.maps_metadata_parser = maps.CachedMapsMetadata
-        self.maps_metadata_parser.moveToThread(self.maps_metadata_parser_thread)
-        self.maps_metadata_parser.maps_parsed.connect(self.setup_maplist)
-        self.maps_metadata_parser.maps_parsed.connect(self.maps_metadata_parser_thread.quit)
-        self.maps_metadata_parser_thread.started.connect(self.maps_metadata_parser.initial_parse)
+        self.maps_metadata_parser_thread = MapsMetadataParserThread()
         self.maps_metadata_parser_thread.started.connect(self.ui.mapsLoadingLabel.show)
         self.maps_metadata_parser_thread.finished.connect(self.ui.mapsLoadingLabel.hide)
+        self.maps_metadata_parser_thread.finished.connect(self.setup_maplist)
+
+        unseen_mapgen_color = util.THEME.find_stylesheet_attribute(
+            "SpecialListWidgetColors::custom",
+            "background",
+        )
+        self._unseen_mapgen_brush = QBrush(QColor(unseen_mapgen_color))
+
+        self._filter_timer = QTimer()
+        self._filter_timer.setSingleShot(True)
+        self._filter_timer.timeout.connect(self._do_apply_map_filters)
 
     def connect_signals(self) -> None:
         self.ui.mapList.currentRowChanged.connect(self.map_changed)
@@ -190,15 +208,14 @@ class HostGameWidget(QDialog):
         self.ui.mapPlayersMaximum.valueChanged.connect(self.on_map_max_p_changed)
 
         self.ui.modTypeRadioGroup.buttonToggled.connect(self.on_mod_display_type_changed)
-        mod_type = Settings.get("fa.games/displayed_mods", "All")
-        for button in self.ui.modTypeRadioGroup.buttons():
-            if mod_type == button.text():
-                button.setChecked(True)
-                break
 
         self.ui.mapNameFilter.textChanged.connect(self.filter_maps_by_name)
         self.ui.modNameFilter.textChanged.connect(self.filter_mods_by_name)
 
+        self.ui.showFavouritesOnlyCheck.toggled.connect(self.apply_map_filters)
+        self.ui.toggleFavouriteButton.clicked.connect(self.toggle_favourite_map)
+
+        self.ui.mapNameLabel.clicked.connect(self.copy_map_name_to_clipboard)
         self.ui.mapPreviewLabel.clicked.connect(self.show_large_map_preview)
 
     def show_large_map_preview(self) -> None:
@@ -249,7 +266,7 @@ class HostGameWidget(QDialog):
         with block_signals(self.ui.mapWidthSlider) as slider:
             _, high = slider.get_position()
             slider.update_position(v, high)
-        self.filter_maps_by_width(*slider.get_position())
+        self.apply_map_filters()
 
     def on_map_max_w_changed(self, v: int) -> None:
         v = max(v, self.ui.mapWidthMinimum.value())
@@ -258,7 +275,7 @@ class HostGameWidget(QDialog):
         with block_signals(self.ui.mapWidthSlider) as slider:
             low, _ = slider.get_position()
             slider.update_position(low, v)
-        self.filter_maps_by_width(*slider.get_position())
+        self.apply_map_filters()
 
     def on_map_min_h_changed(self, v: int) -> None:
         v = min(v, self.ui.mapHeightMaximum.value())
@@ -267,7 +284,7 @@ class HostGameWidget(QDialog):
         with block_signals(self.ui.mapHeightSlider) as slider:
             _, high = slider.get_position()
             slider.update_position(v, high)
-        self.filter_maps_by_height(*slider.get_position())
+        self.apply_map_filters()
 
     def on_map_max_h_changed(self, v: int) -> None:
         v = max(v, self.ui.mapHeightMinimum.value())
@@ -276,7 +293,7 @@ class HostGameWidget(QDialog):
         with block_signals(self.ui.mapHeightSlider) as slider:
             low, _ = slider.get_position()
             slider.update_position(low, v)
-        self.filter_maps_by_height(*slider.get_position())
+        self.apply_map_filters()
 
     def on_map_min_p_changed(self, v: int) -> None:
         v = min(v, self.ui.mapPlayersMaximum.value())
@@ -285,7 +302,7 @@ class HostGameWidget(QDialog):
         with block_signals(self.ui.mapPlayersSlider) as slider:
             _, high = slider.get_position()
             slider.update_position(v, high)
-        self.filter_maps_by_players(*slider.get_position())
+        self.apply_map_filters()
 
     def on_map_max_p_changed(self, v: int) -> None:
         v = max(v, self.ui.mapPlayersMinimum.value())
@@ -294,67 +311,67 @@ class HostGameWidget(QDialog):
         with block_signals(self.ui.mapPlayersSlider) as slider:
             low, _ = slider.get_position()
             slider.update_position(low, v)
-        self.filter_maps_by_players(*slider.get_position())
+        self.apply_map_filters()
 
     def filter_maps_by_name(self, text: str) -> None:
-        lower_text = text.lower()
+        self.apply_map_filters()
+        if text == "" and (items := self.ui.mapList.selectedItems()):
+            item, = items
+            self.ui.mapList.scrollToItem(item)
+
+    def apply_map_filters(self) -> None:
+        if self.ui.mapList.count() >= 1500:  # why 1500? it felt like it
+            self._filter_timer.start(100)
+        else:
+            self._do_apply_map_filters()
+
+    def _do_apply_map_filters(self) -> None:
+        w_min, w_max = self.ui.mapWidthMinimum.value(), self.ui.mapWidthMaximum.value()
+        h_min, h_max = self.ui.mapHeightMinimum.value(), self.ui.mapHeightMaximum.value()
+        p_min, p_max = self.ui.mapPlayersMinimum.value(), self.ui.mapPlayersMaximum.value()
+        name_filter = self.ui.mapNameFilter.text().lower()
+        show_favourites_only = self.ui.showFavouritesOnlyCheck.isChecked()
+
         for row in range(self.ui.mapList.count()):
             item = self.ui.mapList.item(row)
             if item is None:
                 continue
-            item.setHidden(lower_text not in item.text().lower())
-        if text == "" and (items := self.ui.mapList.selectedItems()):
-            item, = items
-            self.ui.mapList.scrollToItem(item)
+            map_info = item.data(QtCore.Qt.ItemDataRole.UserRole)
+
+            name_matches = name_filter in item.text().lower()
+            is_favourite = map_info["folder_name"] in maps.FavouriteMaps
+
+            size = MapSize(*map(int, map_info["map_size"].values()))
+            size_matches = w_min <= size.width_km <= w_max and h_min <= size.height_km <= h_max
+
+            players_matches = p_min <= map_info["max_players"] <= p_max
+
+            hide = not (name_matches and size_matches and players_matches)
+            if show_favourites_only:
+                item.setHidden(hide or not is_favourite)
+            else:
+                item.setHidden(hide)
 
     def on_map_w_slider_moved(self, mn: int, mx: int) -> None:
         with block_signals(self.ui.mapWidthMinimum) as sb:
             sb.setValue(mn)
         with block_signals(self.ui.mapWidthMaximum) as sb:
             sb.setValue(mx)
-        self.filter_maps_by_width(mn, mx)
-
-    def filter_maps_by_width(self, mn: int, mx: int) -> None:
-        for row in range(self.ui.mapList.count()):
-            item = self.ui.mapList.item(row)
-            if item is None:
-                continue
-            map_info = item.data(QtCore.Qt.ItemDataRole.UserRole)
-            w, _ = map_info["map_size"].values()
-            w_km = int(w) / 51.2
-            item.setHidden(not (mn <= w_km <= mx))
+        self.apply_map_filters()
 
     def on_map_h_slider_moved(self, mn: int, mx: int) -> None:
         with block_signals(self.ui.mapHeightMinimum) as sb:
             sb.setValue(mn)
         with block_signals(self.ui.mapHeightMaximum) as sb:
             sb.setValue(mx)
-        self.filter_maps_by_height(mn, mx)
-
-    def filter_maps_by_height(self, mn: int, mx: int) -> None:
-        for row in range(self.ui.mapList.count()):
-            item = self.ui.mapList.item(row)
-            if item is None:
-                continue
-            map_info = item.data(QtCore.Qt.ItemDataRole.UserRole)
-            _, h = map_info["map_size"].values()
-            h_km = int(h) / 51.2
-            item.setHidden(not (mn <= h_km <= mx))
+        self.apply_map_filters()
 
     def on_map_p_slider_moved(self, mn: int, mx: int) -> None:
         with block_signals(self.ui.mapPlayersMinimum) as sb:
             sb.setValue(mn)
         with block_signals(self.ui.mapPlayersMaximum) as sb:
             sb.setValue(mx)
-        self.filter_maps_by_players(mn, mx)
-
-    def filter_maps_by_players(self, mn: int, mx: int) -> None:
-        for row in range(self.ui.mapList.count()):
-            item = self.ui.mapList.item(row)
-            if item is None:
-                continue
-            map_info = item.data(QtCore.Qt.ItemDataRole.UserRole)
-            item.setHidden(not (mn <= map_info["max_players"] <= mx))
+        self.apply_map_filters()
 
     def filter_mods_by_name(self, text: str) -> None:
         lower_text = text.lower()
@@ -375,6 +392,8 @@ class HostGameWidget(QDialog):
                 item.setHidden(not text_matches or mod.ui_only)
 
     def setup(self, title: str, game: Game) -> None:
+        maps.FavouriteMaps.load_from_cache()
+        UnseenMapgenNames.load_from_cache()
         self._reset()
         self.game = game
 
@@ -405,6 +424,15 @@ class HostGameWidget(QDialog):
             if ml:
                 ml[0].setSelected(True)
 
+        mod_type = Settings.get("fa.games/displayed_mods", "All")
+        for button in self.ui.modTypeRadioGroup.buttons():
+            if mod_type == button.text():
+                if button.isChecked():
+                    self.on_mod_display_type_changed(button, True)
+                else:
+                    button.setChecked(True)
+                break
+
     def _reset(self) -> None:
         self.ui.mapList.clear()
         self.mods.clear()
@@ -426,7 +454,11 @@ class HostGameWidget(QDialog):
                 self.ui.mapList.addItem(item)
                 if folder_name == game.mapname:
                     current_map_item = item
+                elif map_info["name"] in UnseenMapgenNames:
+                    item.setForeground(self._unseen_mapgen_brush)
+
             self.ui.mapList.sortItems()
+            self.filter_maps_by_name(self.ui.mapNameFilter.text())
             self.ui.mapsGroup.show()
             self.ui.previewGroup.show()
             if current_map_item is not None:
@@ -444,8 +476,30 @@ class HostGameWidget(QDialog):
                 self.ui.mapList.setCurrentRow(i)
                 return
 
+    def set_maps(self, mapnames: list[str]) -> None:
+        if not mapnames:
+            return
+
+        if len(mapnames) > 1:
+            UnseenMapgenNames.update(set(mapnames))
+
+        allmaps = maps.CachedMapsMetadata.get_installed_maps()
+        for name in reversed(mapnames):
+            item = QListWidgetItem(name)
+            item.setData(QtCore.Qt.ItemDataRole.UserRole, allmaps[name])
+            item.setForeground(self._unseen_mapgen_brush)
+            self.ui.mapList.addItem(item)
+        self.ui.mapList.sortItems()
+        self.ui.mapList.setCurrentItem(item)
+
     def select_random_map(self) -> None:
-        self.ui.mapList.setCurrentRow(random.randint(0, max(0, self.ui.mapList.count() - 1)))
+        visible_rows = [
+            row for row in range(self.ui.mapList.count())
+            if not self.ui.mapList.isRowHidden(row)
+            and row != self.ui.mapList.currentRow()
+        ]
+        if visible_rows:
+            self.ui.mapList.setCurrentRow(random.choice(visible_rows))
 
     def update_text(self, text: str) -> None:
         self.game.update(title=text.strip())
@@ -469,13 +523,34 @@ class HostGameWidget(QDialog):
             ),
         )
 
-    def map_changed(self, index: int) -> None:
-        item = self.ui.mapList.item(index)
+    def map_changed(self, row: int) -> None:
+        item = self.ui.mapList.item(row)
+        if item is None:
+            return
+
+        map_info = item.data(QtCore.Qt.ItemDataRole.UserRole)
+        if (name := map_info["name"]) in UnseenMapgenNames:
+            UnseenMapgenNames.discard(name)
+            item.setForeground(QBrush())
+
+        if map_info["folder_name"] in maps.FavouriteMaps:
+            self.ui.toggleFavouriteButton.setText("★ Remove from Favourites")
+        else:
+            self.ui.toggleFavouriteButton.setText("☆ Add to Favourites")
+
+        self.game.update(mapname=map_info["folder_name"], max_players=map_info["max_players"])
+        self.update_map_preview(item)
+
+    def toggle_favourite_map(self) -> None:
+        item = self.ui.mapList.currentItem()
         if item is None:
             return
         map_info = item.data(QtCore.Qt.ItemDataRole.UserRole)
-        self.game.update(mapname=map_info["folder_name"], max_players=map_info["max_players"])
-        self.update_map_preview(item)
+        if maps.FavouriteMaps.toggle(map_info["folder_name"]):
+            self.ui.toggleFavouriteButton.setText("★ Remove from Favourites")
+        else:
+            self.ui.toggleFavouriteButton.setText("☆ Add to Favourites")
+            self.apply_map_filters()
 
     def hosting(self) -> None:
         if not fa.instance.available():
@@ -538,21 +613,18 @@ class HostGameWidget(QDialog):
     @QtCore.pyqtSlot()
     def generateMap(self) -> None:
         dialog = MapGenDialog(self.client, self.client.map_generator)
-        dialog.map_generated.connect(self.on_map_generated)
+        dialog.map_generated.connect(self.set_maps)
         dialog.load_cmd_options()
         dialog.exec()
         dialog.deleteLater()
 
-    def on_map_generated(self, mapname: str) -> None:
-        self.setup_maplist()
-        self.set_map(mapname)
-
     def update_map_preview(self, item: QListWidgetItem) -> None:
         map_info = cast(maps.CachedMapInfo, item.data(QtCore.Qt.ItemDataRole.UserRole))
         self.ui.mapNameLabel.setText(item.text())
+        self.ui.mapNameLabel.setToolTip(map_info["name"])
 
         w, h = map(int, map_info["map_size"].values())
-        self.ui.mapSizeLabel.setText(f"⛶ {w/51.2:g} x {h/51.2:g} km")
+        self.ui.mapSizeLabel.setText(f"⛶  {MapSize(w, h)}")
 
         self.ui.mapPlayersLabel.setText(f"🧑‍🤝‍🧑 {map_info['max_players']}")
 
@@ -574,6 +646,13 @@ class HostGameWidget(QDialog):
         else:
             self.ui.mapPreviewLabel.setPixmap(img.scaled(256, 256))
 
+    def copy_map_name_to_clipboard(self) -> None:
+        map_name = self.ui.mapNameLabel.text()
+        if map_name != "Copied!":
+            QApplication.clipboard().setText(self.ui.mapNameLabel.toolTip())
+            self.ui.mapNameLabel.setText("Copied!")
+            QtCore.QTimer.singleShot(500, lambda: self.ui.mapNameLabel.setText(map_name))
+
 
 def build_launcher(
         playerset: Playerset,
@@ -583,3 +662,52 @@ def build_launcher(
     widget = HostGameWidget(client)
     launcher = GameLauncher(playerset, me, client, widget)
     return launcher
+
+
+class _UnseenMapgenNames:
+    """Maps generated by player to host them, which were never selected"""
+    def __init__(self) -> None:
+        self._unseen: set[str] = set()
+        self._loaded = False
+        self._path = os.path.join(util.MAP_CACHE_DIR, "unseen_generated")
+
+    def load_from_cache(self) -> None:
+        if self._loaded:
+            return
+        try:
+            with open(self._path) as f:
+                self._unseen = set(f.read().splitlines())
+        except FileNotFoundError:
+            pass
+        self._loaded = True
+
+    def save_to_cache(self) -> None:
+        with open(self._path, "w") as f:
+            f.write("\n".join(self._unseen))
+
+    def remove_cache(self) -> None:
+        try:
+            os.unlink(self._path)
+        except FileNotFoundError:
+            pass
+
+    def cleanup(self) -> None:
+        if Settings.get("maps/autodelete_generated", True, type=bool):
+            self.remove_cache()
+        else:
+            self.save_to_cache()
+
+    def __contains__(self, x: object) -> bool:
+        return x in self._unseen
+
+    def add(self, value: str) -> None:
+        self._unseen.add(value)
+
+    def discard(self, value: str) -> None:
+        self._unseen.discard(value)
+
+    def update(self, *s: Iterable[str]) -> None:
+        self._unseen.update(*s)
+
+
+UnseenMapgenNames = _UnseenMapgenNames()

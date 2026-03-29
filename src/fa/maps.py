@@ -6,8 +6,6 @@ import shutil
 import stat
 import string
 import sys
-import tempfile
-import zipfile
 from collections.abc import Callable
 from collections.abc import Iterator
 from typing import TypedDict
@@ -22,6 +20,7 @@ from src.fa.maps_.map_utils import get_scmap_file
 from src.fa.maps_.preview import create_large_preview
 from src.fa.maps_.preview import extract_dds
 from src.fa.maps_.preview import image_from_dds
+from src.mapGenerator import mapgenUtils
 from src.mapGenerator.mapgenUtils import isGeneratedMap
 from src.model.game import OFFICIAL_MAPS as maps
 from src.vaults.dialogs import downloadVaultAssetNoMsg
@@ -94,18 +93,18 @@ def getScenarioFile(folder):
     return None
 
 
-def isMapFolderValid(folder):
+def isMapFolderValid(folder: str) -> bool:
     """
     Check if the folder got all the files needed to be a map folder.
     """
-    baseName = os.path.basename(folder).split('.')[0]
+    baseName = os.path.basename(folder).split('.')[0].lower()
     files_required = {
         baseName + ".scmap",
         baseName + "_save.lua",
         baseName + "_scenario.lua",
         baseName + "_script.lua",
     }
-    files_present = set(os.listdir(folder))
+    files_present = set(map(str.lower, os.listdir(folder)))
 
     return files_required.issubset(files_present)
 
@@ -400,48 +399,7 @@ def _doDownloadMap(name: str, link: str, silent: bool) -> tuple[bool, Callable[[
     )
 
 
-def processMapFolderForUpload(mapDir: str) -> None:
-    """
-    Zipping the file and creating thumbnails
-    """
-    # creating thumbnail
-    exported = export_preview_from_map(mapDir)
-
-    if exported is None:
-        return
-
-    files = exported["tozip"]
-    # abort zipping if there is insufficient previews
-    if files is None or len(files) != 3:
-        logger.debug("Insufficient previews for making an archive.")
-        return None
-
-    # mapName = os.path.basename(mapDir).split(".v")[0]
-
-    # making sure we pack only necessary files and not random garbage
-    for entry in os.scandir(mapDir):
-        endings = ['.lua', 'preview.jpg', '.scmap', '.dds']
-        # stupid trick: False + False == 0, True + False == 1
-        if sum(entry.name.endswith(x) for x in endings) > 0:
-            files.append(entry.path)
-
-    temp = tempfile.NamedTemporaryFile(mode='w+b', suffix=".zip", delete=False)
-
-    # creating the zip
-    zipped = zipfile.ZipFile(temp, "w", zipfile.ZIP_DEFLATED)
-
-    for filename in files:
-        zipped.write(
-            filename,
-            os.path.join(os.path.basename(mapDir), os.path.basename(filename)),
-        )
-
-    temp.flush()
-
-    return temp
-
-
-class CachedMapInfo(TypedDict):
+class MapInfo(TypedDict):
     name: str
     version: str
     map_size: dict[str, str]
@@ -449,6 +407,9 @@ class CachedMapInfo(TypedDict):
     max_players: int
     map_type: str
     battle_type: str
+
+
+class CachedMapInfo(MapInfo):
     folder_name: str
 
 
@@ -459,6 +420,7 @@ class InstalledMapsCache(QtCore.QObject):
         super().__init__()
         self.path = path
         self.installed_maps = self.load()
+        self.sanitize()
 
     def parse_metadata(self, folder: str) -> CachedMapInfo | None:
         for entry in os.scandir(folder):
@@ -526,6 +488,7 @@ class InstalledMapsCache(QtCore.QObject):
                 map_info["folder_name"] = dr.name.lower()
                 self.installed_maps[dr.name.lower()] = map_info
                 logger.debug("Loaded %s into maps cached metadata", dr.path)
+        self.sanitize()
         return self.installed_maps
 
     def get_map(self, name: str) -> CachedMapInfo | None:
@@ -579,3 +542,69 @@ class InstalledMapsCache(QtCore.QObject):
 
 
 CachedMapsMetadata = InstalledMapsCache(os.path.join(util.MAP_CACHE_DIR, "mapscenarios.json"))
+
+
+class _FavouriteMaps:
+    def __init__(self) -> None:
+        self._favourites: set[str] = set()
+        self._loaded = False
+        self._path = os.path.join(util.MAP_CACHE_DIR, "favourites")
+
+    def load_from_cache(self) -> None:
+        if self._loaded:
+            return
+        try:
+            with open(self._path) as f:
+                self._favourites = set(f.read().splitlines())
+        except FileNotFoundError:
+            pass
+        self._loaded = True
+        self.cleanup()
+
+    def cleanup(self) -> None:
+        favourites_base = {m for m in self._favourites if isBase(m)}
+        removed = self._favourites - set(getUserMaps()) - favourites_base
+        if removed:
+            self._favourites -= removed
+            self.save_to_cache()
+
+    def save_to_cache(self) -> None:
+        with open(self._path, "w") as f:
+            f.write("\n".join(self._favourites))
+
+    def __contains__(self, x: object) -> bool:
+        return x in self._favourites
+
+    def add(self, value: str) -> None:
+        self._favourites.add(value)
+        self.save_to_cache()
+
+    def discard(self, value: str) -> None:
+        self._favourites.discard(value)
+        self.save_to_cache()
+
+    def toggle(self, value: str) -> bool:
+        if value in self._favourites:
+            self.discard(value)
+            return False
+        else:
+            self.add(value)
+            return True
+
+
+FavouriteMaps = _FavouriteMaps()
+
+
+def clear_generated_maps() -> None:
+    if not Settings.get("maps/autodelete_generated", True, type=bool):
+        return
+
+    map_dir = getUserMapsFolder()
+    if not os.path.exists(map_dir):
+        return
+    FavouriteMaps.load_from_cache()
+    for entry in os.scandir(map_dir):
+        if entry.name.lower() in FavouriteMaps:
+            continue
+        if entry.is_dir() and re.match(mapgenUtils.generatedMapPattern, entry.name):
+            shutil.rmtree(entry.path)

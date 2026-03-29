@@ -41,6 +41,7 @@ from PyQt6.QtCore import QSize
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtNetwork import QNetworkReply
 
+from src.api.models.MapVersion import MapSize
 from src.fa.factions import Factions
 from src.fa.replay import uncompress
 from src.mapGenerator.mapgenUtils import isGeneratedMap
@@ -503,12 +504,12 @@ class ReplayParser(QObject):
         for line in desc:
             if "Map Size" in line:
                 size = int(line.split(":")[-1])
-                return f"⛶ {size/51.2:g} x {size/51.2:g} km"
+                return f"⛶ {MapSize(size, size)}"
         return ""
 
     def map_display_size(self) -> str:
         (a, b) = self.luaScenarioInfo["size"][1.0], self.luaScenarioInfo["size"][2.0]
-        return f"⛶ {a/51.2:g} x {b/51.2:g} km"
+        return f"⛶ {MapSize(a, b)}"
 
     def actual_map_size(self) -> str:
         if isGeneratedMap(self.map_folder_name()):

@@ -81,6 +81,8 @@ class ConfiguredModel(BaseModel):
                         value = field.annotation.__args__[0]()
                     else:
                         value = field.annotation()
+                if isinstance(value, bool):
+                    value = str(value).lower()
                 attributes[field_name] = value
             elif issubclass(field.annotation.__args__[0], BaseModel):
                 if field_name in _select_relationships or not _select_relationships:

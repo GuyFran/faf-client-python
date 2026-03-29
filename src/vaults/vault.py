@@ -98,7 +98,6 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
         self._items: dict[str, VaultListItem[T]] = {}
 
         self.UIButton.hide()
-        self.uploadButton.hide()
 
         self.vault_type = type(self).__name__
 
@@ -192,6 +191,7 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
     def on_item_double_clicked(self, item: VaultListItem[T]) -> None:
         widget = self.create_details_widget(item.item_data)
         widget.item_availability_changed.connect(self.on_item_availability_changed)
+        widget.item_hidden_changed.connect(self.update_visibilities)
         show_item_details_dialog(widget, self)
         widget.deleteLater()
 
@@ -200,6 +200,7 @@ class Vault[T: Map | Mod](FormClass, BaseClass, BusyWidget):
             return
         details_widget = self.create_details_widget(current.item_data)
         details_widget.item_availability_changed.connect(self.on_item_availability_changed)
+        details_widget.item_hidden_changed.connect(self.update_visibilities)
         details_widget.ask_review()
         details_widget.ask_file_size()
         self.show_details_widget(details_widget)

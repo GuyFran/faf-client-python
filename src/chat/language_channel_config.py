@@ -2,6 +2,8 @@ from PyQt6.QtCore import QAbstractListModel
 from PyQt6.QtCore import Qt
 
 from src.chat.lang import LANGUAGE_CHANNELS
+from src.config import SettingsCls
+from src.util.theme import ThemeSet
 
 
 class ChannelEntry:
@@ -12,34 +14,18 @@ class ChannelEntry:
 
 
 class LanguageChannelConfig:
-    def __init__(self, parent_widget, settings, theme):
-        self._parent_widget = parent_widget
+    def __init__(self, settings: SettingsCls, theme: ThemeSet) -> None:
         self._settings = settings
         self._theme = theme
-        self._base = None
-        self._form = None
-        self._model = None
-        self._setup_widget()
-        self._setup_model()
-
-    def _setup_widget(self):
-        formc, basec = self._theme.loadUiType(
-            "chat/language_channel_config.ui",
-        )
-        self._form = formc()
-        self._base = basec(self._parent_widget)
-        self._form.setupUi(self._base)
-        self._form.endDialogBox.accepted.connect(self._on_accepted)
-        self._form.endDialogBox.rejected.connect(self._on_rejected)
-
-    def _setup_model(self):
         self._model = CheckableStringListModel()
-        self._form.channelListView.setModel(self._model)
 
-    def _load_data(self):
+    def model(self) -> CheckableStringListModel:
+        return self._model
+
+    def load_data(self) -> None:
         self._model.load_data(self._chan_flag_list())
 
-    def _chan_flag_list(self):
+    def _chan_flag_list(self) -> None:
         checked_channels = self._current_channels()
         channels = []
         for name, langs in LANGUAGE_CHANNELS.items():
@@ -52,26 +38,15 @@ class LanguageChannelConfig:
 
     # TODO - move somewhere
     def _country_icon(self, country):
-        return self._theme.icon("chat/countries/{}.png".format(country))
+        return self._theme.icon(f"chat/countries/{country}.png")
 
     def _current_channels(self):
         checked_channels = self._settings.get('client/lang_channels', "")
         return [c for c in checked_channels.split(';') if c]
 
-    def _save_channels(self):
+    def save_channels(self) -> None:
         channels = self._model.checked_channels()
         self._settings.set('client/lang_channels', ';'.join(channels))
-
-    def _on_accepted(self):
-        self._save_channels()
-        self._base.accept()
-
-    def _on_rejected(self):
-        self._base.reject()
-
-    def run(self):
-        self._load_data()
-        self._base.show()
 
 
 class CheckableStringListModel(QAbstractListModel):
@@ -114,7 +89,7 @@ class CheckableStringListModel(QAbstractListModel):
             return None
         return self._items[row]
 
-    def load_data(self, entries):
+    def load_data(self, entries: list[ChannelEntry]) -> None:
         self.modelAboutToBeReset.emit()
         self._items = entries
         self.modelReset.emit()

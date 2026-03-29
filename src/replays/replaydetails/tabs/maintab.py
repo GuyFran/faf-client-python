@@ -19,7 +19,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE."""
-from __future__ import annotations
 
 import os
 
@@ -97,7 +96,7 @@ class ReplayInfoTabUI:
 class ReplayInfoTab(QWidget):
     map_obtained = pyqtSignal(object)
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, mapgen_manager: MapGeneratorManager, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("replay_info_tab")
         self.ui = ReplayInfoTabUI()
@@ -105,7 +104,7 @@ class ReplayInfoTab(QWidget):
         self.ui.mapPreview.clicked.connect(self.on_map_clicked)
         self.ui.getMapButton.clicked.connect(self.obtain_map)
         self.replay = ReplayParser()
-        self.generator = MapGeneratorManager()
+        self.generator = mapgen_manager
 
     def initialize(self, replay: ReplayParser) -> None:
         self.replay = replay

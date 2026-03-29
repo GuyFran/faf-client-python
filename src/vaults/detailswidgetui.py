@@ -91,9 +91,11 @@ class DetailsWidgetUI:
         self.reviewsLayout.addWidget(self.noReviewsLabel)
 
         self.viewReviewsButton = QPushButton("View All Reviews")
+        self.viewReviewsButton.setMaximumWidth(300)
         self.reviewsLayout.addWidget(self.viewReviewsButton)
 
         self.addReviewButton = QPushButton("Add/Edit Review")
+        self.addReviewButton.setMaximumWidth(300)
         self.reviewsLayout.addWidget(self.addReviewButton)
 
         reviews_box.setLayout(self.reviewsLayout)
@@ -104,6 +106,9 @@ class DetailsWidgetUI:
 
         version_box.setLayout(self.versionLayout)
         content_layout.addWidget(version_box, 2, 1)
+
+        self.hideButton = QPushButton("Hide")
+        self.hideButton.setMaximumWidth(300)
 
         self.overviewLayout.addLayout(content_layout)
 

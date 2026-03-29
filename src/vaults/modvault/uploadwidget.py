@@ -1,50 +1,162 @@
+import json
+import logging
 import os
 import tempfile
-import zipfile
+from typing import TYPE_CHECKING
+from typing import Any
 
 from PyQt6 import QtCore
 from PyQt6 import QtWidgets
+from PyQt6.QtGui import QCloseEvent
+from PyQt6.QtGui import QDesktopServices
+from PyQt6.QtNetwork import QNetworkReply
 
 from src import util
+from src.api.ApiAccessors import ApiAccessor
+from src.api.ApiBase import ApiAccessManagerInstance
+from src.config import Settings
+from src.qt.utils import critical_msgbox
 from src.vaults.modvault import utils
+from src.vaults.zip_thread import ZipThread
+
+if TYPE_CHECKING:
+    from src.vaults.modvault.modvault import ModVault
+
+
+logger = logging.getLogger(__name__)
 
 FormClass, BaseClass = util.THEME.loadUiType("vaults/modvault/upload.ui")
 
 
+class ModUploader(QtCore.QObject):
+    not_started = QtCore.pyqtSignal()
+    internal_error = QtCore.pyqtSignal(QNetworkReply)
+    error = QtCore.pyqtSignal(QNetworkReply)
+    complete = QtCore.pyqtSignal()
+    zip_end = QtCore.pyqtSignal()
+    file_sent = QtCore.pyqtSignal()
+
+    def __init__(self, moddir: str, progress_bar: QtWidgets.QProgressBar) -> None:
+        super().__init__()
+        self.moddir = moddir
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.qfile = QtCore.QFile(self)
+        self.request_id = ""
+        self.upload_url = QtCore.QUrl()
+
+        self.api = ApiAccessor()
+        self.reply = None
+
+        self.bar = progress_bar
+
+        archive_path = os.path.join(self.tempdir.name, "mod")
+        self.zip_thread = ZipThread(archive_path, *os.path.split(self.moddir))
+        self.zip_thread.zip_error.connect(self.not_started.emit)
+        self.zip_thread.zip_ready.connect(self.upload)
+        self.zip_thread.zip_ready.connect(self.zip_end.emit)
+
+    def abort(self) -> None:
+        if self.reply is not None and self.reply.isRunning():
+            self.reply.abort()
+
+    def clean(self) -> None:
+        self.qfile.close()
+        self.reply = None
+
+    def run(self) -> None:
+        self.api.get("/mods/upload/start", self.on_start_success, self.on_start_failure)
+
+    def on_start_success(self, upload_info: dict[str, str]) -> None:
+        self.request_id = upload_info["requestId"]
+        self.upload_url = QtCore.QUrl(upload_info["uploadUrl"])
+        self.zip_thread.start()
+
+    def upload(self, zipped: str) -> None:
+        self.qfile = QtCore.QFile(zipped, self)
+        if not self.qfile.open(self.qfile.OpenModeFlag.ReadOnly):
+            logger.error("Could not open file '%s'", self.qfile.fileName())
+            self.not_started.emit()
+            return
+        self.reply = ApiAccessManagerInstance.put(
+            self.upload_url,
+            self.qfile,
+            self.on_upload_success,
+            self.on_upload_failure,
+            authorize=False,
+        )
+        self.reply.uploadProgress.connect(self.on_upload_progress)
+
+    def on_start_failure(self, reply: QNetworkReply) -> None:
+        self.clean()
+        self.internal_error.emit(reply)
+
+    def on_upload_success(self, reply: QNetworkReply) -> None:
+        response = json.dumps({"requestId": self.request_id})
+        self.api.post(
+            "/mods/upload/complete",
+            QtCore.QByteArray(response.encode()),
+            self.on_complete_success,
+            self.on_complete_failure,
+        )
+
+    def on_upload_progress(self, sent: int, total: int) -> None:
+        if total != 0:
+            self.bar.setValue(int(100 * sent / total))
+            if sent == total:
+                self.file_sent.emit()
+
+    def on_upload_failure(self, reply: QNetworkReply) -> None:
+        self.clean()
+        self.internal_error.emit(reply)
+
+    def on_complete_success(self, message: dict[str, Any]) -> None:
+        self.clean()
+        self.complete.emit()
+
+    def on_complete_failure(self, reply: QNetworkReply) -> None:
+        self.clean()
+        self.error.emit(reply)
+
+
 class UploadModWidget(FormClass, BaseClass):
-    def __init__(self, parent, modDir, modinfo, *args, **kwargs):
-        BaseClass.__init__(self, *args, **kwargs)
+    def __init__(self, parent: ModVault, modDir: str, modinfo: utils.ModInfo) -> None:
+        BaseClass.__init__(self, parent)
 
         self.setupUi(self)
-        self.parent = parent
-        self.client = self.parent.client  # type - ClientWindow
+
+        self.client = parent.client
         self.modinfo = modinfo
         self.modDir = modDir
-
-        util.THEME.stylesheets_reloaded.connect(self.load_stylesheet)
-        self.load_stylesheet()
 
         self.setWindowTitle("Uploading Mod")
 
         self.Name.setText(modinfo.name)
         self.Version.setText(str(modinfo.version))
-        if modinfo.ui_only:
-            self.isUILabel.setText("is UI Only")
-        else:
-            self.isUILabel.setText("not UI Only")
+        self.isUIOnly.setText(str(modinfo.ui_only))
         self.UID.setText(modinfo.uid)
         self.Description.setPlainText(modinfo.description)
         if modinfo.icon != "":
-            self.IconURI.setText(utils.iconPathToFull(modinfo.icon))
+            self.IconURI.setText(utils.iconPathToFull(self.modDir, modinfo.icon))
             self.updateThumbnail()
         else:
-            self.Thumbnail.setPixmap(
-                util.THEME.pixmap("games/unknown_map.png"),
-            )
+            self.Thumbnail.setPixmap(util.THEME.pixmap("games/unknown_map.png").scaled(100, 100))
         self.UploadButton.pressed.connect(self.upload)
+        self.UploadButton.setEnabled(False)
+        self.checkRules.toggled.connect(self.UploadButton.setEnabled)
+        self.buttonRules.clicked.connect(
+            lambda: QDesktopServices.openUrl(QtCore.QUrl(Settings.get("vault/rules_url"))),
+        )
 
-    def load_stylesheet(self) -> None:
-        self.setStyleSheet(util.THEME.stylesheet)
+        self.uploader = ModUploader(self.modDir, self.progressBar)
+        self.uploader.internal_error.connect(self.uploader_error)
+        self.uploader.error.connect(self.completion_error)
+        self.uploader.complete.connect(self.complete)
+        self.uploader.not_started.connect(self.not_started)
+        self.uploader.zip_end.connect(self.enter_uploading_state)
+        self.uploader.file_sent.connect(self.enter_awaiting_verdict_state)
+
+        self.buttonAbort.clicked.connect(self.uploader.abort)
+        self.enter_start_state()
 
     @QtCore.pyqtSlot()
     def upload(self):
@@ -57,7 +169,7 @@ class UploadModWidget(FormClass, BaseClass):
             )
             return
 
-        iconpath = utils.iconPathToFull(self.modinfo.icon)
+        iconpath = utils.iconPathToFull(self.modDir, self.modinfo.icon)
         infolder = False
         if (
             iconpath != ""
@@ -82,29 +194,89 @@ class UploadModWidget(FormClass, BaseClass):
                 ),
             )
             return
+        self.start_upload()
 
-        try:
-            temp = tempfile.NamedTemporaryFile(
-                mode='w+b', suffix=".zip", delete=False,
-            )
-            zipped = zipfile.ZipFile(temp, "w", zipfile.ZIP_DEFLATED)
-            zipdir(self.modDir, zipped, os.path.basename(self.modDir))
-            zipped.close()
-            temp.flush()
-        except Exception:
-            QtWidgets.QMessageBox.critical(
-                self.client,
-                "Mod uploading error",
-                "Something went wrong zipping the mod files.",
-            )
+    def start_upload(self) -> None:
+        self.enter_zipping_state()
+        self.uploader.run()
+
+    def enter_start_state(self) -> None:
+        self.progressBar.setValue(0)
+        self.progressFrame.hide()
+        self.UploadButton.show()
+        self.checkRules.setChecked(False)
+
+    def enter_zipping_state(self) -> None:
+        self.UploadButton.hide()
+        self.buttonAbort.setEnabled(False)
+        self.progressFrame.show()
+        self.labelStatusBarInfo.setText("Zipping files...")
+        self.progressBar.setRange(0, 0)
+
+    def enter_uploading_state(self) -> None:
+        self.UploadButton.hide()
+        self.progressFrame.show()
+        self.buttonAbort.setEnabled(True)
+        self.labelStatusBarInfo.setText("Uploading files...")
+        self.progressBar.setRange(0, 100)
+
+    def enter_awaiting_verdict_state(self) -> None:
+        self.UploadButton.hide()
+        self.buttonAbort.setEnabled(True)
+        self.progressFrame.show()
+        self.labelStatusBarInfo.setText("Waiting for server's verdict...")
+        self.progressBar.setRange(0, 0)
+
+    def enter_finish_state(self) -> None:
+        self.progressBar.setValue(0)
+        self.progressFrame.hide()
+        self.UploadButton.show()
+        self.UploadButton.setEnabled(False)
+
+    def not_started(self) -> None:
+        self.enter_start_state()
+        critical_msgbox(
+            self.client,
+            "Mod uploading error",
+            "Something went wrong zipping the mod files.",
+        )
+
+    def uploader_error(self, reply: QNetworkReply) -> None:
+        self.enter_start_state()
+        if reply.error() is reply.NetworkError.OperationCanceledError:
             return
-        # qfile = QtCore.QFile(temp.name)
-        # TODO: implement uploading via API
-        ...
+        critical_msgbox(
+            self.client,
+            "Mod upload error",
+            "Something went wrong uploading the mod files.",
+            detailed=f"{reply.readAll().data().decode()}",
+        )
+
+    def completion_error(self, reply: QNetworkReply) -> None:
+        self.enter_start_state()
+        if reply.error() is reply.NetworkError.OperationCanceledError:
+            return
+        server_response = reply.readAll().data().decode()
+        try:
+            info = json.loads(server_response)["errors"][0]["detail"]
+        except Exception:
+            info = ""
+        critical_msgbox(
+            self.client,
+            "Mod upload error",
+            "Something went wrong uploading the mod files.",
+            info,
+            server_response,
+        )
+
+    def complete(self) -> None:
+        self.enter_finish_state()
+        QtWidgets.QMessageBox.information(self.client, "Success", "Upload finished!")
+        self.accept()
 
     @QtCore.pyqtSlot()
     def updateThumbnail(self):
-        iconfilename = utils.iconPathToFull(self.modinfo.icon)
+        iconfilename = utils.iconPathToFull(self.modDir, self.modinfo.icon)
         if iconfilename == "":
             return False
         if os.path.splitext(iconfilename)[1].lower() == ".dds":
@@ -125,30 +297,19 @@ class UploadModWidget(FormClass, BaseClass):
                 )
                 return False
         try:
-            self.Thumbnail.setPixmap(util.THEME.pixmap(iconfilename, False))
-        except Exception:
+            self.Thumbnail.setPixmap(util.THEME.pixmap(iconfilename, themed=False).scaled(100, 100))
+        except Exception as e:
             QtWidgets.QMessageBox.information(
                 self.client,
                 "Invalid Icon File",
-                "This was not a valid icon file. Please pick a png or jpeg",
+                "This was not a valid icon file. Please pick a png or jpeg\n"
+                f"Error: {e}",
             )
             return False
-        self.modinfo.thumbnail = utils.fullPathToIcon(iconfilename)
+        self.modinfo.thumbnail = utils.fullPathToIcon(self.modDir, iconfilename)
         self.IconURI.setText(iconfilename)
         return True
 
-
-def zipdir(path, zipf, fname):
-    # zips the entire directory path to zipf. Every file in the zipfile starts
-    # with fname. So if path is "/foo/bar/hello" and fname is "test" then every
-    # file in zipf is of the form "/test/*.*"
-    path = os.path.normcase(path)
-    if path[-1] in r'\/':
-        path = path[:-1]
-    for root, dirs, files in os.walk(path):
-        for f in files:
-            name = os.path.join(os.path.normcase(root), f)
-            n = name[len(os.path.commonprefix([name, path])):]
-            if n[0] == "\\":
-                n = n[1:]
-            zipf.write(name, os.path.join(fname, n))
+    def closeEvent(self, event: QCloseEvent) -> None:
+        self.uploader.abort()
+        super().closeEvent(event)

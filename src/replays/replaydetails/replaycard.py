@@ -86,7 +86,11 @@ class ReplayLoader(QtCore.QThread):
 class ReplayDetailsCard(QtWidgets.QDialog):
     downloader = QtNetwork.QNetworkAccessManager()
 
-    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+    def __init__(
+        self,
+        mapgen_manager: MapGeneratorManager,
+        parent: QtWidgets.QWidget | None = None,
+    ) -> None:
         super().__init__(parent)
         window_flags = (
             self.windowFlags()
@@ -125,7 +129,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         filemenu.addSeparator()
         menubar.addAction(self.aboutAction)
 
-        self.replay_info_tab = ReplayInfoTab()
+        self.replay_info_tab = ReplayInfoTab(mapgen_manager)
         self.chat_tab = ChatTab()
         self.events_tab = EventsTab()
         self.heatmap_tab = Heatmap()
@@ -134,6 +138,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self.replay_info_tab.map_obtained.connect(self.heatmap_tab.set_map_foreground)
 
         self.replayTabs = QtWidgets.QTabWidget()
+        self.replayTabs.setEnabled(False)
         self.replayTabs.addTab(self.replay_info_tab, "Info")
         self.replayTabs.addTab(self.chat_tab, "Chat")
         self.replayTabs.addTab(self.events_tab, "Events")
@@ -156,7 +161,6 @@ class ReplayDetailsCard(QtWidgets.QDialog):
         self._layout.setMenuBar(menubar)
         self.setLayout(self._layout)
         self.resize(1024, 768)
-        self.generator = MapGeneratorManager()
 
         self.tab_history: set[int] = set()
         self.replayTabs.currentChanged.connect(self.on_tab_changed)
@@ -285,6 +289,7 @@ class ReplayDetailsCard(QtWidgets.QDialog):
     @QtCore.pyqtSlot(int)
     def populatePages(self, ms: int) -> None:
         self.statusBar.showMessage(f"Download: {self.download_time} ms; Parse: {ms} ms")
+        self.replayTabs.setEnabled(True)
         self.tab_history.clear()
         self.on_tab_changed(0)
 

@@ -7,7 +7,7 @@ from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QDesktopServices
 
 from src.client.connection import ServerConnection
-from src.config import Settings
+from src.config import SettingsCls
 from src.model.playerset import Playerset
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ class PowerActions:
         self,
         lobby_connection: ServerConnection,
         playerset: Playerset,
-        settings: type[Settings],
+        settings: SettingsCls,
     ) -> None:
         self._lobby_connection = lobby_connection
         self._playerset = playerset
@@ -37,7 +37,7 @@ class PowerActions:
         cls,
         lobby_connection: ServerConnection,
         playerset: Playerset,
-        settings: type[Settings],
+        settings: SettingsCls,
         **kwargs: Any,
     ) -> Self:
         return cls(lobby_connection, playerset, settings)

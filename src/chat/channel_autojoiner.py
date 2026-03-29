@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Self
 from typing import cast
 
@@ -8,7 +6,7 @@ from src.chat.lang import DEFAULT_LANGUAGE_CHANNELS
 from src.client.chat_config import ChatConfig
 from src.client.connection import LobbyInfo
 from src.client.user import User
-from src.config import Settings
+from src.config import SettingsCls
 from src.model.chat.chat import Chat
 from src.model.player import Player
 from src.protocol.lobbyprotocol import SocialCommand
@@ -21,7 +19,7 @@ class ChannelAutojoiner:
         base_channels: list[str],
         model: Chat,
         controller: ChatController,
-        settings: type[Settings],
+        settings: SettingsCls,
         lobby_info: LobbyInfo,
         chat_config: ChatConfig,
         lang_channel_checker: LanguageChannelChecker,
@@ -50,7 +48,7 @@ class ChannelAutojoiner:
         base_channels: list[str],
         model: Chat,
         controller: ChatController,
-        settings: type[Settings],
+        settings: SettingsCls,
         lobby_info: LobbyInfo,
         chat_config: ChatConfig,
         me: User,
@@ -83,8 +81,10 @@ class ChannelAutojoiner:
         self._join_all(self.base_channels)
 
     def _autojoin_custom(self) -> None:
+        if not self._settings.get("chat/auto_join", True, type=bool):
+            return
         auto_channels = self._settings.get("chat/auto_join_channels", cast(list[str], []))
-        # FIXME - sanity check since QSettings is iffy with lists
+        # sanity check since QSettings is iffy with lists
         if not isinstance(auto_channels, list):
             return
         self._join_all(auto_channels)
@@ -115,7 +115,7 @@ class ChannelAutojoiner:
 
 
 class LanguageChannelChecker:
-    def __init__(self, settings: type[Settings]) -> None:
+    def __init__(self, settings: SettingsCls) -> None:
         self._settings = settings
 
     def get_channels(self, player: Player) -> list[str]:

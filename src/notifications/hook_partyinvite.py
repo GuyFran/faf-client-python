@@ -3,15 +3,15 @@ Settings for notifications: if a player comes online
 """
 from PyQt6 import QtCore
 
-import src.notifications as ns
 from src import util
 from src.config import Settings
 from src.notifications.ns_hook import NsHook
+from src.notifications.ns_type import NsType
 
 
 class NsHookPartyInvite(NsHook):
     def __init__(self):
-        NsHook.__init__(self, ns.Notifications.PARTY_INVITE)
+        NsHook.__init__(self, NsType.PARTY_INVITE)
         self.button.setEnabled(True)
         self.dialog = PartyInviteDialog(self, self.eventType)
         self.button.clicked.connect(self.dialog.show)
@@ -25,6 +25,7 @@ FormClass, BaseClass = util.THEME.loadUiType(
 class PartyInviteDialog(FormClass, BaseClass):
     def __init__(self, parent, eventType):
         BaseClass.__init__(self)
+        self.setModal(True)
         self.parent = parent
         self.eventType = eventType
         self._settings_key = f'notifications/{eventType}'

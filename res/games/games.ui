@@ -187,7 +187,7 @@
               </font>
              </property>
              <property name="selectionMode">
-              <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
+              <enum>QAbstractItemView::SelectionMode::NoSelection</enum>
              </property>
              <property name="selectionBehavior">
               <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>

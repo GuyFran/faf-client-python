@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 from collections.abc import Callable
 from collections.abc import Generator
@@ -17,7 +15,7 @@ from src.client.user import User
 from src.fa.game_runner import GameRunner
 from src.model.game import GameState
 from src.model.player import Player
-from src.playercard.playerinfodialog import PlayerInfoDialog
+from src.playercard.playerprofiledialog import PlayerProfileDialog
 from src.power import PowerTools
 
 if TYPE_CHECKING:
@@ -274,7 +272,7 @@ class PlayerContextMenu:
         self._alias_viewer.view_aliases(login)
 
     def _view_profile(self, player_id: int) -> None:
-        dialog = PlayerInfoDialog(
+        dialog = PlayerProfileDialog(
             self._client_window.avatar_downloader,
             str(player_id),
             self,

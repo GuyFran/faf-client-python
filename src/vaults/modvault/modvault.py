@@ -16,6 +16,7 @@ from src.vaults.modvault.modlistitem import ModDisplayType
 from src.vaults.modvault.modlistitem import ModListItem
 from src.vaults.modvault.modlistitem import ModSortType
 from src.vaults.modvault.modlistwidget import ModListWidget
+from src.vaults.modvault.modsmanager import ModsManagerDialog
 from src.vaults.vault import BrowseType
 from src.vaults.vault import Vault
 
@@ -55,6 +56,9 @@ class ModVault(Vault[Mod]):
 
         self.searchParams.allTypesRadio.setChecked(True)
         self.searchParams.uploaderInput.returnPressed.connect(self.search)
+        self.manage_installed_dialog = ModsManagerDialog(self.client)
+        self.buttonManageInstalled.clicked.connect(self.manage_installed_dialog.run)
+        self.uploadButton.clicked.connect(self.openUploadForm)
 
     def construct_search_filters(self) -> QueryOptions:
         filters: list[str] = []
@@ -107,7 +111,6 @@ class ModVault(Vault[Mod]):
             self.client,
             "Select the mod directory to upload",
             utils.MODFOLDER,
-            QtWidgets.QFileDialog.ShowDirsOnly,
         )
         logger.debug("Uploading mod from: " + modDir)
         if modDir != "":

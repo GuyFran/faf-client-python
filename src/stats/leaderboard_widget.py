@@ -164,6 +164,7 @@ class LeaderboardWidget(BaseClass, FormClass):
         self.createLeaderboard(parsed)
         self.processMeta(parsed["meta"])
         self.resetLoading()
+        self.tableView.scrollToTop()
         self.timer.stop()
 
     def createLeaderboard(self, data):

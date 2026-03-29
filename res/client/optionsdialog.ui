@@ -1,0 +1,2126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Dialog</class>
+ <widget class="QDialog" name="Dialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>775</width>
+    <height>585</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Settings</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QSplitter" name="splitter">
+     <property name="orientation">
+      <enum>Qt::Orientation::Horizontal</enum>
+     </property>
+     <property name="childrenCollapsible">
+      <bool>false</bool>
+     </property>
+     <widget class="QListWidget" name="tabSelection">
+      <property name="font">
+       <font>
+        <pointsize>11</pointsize>
+       </font>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="editTriggers">
+       <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+      </property>
+      <property name="selectionBehavior">
+       <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+      </property>
+      <property name="movement">
+       <enum>QListView::Movement::Static</enum>
+      </property>
+      <property name="flow">
+       <enum>QListView::Flow::TopToBottom</enum>
+      </property>
+      <property name="isWrapping" stdset="0">
+       <bool>false</bool>
+      </property>
+      <property name="resizeMode">
+       <enum>QListView::ResizeMode::Adjust</enum>
+      </property>
+      <property name="viewMode">
+       <enum>QListView::ViewMode::ListMode</enum>
+      </property>
+      <property name="currentRow">
+       <number>-1</number>
+      </property>
+      <item>
+       <property name="text">
+        <string>General</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Chat</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Forged Alliance</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Notifications</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ICE Adapter</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Data and Cache</string>
+       </property>
+      </item>
+     </widget>
+     <widget class="QStackedWidget" name="tabOption">
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="tabGeneralPage">
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QScrollArea" name="scrollArea">
+          <property name="widgetResizable">
+           <bool>true</bool>
+          </property>
+          <widget class="QWidget" name="scrollAreaWidgetContents">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>-30</y>
+             <width>448</width>
+             <height>667</height>
+            </rect>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_3">
+            <item>
+             <widget class="QGroupBox" name="accountSettingsBox">
+              <property name="title">
+               <string>Account</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_4">
+               <item>
+                <widget class="QCheckBox" name="checkAutoLogin">
+                 <property name="text">
+                  <string>Automatic Login</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="linkToSteam">
+                 <item>
+                  <widget class="QPushButton" name="buttonLinkToSteam">
+                   <property name="text">
+                    <string>Link Account to Steam</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer_12">
+                   <property name="orientation">
+                    <enum>Qt::Orientation::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="UISettingsBox">
+              <property name="title">
+               <string>Interface</string>
+              </property>
+              <layout class="QVBoxLayout" name="UISettingsBoxLayout">
+               <item>
+                <widget class="QLabel" name="labelRestartRequired">
+                 <property name="font">
+                  <font>
+                   <italic>true</italic>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Changing Interface settings requires application restart</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QGridLayout" name="layoutStyle">
+                 <item row="0" column="0">
+                  <widget class="QLabel" name="labelStyle">
+                   <property name="text">
+                    <string>Style:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QComboBox" name="comboStyle"/>
+                 </item>
+                 <item row="0" column="2">
+                  <widget class="QLabel" name="labelStyleHint">
+                   <property name="font">
+                    <font>
+                     <italic>true</italic>
+                    </font>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0">
+                  <widget class="QLabel" name="labelColorScheme">
+                   <property name="text">
+                    <string>Color scheme:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="1">
+                  <widget class="QComboBox" name="comboColorScheme"/>
+                 </item>
+                 <item row="1" column="2">
+                  <spacer name="spacerColorScheme">
+                   <property name="orientation">
+                    <enum>Qt::Orientation::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QGroupBox" name="checkUseCustomTheme">
+                 <property name="title">
+                  <string>Use custom UI Theme</string>
+                 </property>
+                 <property name="checkable">
+                  <bool>true</bool>
+                 </property>
+                 <layout class="QHBoxLayout" name="horizontalLayout_18">
+                  <item>
+                   <widget class="QLabel" name="label_16">
+                    <property name="text">
+                     <string>UI Theme file:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="lineCustomThemeFile"/>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="buttonBrowseThemeFile">
+                    <property name="text">
+                     <string>Browse</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="checkFileLog">
+              <property name="title">
+               <string>&amp;Log Files</string>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_11">
+               <item>
+                <widget class="QLabel" name="labelRestartRequired_2">
+                 <property name="font">
+                  <font>
+                   <italic>true</italic>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Changing Log settings requires application restart</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_7">
+                 <item>
+                  <widget class="QLabel" name="label_4">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="text">
+                    <string>Save path:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLineEdit" name="lineFileLogPath"/>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="buttonBrowseLogPath">
+                   <property name="text">
+                    <string>Browse</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_6">
+                 <item>
+                  <widget class="QLabel" name="label_25">
+                   <property name="text">
+                    <string>Level:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QComboBox" name="comboLogLevel"/>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer_17">
+                   <property name="orientation">
+                    <enum>Qt::Orientation::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_8">
+                 <item>
+                  <widget class="QCheckBox" name="checkFileLogBackup">
+                   <property name="toolTip">
+                    <string>Creates an additional log file after the log file reaches the specified file size</string>
+                   </property>
+                   <property name="text">
+                    <string>Backup the log file after:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QSpinBox" name="spinFileLogSize">
+                   <property name="suffix">
+                    <string> KiB</string>
+                   </property>
+                   <property name="minimum">
+                    <number>1</number>
+                   </property>
+                   <property name="maximum">
+                    <number>1024000</number>
+                   </property>
+                   <property name="value">
+                    <number>256</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer_100">
+                   <property name="orientation">
+                    <enum>Qt::Orientation::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout">
+                 <item>
+                  <widget class="QLabel" name="label">
+                   <property name="text">
+                    <string>Backup log file count:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QSpinBox" name="spinLogBackupCount">
+                   <property name="value">
+                    <number>1</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer">
+                   <property name="orientation">
+                    <enum>Qt::Orientation::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="groupBox">
+              <property name="title">
+               <string>Updates</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_5">
+               <item>
+                <widget class="QCheckBox" name="checkProgramUpdates">
+                 <property name="text">
+                  <string>Check for program updates on start</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="updateChannel">
+                 <item>
+                  <widget class="QLabel" name="label_2">
+                   <property name="text">
+                    <string>Update channel:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QComboBox" name="comboUpdateChannel"/>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer_2">
+                   <property name="orientation">
+                    <enum>Qt::Orientation::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkOldReleases">
+                 <property name="text">
+                  <string>Show old releases</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_10">
+                 <item>
+                  <widget class="QPushButton" name="buttonCheckUpdates">
+                   <property name="text">
+                    <string>Check for Updates</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer_18">
+                   <property name="orientation">
+                    <enum>Qt::Orientation::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="chatPage">
+       <layout class="QVBoxLayout" name="verticalLayout_12">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QScrollArea" name="scrollArea_3">
+          <property name="widgetResizable">
+           <bool>true</bool>
+          </property>
+          <widget class="QWidget" name="scrollAreaWidgetContents_3">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>448</width>
+             <height>949</height>
+            </rect>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_13">
+            <item>
+             <widget class="QGroupBox" name="viewBox">
+              <property name="title">
+               <string>View</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_14">
+               <item>
+                <widget class="QCheckBox" name="checkColoredNames">
+                 <property name="text">
+                  <string>Colored nicknames</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkFriendsOnTop">
+                 <property name="text">
+                  <string>Friends on top</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_6">
+                 <property name="text">
+                  <string>Hide chatter's:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QListWidget" name="hideChattersList">
+                 <property name="selectionMode">
+                  <enum>QAbstractItemView::SelectionMode::MultiSelection</enum>
+                 </property>
+                 <property name="uniformItemSizes">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QGroupBox" name="boxChatArea">
+                 <property name="title">
+                  <string>Chat area</string>
+                 </property>
+                 <layout class="QVBoxLayout" name="verticalLayout_37">
+                  <item>
+                   <widget class="QLabel" name="label_35">
+                    <property name="font">
+                     <font>
+                      <italic>true</italic>
+                     </font>
+                    </property>
+                    <property name="text">
+                     <string>Modifying columns width requires application restart</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <layout class="QGridLayout" name="gridLayout">
+                    <item row="1" column="1">
+                     <widget class="QFontComboBox" name="comboChatFontFamily"/>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QSpinBox" name="spinChatFontSize">
+                      <property name="suffix">
+                       <string> pt</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="3" column="1">
+                     <widget class="QSpinBox" name="spinChatTimeWidth">
+                      <property name="suffix">
+                       <string> px</string>
+                      </property>
+                      <property name="maximum">
+                       <number>1000</number>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="0">
+                     <widget class="QLabel" name="label_34">
+                      <property name="text">
+                       <string>Font family:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="5" column="0">
+                     <widget class="QLabel" name="label_32">
+                      <property name="text">
+                       <string>Long nick:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="3" column="0">
+                     <widget class="QLabel" name="label_30">
+                      <property name="text">
+                       <string>Time column width: </string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="6" column="1">
+                     <widget class="QLineEdit" name="lineChatShortNick">
+                      <property name="text">
+                       <string>Guy</string>
+                      </property>
+                      <property name="maxLength">
+                       <number>16</number>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="6" column="0">
+                     <widget class="QLabel" name="label_33">
+                      <property name="text">
+                       <string>Short nick:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="1">
+                     <widget class="QSpinBox" name="spinChatNickWidth">
+                      <property name="suffix">
+                       <string> px</string>
+                      </property>
+                      <property name="maximum">
+                       <number>1000</number>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="0">
+                     <widget class="QLabel" name="label_31">
+                      <property name="text">
+                       <string>Nick column width:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="5" column="1">
+                     <widget class="QLineEdit" name="lineChatLongNick">
+                      <property name="text">
+                       <string>[TAG]ALoginTesterNoob</string>
+                      </property>
+                      <property name="maxLength">
+                       <number>21</number>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="0">
+                     <widget class="QLabel" name="label_7">
+                      <property name="text">
+                       <string>Font size:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="2">
+                     <spacer name="horizontalSpacer_3">
+                      <property name="orientation">
+                       <enum>Qt::Orientation::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>40</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                    <item row="4" column="0">
+                     <widget class="QLabel" name="label_36">
+                      <property name="text">
+                       <string>Right padding:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="4" column="1">
+                     <widget class="QSpinBox" name="spinChatPadding">
+                      <property name="suffix">
+                       <string> px</string>
+                      </property>
+                      <property name="maximum">
+                       <number>1000</number>
+                      </property>
+                      <property name="value">
+                       <number>10</number>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                  <item>
+                   <widget class="QTextBrowser" name="browserChatArea">
+                    <property name="openLinks">
+                     <bool>false</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <layout class="QHBoxLayout" name="horizontalLayout_3">
+                    <item>
+                     <widget class="QLineEdit" name="lineChatSend">
+                      <property name="maxLength">
+                       <number>500</number>
+                      </property>
+                      <property name="placeholderText">
+                       <string>Test chat...</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QPushButton" name="buttonChatClear">
+                      <property name="text">
+                       <string>Clear chat</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="announcementBox">
+              <property name="title">
+               <string>Announcements</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_15">
+               <item>
+                <widget class="QCheckBox" name="checkJoinsParts">
+                 <property name="text">
+                  <string>Joins / Parts</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkFriendGames">
+                 <property name="text">
+                  <string>Friend Games</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkFriendReplays">
+                 <property name="text">
+                  <string>Friend Replays</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="messagesBox">
+              <property name="title">
+               <string>Messages</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_16">
+               <item>
+                <widget class="QCheckBox" name="checkSoundEffects">
+                 <property name="text">
+                  <string>Sound Effect on Mention</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkIgnoreFoes">
+                 <property name="text">
+                  <string>Ignore foes</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="channelsBox">
+              <property name="title">
+               <string>Channels</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_17">
+               <item>
+                <widget class="QCheckBox" name="checkNewbiesChannel">
+                 <property name="text">
+                  <string>Use Newbies Channel</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QGroupBox" name="autojoinChannelsBox">
+                 <property name="title">
+                  <string>Autojoin channels</string>
+                 </property>
+                 <property name="checkable">
+                  <bool>true</bool>
+                 </property>
+                 <layout class="QVBoxLayout" name="verticalLayout_18">
+                  <item>
+                   <widget class="QLabel" name="label_9">
+                    <property name="font">
+                     <font>
+                      <italic>true</italic>
+                     </font>
+                    </property>
+                    <property name="text">
+                     <string>Enter the list of channels you want to autojoin at startup</string>
+                    </property>
+                    <property name="wordWrap">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <layout class="QHBoxLayout" name="horizontalLayout_14">
+                    <item>
+                     <widget class="QListWidget" name="listAutojoinChannels">
+                      <property name="editTriggers">
+                       <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+                      </property>
+                      <property name="selectionMode">
+                       <enum>QAbstractItemView::SelectionMode::MultiSelection</enum>
+                      </property>
+                      <property name="verticalScrollMode">
+                       <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
+                      </property>
+                      <property name="viewMode">
+                       <enum>QListView::ViewMode::ListMode</enum>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <layout class="QVBoxLayout" name="verticalLayout_35">
+                      <item>
+                       <widget class="QPushButton" name="buttonAddAutojoinChannel">
+                        <property name="text">
+                         <string>Add</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QPushButton" name="buttonRemoveAutojoinChannel">
+                        <property name="text">
+                         <string>Remove</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="verticalSpacer_4">
+                        <property name="orientation">
+                         <enum>Qt::Orientation::Vertical</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>20</width>
+                          <height>40</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_8">
+                 <property name="text">
+                  <string>Language channels:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QListView" name="languageChannelsView"/>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tabFAPage">
+       <layout class="QVBoxLayout" name="verticalLayout_6">
+        <item>
+         <widget class="QScrollArea" name="scrollArea_2">
+          <property name="widgetResizable">
+           <bool>true</bool>
+          </property>
+          <widget class="QWidget" name="scrollAreaWidgetContents_2">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>442</width>
+             <height>513</height>
+            </rect>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_8">
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QGroupBox" name="gameSettingsBox">
+              <property name="title">
+               <string>Game</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_7">
+               <item>
+                <layout class="QGridLayout" name="gamePath">
+                 <item row="0" column="0">
+                  <widget class="QLabel" name="label_3">
+                   <property name="text">
+                    <string>Game path:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QLineEdit" name="editFAPath"/>
+                 </item>
+                 <item row="0" column="2">
+                  <widget class="QPushButton" name="buttonBrowseFA">
+                   <property name="text">
+                    <string>Browse</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkForceAffinity">
+                 <property name="text">
+                  <string>Force Affinity</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkSaveGameLogs">
+                 <property name="text">
+                  <string>Save Logs</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_9">
+                 <item>
+                  <widget class="QLabel" name="label_29">
+                   <property name="toolTip">
+                    <string/>
+                   </property>
+                   <property name="text">
+                    <string>Log files count limit:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QSpinBox" name="spinGameLogsCount">
+                   <property name="maximum">
+                    <number>9999</number>
+                   </property>
+                   <property name="value">
+                    <number>30</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer_16">
+                   <property name="orientation">
+                    <enum>Qt::Orientation::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="replaysSetttingsBox">
+              <property name="title">
+               <string>Replays</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_9">
+               <item>
+                <widget class="QCheckBox" name="checkOwnReplayProcess">
+                 <property name="text">
+                  <string>Run in own process</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkLiveReplayWorkaround">
+                 <property name="text">
+                  <string>Live Replays Workaround</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="vaultsSettingsBox">
+              <property name="title">
+               <string>Vaults</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_10">
+               <item>
+                <widget class="QLabel" name="label_26">
+                 <property name="font">
+                  <font>
+                   <italic>true</italic>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Changing maps and mods location requires application restart</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="mapsAndModsPaths">
+                 <item>
+                  <widget class="QLabel" name="label_5">
+                   <property name="text">
+                    <string>Maps and Mods path:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLineEdit" name="editVaultPath"/>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="buttonBrowseVault">
+                   <property name="text">
+                    <string>Browse</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkAutoDownloadMods">
+                 <property name="text">
+                  <string>Automatic Downloading of Mods</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkAutoDownloadMaps">
+                 <property name="text">
+                  <string>Automatic Downloading of Maps</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkAutoGenerateMaps">
+                 <property name="text">
+                  <string>Automatic Generating of Maps</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkAutoDeleteGeneratedMaps">
+                 <property name="toolTip">
+                  <string>Removes map folders whose names match generated maps pattern
+Folders with favourite maps remain untouched</string>
+                 </property>
+                 <property name="text">
+                  <string>Delete Generated Maps on Exit</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <spacer name="verticalSpacer">
+              <property name="orientation">
+               <enum>Qt::Orientation::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </widget>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="notificationsPage">
+       <layout class="QVBoxLayout" name="verticalLayout_30">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QScrollArea" name="scrollArea_6">
+          <property name="widgetResizable">
+           <bool>true</bool>
+          </property>
+          <widget class="QWidget" name="scrollAreaWidgetContents_6">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>460</width>
+             <height>531</height>
+            </rect>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_31">
+            <item>
+             <widget class="QGroupBox" name="notificationsBox">
+              <property name="title">
+               <string>Notification System</string>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_33">
+               <item>
+                <layout class="QGridLayout" name="gridLayout_2">
+                 <item row="1" column="1">
+                  <widget class="QSpinBox" name="nsPopLifetime">
+                   <property name="maximum">
+                    <number>999</number>
+                   </property>
+                   <property name="value">
+                    <number>3</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0">
+                  <widget class="QLabel" name="label_21">
+                   <property name="text">
+                    <string>PopUp Lifetime (in seconds)</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0">
+                  <widget class="QLabel" name="label_23">
+                   <property name="text">
+                    <string>When Ingame</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QComboBox" name="nsIngameComboBox">
+                   <item>
+                    <property name="text">
+                     <string>Enable</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>Disable</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>Queue</string>
+                    </property>
+                   </item>
+                  </widget>
+                 </item>
+                 <item row="2" column="0">
+                  <widget class="QLabel" name="label_22">
+                   <property name="text">
+                    <string>PopUp Position</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="1">
+                  <widget class="QComboBox" name="nsPositionComboBox">
+                   <item>
+                    <property name="text">
+                     <string>bottom right</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>top right</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>bottom left</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>top left</string>
+                    </property>
+                   </item>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_24">
+                 <property name="text">
+                  <string>Notifications (If you disable a PopUp, the Sound is also disabled)</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QTableView" name="tableView">
+                 <property name="alternatingRowColors">
+                  <bool>true</bool>
+                 </property>
+                 <property name="selectionMode">
+                  <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
+                 </property>
+                 <property name="selectionBehavior">
+                  <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+                 </property>
+                 <property name="verticalScrollMode">
+                  <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
+                 </property>
+                 <property name="horizontalScrollMode">
+                  <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
+                 </property>
+                 <attribute name="horizontalHeaderStretchLastSection">
+                  <bool>true</bool>
+                 </attribute>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="iceAdapterPage">
+       <layout class="QVBoxLayout" name="verticalLayout_24">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QScrollArea" name="scrollArea_5">
+          <property name="widgetResizable">
+           <bool>true</bool>
+          </property>
+          <widget class="QWidget" name="scrollAreaWidgetContents_5">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>460</width>
+             <height>531</height>
+            </rect>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_25">
+            <item>
+             <layout class="QHBoxLayout" name="adapterSelection">
+              <item>
+               <widget class="QLabel" name="label_13">
+                <property name="text">
+                 <string>Adapter:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="comboAdapterSelection">
+                <item>
+                 <property name="text">
+                  <string>Java ICE Adapter</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Go ICE Adapter (Pioneer)</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_7">
+                <property name="orientation">
+                 <enum>Qt::Orientation::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="javaAdapterOptions">
+              <property name="title">
+               <string>Java ICE Adapter</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_27">
+               <item>
+                <widget class="QGroupBox" name="javaInfoWindowBox">
+                 <property name="title">
+                  <string>Info Window</string>
+                 </property>
+                 <property name="checkable">
+                  <bool>true</bool>
+                 </property>
+                 <layout class="QHBoxLayout" name="horizontalLayout_13">
+                  <item>
+                   <widget class="QLabel" name="label_18">
+                    <property name="text">
+                     <string>Window launch delay:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QSpinBox" name="spinJavaWindowLaunchDelay">
+                    <property name="suffix">
+                     <string> seconds</string>
+                    </property>
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="horizontalSpacer_9">
+                    <property name="orientation">
+                     <enum>Qt::Orientation::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>40</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <widget class="QGroupBox" name="javaVersionBox">
+                 <property name="title">
+                  <string>Use Specific Version</string>
+                 </property>
+                 <property name="checkable">
+                  <bool>true</bool>
+                 </property>
+                 <layout class="QVBoxLayout" name="verticalLayout_28">
+                  <item>
+                   <widget class="QLabel" name="label_19">
+                    <property name="font">
+                     <font>
+                      <italic>true</italic>
+                     </font>
+                    </property>
+                    <property name="text">
+                     <string>Double check the leading 'v' in the version tag</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <layout class="QHBoxLayout" name="horizontalLayout_11">
+                    <item>
+                     <widget class="QLabel" name="label_14">
+                      <property name="text">
+                       <string>Version:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLineEdit" name="lineJavaVersion"/>
+                    </item>
+                    <item>
+                     <spacer name="horizontalSpacer_8">
+                      <property name="orientation">
+                       <enum>Qt::Orientation::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>40</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="goAdapterOptions">
+              <property name="title">
+               <string>Go ICE Adapter (Pioneer)</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_26">
+               <item>
+                <widget class="QGroupBox" name="goVersionBox">
+                 <property name="title">
+                  <string>Use Specific Version</string>
+                 </property>
+                 <property name="checkable">
+                  <bool>true</bool>
+                 </property>
+                 <layout class="QVBoxLayout" name="verticalLayout_29">
+                  <item>
+                   <widget class="QLabel" name="label_20">
+                    <property name="font">
+                     <font>
+                      <italic>true</italic>
+                     </font>
+                    </property>
+                    <property name="text">
+                     <string>Double check the leading 'v' in the version tag</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <layout class="QHBoxLayout" name="horizontalLayout_12">
+                    <item>
+                     <widget class="QLabel" name="label_15">
+                      <property name="text">
+                       <string>Version:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLineEdit" name="lineGoVersion"/>
+                    </item>
+                    <item>
+                     <spacer name="horizontalSpacer_10">
+                      <property name="orientation">
+                       <enum>Qt::Orientation::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>40</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkConsentLogSharing">
+                 <property name="text">
+                  <string>Consent log sharing</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="forceRelay">
+              <property name="bottomMargin">
+               <number>15</number>
+              </property>
+              <item>
+               <widget class="QLabel" name="label_17">
+                <property name="text">
+                 <string>Force Relay</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="comboForceRelay">
+                <item>
+                 <property name="text">
+                  <string>Disabled</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Enabled</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>API provided value</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_11">
+                <property name="orientation">
+                 <enum>Qt::Orientation::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <spacer name="verticalSpacer_3">
+              <property name="orientation">
+               <enum>Qt::Orientation::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </widget>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="cachePage">
+       <layout class="QVBoxLayout" name="verticalLayout_19">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QScrollArea" name="scrollArea_4">
+          <property name="widgetResizable">
+           <bool>true</bool>
+          </property>
+          <widget class="QWidget" name="scrollAreaWidgetContents_4">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>448</width>
+             <height>591</height>
+            </rect>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_20">
+            <item>
+             <widget class="QLabel" name="label_27">
+              <property name="font">
+               <font>
+                <italic>true</italic>
+               </font>
+              </property>
+              <property name="text">
+               <string>Changing data location requires application restart</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_17">
+              <item>
+               <widget class="QLabel" name="label_28">
+                <property name="text">
+                 <string>Data path:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="editDataPath"/>
+              </item>
+              <item>
+               <widget class="QPushButton" name="buttonBrowseDataPath">
+                <property name="text">
+                 <string>Browse</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="buttonViewDataPath">
+                <property name="text">
+                 <string>View</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_21">
+              <property name="orientation">
+               <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_16">
+              <item>
+               <widget class="QPushButton" name="buttonViewCache">
+                <property name="text">
+                 <string>View Cache</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_20">
+                <property name="orientation">
+                 <enum>Qt::Orientation::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QPushButton" name="buttonClearCache">
+                <property name="text">
+                 <string>Clear Cache</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="groupBox_4">
+              <property name="title">
+               <string>Game</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_32">
+               <item>
+                <widget class="QGroupBox" name="gameCacheBox">
+                 <property name="title">
+                  <string>Cache</string>
+                 </property>
+                 <property name="checkable">
+                  <bool>true</bool>
+                 </property>
+                 <layout class="QVBoxLayout" name="verticalLayout_21">
+                  <item>
+                   <layout class="QHBoxLayout" name="gameCache">
+                    <item>
+                     <widget class="QLabel" name="label_10">
+                      <property name="text">
+                       <string>Delete unused files after:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QSpinBox" name="spinGameCacheAge">
+                      <property name="suffix">
+                       <string> days</string>
+                      </property>
+                      <property name="minimum">
+                       <number>1</number>
+                      </property>
+                      <property name="maximum">
+                       <number>99999</number>
+                      </property>
+                      <property name="value">
+                       <number>30</number>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="horizontalSpacer_4">
+                      <property name="orientation">
+                       <enum>Qt::Orientation::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>40</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                   </layout>
+                  </item>
+                  <item>
+                   <layout class="QHBoxLayout" name="horizontalLayout_2">
+                    <item>
+                     <widget class="QPushButton" name="buttonViewGameCache">
+                      <property name="text">
+                       <string>View Game cache files</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="horizontalSpacer_13">
+                      <property name="orientation">
+                       <enum>Qt::Orientation::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>40</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                    <item>
+                     <widget class="QPushButton" name="buttonClearGameCache">
+                      <property name="text">
+                       <string>Clear Game Cache</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_15">
+                 <item>
+                  <widget class="QPushButton" name="buttonClearGameFiles">
+                   <property name="text">
+                    <string>Clear Game Files</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer_19">
+                   <property name="orientation">
+                    <enum>Qt::Orientation::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="groupBox_2">
+              <property name="title">
+               <string>ICE Adapter</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_34">
+               <item>
+                <widget class="QGroupBox" name="ICEAdapterCacheBox">
+                 <property name="title">
+                  <string>Keep unused</string>
+                 </property>
+                 <property name="checkable">
+                  <bool>true</bool>
+                 </property>
+                 <layout class="QVBoxLayout" name="verticalLayout_22">
+                  <item>
+                   <layout class="QHBoxLayout" name="ICEAdapterCache">
+                    <item>
+                     <widget class="QLabel" name="label_11">
+                      <property name="text">
+                       <string>Delete unused files after:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QSpinBox" name="spinIceAdapterAge">
+                      <property name="suffix">
+                       <string> days</string>
+                      </property>
+                      <property name="minimum">
+                       <number>1</number>
+                      </property>
+                      <property name="maximum">
+                       <number>99999</number>
+                      </property>
+                      <property name="value">
+                       <number>30</number>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="horizontalSpacer_5">
+                      <property name="orientation">
+                       <enum>Qt::Orientation::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>40</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_4">
+                 <item>
+                  <widget class="QPushButton" name="buttonViewIceAdapters">
+                   <property name="text">
+                    <string>View ICE Adapter files</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer_14">
+                   <property name="orientation">
+                    <enum>Qt::Orientation::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="buttonClearIceAdapters">
+                   <property name="text">
+                    <string>Clear ICE Adapters</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="groupBox_3">
+              <property name="title">
+               <string>Map Generator</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_36">
+               <item>
+                <widget class="QGroupBox" name="mapGeneratorsBox">
+                 <property name="title">
+                  <string>Keep unused</string>
+                 </property>
+                 <property name="checkable">
+                  <bool>true</bool>
+                 </property>
+                 <layout class="QVBoxLayout" name="verticalLayout_23">
+                  <item>
+                   <layout class="QHBoxLayout" name="mapGenerators">
+                    <item>
+                     <widget class="QLabel" name="label_12">
+                      <property name="text">
+                       <string>Delete unused files after:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QSpinBox" name="spinMapGenAge">
+                      <property name="suffix">
+                       <string> days</string>
+                      </property>
+                      <property name="minimum">
+                       <number>1</number>
+                      </property>
+                      <property name="maximum">
+                       <number>99999</number>
+                      </property>
+                      <property name="value">
+                       <number>30</number>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="horizontalSpacer_6">
+                      <property name="orientation">
+                       <enum>Qt::Orientation::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>40</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_5">
+                 <item>
+                  <widget class="QPushButton" name="buttonViewMapGenerators">
+                   <property name="text">
+                    <string>View Map Generator files</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer_15">
+                   <property name="orientation">
+                    <enum>Qt::Orientation::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="buttonClearMapGenerators">
+                   <property name="text">
+                    <string>Clear Map Generators</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <spacer name="verticalSpacer_2">
+              <property name="orientation">
+               <enum>Qt::Orientation::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </widget>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Orientation::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::StandardButton::Apply|QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok|QDialogButtonBox::StandardButton::Reset</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <tabstops>
+  <tabstop>tabSelection</tabstop>
+  <tabstop>scrollArea</tabstop>
+  <tabstop>checkAutoLogin</tabstop>
+  <tabstop>buttonLinkToSteam</tabstop>
+  <tabstop>comboStyle</tabstop>
+  <tabstop>comboColorScheme</tabstop>
+  <tabstop>checkUseCustomTheme</tabstop>
+  <tabstop>lineCustomThemeFile</tabstop>
+  <tabstop>buttonBrowseThemeFile</tabstop>
+  <tabstop>checkFileLog</tabstop>
+  <tabstop>lineFileLogPath</tabstop>
+  <tabstop>buttonBrowseLogPath</tabstop>
+  <tabstop>comboLogLevel</tabstop>
+  <tabstop>checkFileLogBackup</tabstop>
+  <tabstop>spinFileLogSize</tabstop>
+  <tabstop>spinLogBackupCount</tabstop>
+  <tabstop>checkProgramUpdates</tabstop>
+  <tabstop>comboUpdateChannel</tabstop>
+  <tabstop>checkOldReleases</tabstop>
+  <tabstop>buttonCheckUpdates</tabstop>
+  <tabstop>scrollArea_3</tabstop>
+  <tabstop>checkColoredNames</tabstop>
+  <tabstop>checkFriendsOnTop</tabstop>
+  <tabstop>hideChattersList</tabstop>
+  <tabstop>spinChatFontSize</tabstop>
+  <tabstop>comboChatFontFamily</tabstop>
+  <tabstop>spinChatNickWidth</tabstop>
+  <tabstop>spinChatTimeWidth</tabstop>
+  <tabstop>spinChatPadding</tabstop>
+  <tabstop>lineChatLongNick</tabstop>
+  <tabstop>lineChatShortNick</tabstop>
+  <tabstop>browserChatArea</tabstop>
+  <tabstop>lineChatSend</tabstop>
+  <tabstop>buttonChatClear</tabstop>
+  <tabstop>checkJoinsParts</tabstop>
+  <tabstop>checkFriendGames</tabstop>
+  <tabstop>checkFriendReplays</tabstop>
+  <tabstop>checkSoundEffects</tabstop>
+  <tabstop>checkIgnoreFoes</tabstop>
+  <tabstop>checkNewbiesChannel</tabstop>
+  <tabstop>autojoinChannelsBox</tabstop>
+  <tabstop>listAutojoinChannels</tabstop>
+  <tabstop>buttonAddAutojoinChannel</tabstop>
+  <tabstop>buttonRemoveAutojoinChannel</tabstop>
+  <tabstop>languageChannelsView</tabstop>
+  <tabstop>scrollArea_2</tabstop>
+  <tabstop>editFAPath</tabstop>
+  <tabstop>buttonBrowseFA</tabstop>
+  <tabstop>checkForceAffinity</tabstop>
+  <tabstop>checkSaveGameLogs</tabstop>
+  <tabstop>spinGameLogsCount</tabstop>
+  <tabstop>checkOwnReplayProcess</tabstop>
+  <tabstop>checkLiveReplayWorkaround</tabstop>
+  <tabstop>editVaultPath</tabstop>
+  <tabstop>buttonBrowseVault</tabstop>
+  <tabstop>checkAutoDownloadMods</tabstop>
+  <tabstop>checkAutoDownloadMaps</tabstop>
+  <tabstop>checkAutoGenerateMaps</tabstop>
+  <tabstop>checkAutoDeleteGeneratedMaps</tabstop>
+  <tabstop>scrollArea_6</tabstop>
+  <tabstop>notificationsBox</tabstop>
+  <tabstop>nsIngameComboBox</tabstop>
+  <tabstop>nsPopLifetime</tabstop>
+  <tabstop>nsPositionComboBox</tabstop>
+  <tabstop>tableView</tabstop>
+  <tabstop>scrollArea_5</tabstop>
+  <tabstop>comboAdapterSelection</tabstop>
+  <tabstop>javaInfoWindowBox</tabstop>
+  <tabstop>spinJavaWindowLaunchDelay</tabstop>
+  <tabstop>javaVersionBox</tabstop>
+  <tabstop>lineJavaVersion</tabstop>
+  <tabstop>goVersionBox</tabstop>
+  <tabstop>lineGoVersion</tabstop>
+  <tabstop>checkConsentLogSharing</tabstop>
+  <tabstop>comboForceRelay</tabstop>
+  <tabstop>scrollArea_4</tabstop>
+  <tabstop>editDataPath</tabstop>
+  <tabstop>buttonBrowseDataPath</tabstop>
+  <tabstop>buttonViewDataPath</tabstop>
+  <tabstop>buttonViewCache</tabstop>
+  <tabstop>buttonClearCache</tabstop>
+  <tabstop>gameCacheBox</tabstop>
+  <tabstop>spinGameCacheAge</tabstop>
+  <tabstop>buttonViewGameCache</tabstop>
+  <tabstop>buttonClearGameCache</tabstop>
+  <tabstop>buttonClearGameFiles</tabstop>
+  <tabstop>ICEAdapterCacheBox</tabstop>
+  <tabstop>spinIceAdapterAge</tabstop>
+  <tabstop>buttonViewIceAdapters</tabstop>
+  <tabstop>buttonClearIceAdapters</tabstop>
+  <tabstop>mapGeneratorsBox</tabstop>
+  <tabstop>spinMapGenAge</tabstop>
+  <tabstop>buttonViewMapGenerators</tabstop>
+  <tabstop>buttonClearMapGenerators</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>

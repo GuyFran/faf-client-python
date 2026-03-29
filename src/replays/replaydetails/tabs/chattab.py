@@ -75,11 +75,13 @@ class ChatTabUI:
         self.toAllCheckBox = QCheckBox("all")
         self.toAlliesCheckBox = QCheckBox("allies")
         self.toNotifyCheckBox = QCheckBox("notify")
+        self.toEnemiesCheckBox = QCheckBox("enemies")
 
         for btn in (
             self.toAllCheckBox,
             self.toAlliesCheckBox,
             self.toNotifyCheckBox,
+            self.toEnemiesCheckBox,
         ):
             search_layout.addWidget(btn)
         search_layout.addStretch()
@@ -117,25 +119,30 @@ class ChatTab(QWidget):
         self.ui.chatTable.setAlternatingRowColors(self.alternate_row_colors)
         self.ui.alternateColorsCheckBox.checkStateChanged.connect(self.on_row_colors_alternation)
 
-        self.visible_recipients = Settings.get_list(
-            "replaycard.chat/visible_recipients",
-            default=[True] * 3,
-            type=bool,
-        )
         self.message_filters = QButtonGroup()
         self.message_filters.setExclusive(False)
-        for index, (chbx, visible) in enumerate(
-            zip(
-                (
-                    self.ui.toAllCheckBox,
-                    self.ui.toAlliesCheckBox,
-                    self.ui.toNotifyCheckBox,
-                ),
-                self.visible_recipients,
+        for index, chbx in enumerate(
+            (
+                self.ui.toAllCheckBox,
+                self.ui.toAlliesCheckBox,
+                self.ui.toNotifyCheckBox,
+                self.ui.toEnemiesCheckBox,
             ),
         ):
-            chbx.setChecked(visible)
             self.message_filters.addButton(chbx, index)
+
+        self.visible_recipients = Settings.get_list(
+            "replaycard.chat/visible_recipients",
+            default=[True] * 4,
+            type=bool,
+        )
+        for index, btn in enumerate(self.message_filters.buttons()):
+            try:
+                btn.setChecked(self.visible_recipients[index])
+            except IndexError:
+                btn.setChecked(True)
+                self.visible_recipients.append(True)
+
         self.message_filters.buttonToggled.connect(self.on_message_filter_changed)
 
         self._search_index = 0

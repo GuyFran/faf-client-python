@@ -10,12 +10,13 @@ self.button.clicked.connect(self.dialog.show)
 from PyQt6 import QtWidgets
 
 from src.config import Settings
+from src.notifications.ns_type import NsType
 
 
-class NsHook():
-    def __init__(self, eventType):
+class NsHook:
+    def __init__(self, eventType: NsType) -> None:
         self.eventType = eventType
-        self._settings_key = 'notifications/{}'.format(eventType)
+        self._settings_key = f'notifications/{eventType.value}'
         self.loadSettings()
         self.button = QtWidgets.QPushButton('More')
         self.button.setEnabled(False)
@@ -30,8 +31,8 @@ class NsHook():
         Settings.set(f"{self._settings_key}/sound", self.sound)
         Settings.set(f"{self._settings_key}/ingame", self.ingame)
 
-    def getEventDisplayName(self):
-        return self.eventType
+    def getEventDisplayName(self) -> str:
+        return self.eventType.value
 
     def popupEnabled(self):
         return self.popup

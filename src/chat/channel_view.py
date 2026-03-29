@@ -28,6 +28,7 @@ from src.chat.chatter_model import ChatterSortFilterModel
 from src.client.playercolors import PlayerColors
 from src.client.user import User
 from src.client.user import UserRelations
+from src.config import Settings
 from src.downloadManager import CachedImageDownloader
 from src.downloadManager import DownloadRequest
 from src.fa.game_runner import GameRunner
@@ -149,7 +150,7 @@ class ChatAreaView:
         data = self._channel.lines[-1]
         if data.meta.player.avatar.url:
             self._avatar_adder.add_avatar(data.meta.player.avatar.url())
-        text = self._formatter.format(data)
+        text = self._formatter.format(data, self._widget.font())
         self._widget.append_line(text)
         self._set_tab_info(data)
 
@@ -200,7 +201,7 @@ class ChatAreaView:
     def _at_css_reloaded(self):
         self._widget.clear_chat()
         for line in self._channel.lines:
-            text = self._formatter.format(line)
+            text = self._formatter.format(line, self._widget.font())
             self._widget.append_line(text)
 
 
@@ -270,8 +271,6 @@ class ChatLineCssTemplate(QObject):
 
 
 class ChatLineFormatter:
-    _font_metrics = QFontMetrics(QFont())
-
     def __init__(self, theme: ThemeSet, player_colors: PlayerColors) -> None:
         self._set_theme(theme)
         self._player_colors = player_colors
@@ -332,7 +331,7 @@ class ChatLineFormatter:
         else:
             return text
 
-    def format(self, data: ChatLineMetadata) -> str:
+    def format(self, data: ChatLineMetadata, font: QFont) -> str:
         tags = " ".join(self._line_tags(data))
         avatar = self._avatar(data)
 
@@ -351,18 +350,26 @@ class ChatLineFormatter:
             text = self._wrap_me(irc_escape(text), data.meta.my_mention())
 
         sender_name = self._sender_name(data)
-        elided_sender = self._font_metrics.elidedText(sender_name, Qt.TextElideMode.ElideRight, 98)
+        nick_width = Settings.get("chat/font/nick_width", 101, type=int)
+        metrics = QFontMetrics(font)
+        elided_sender = metrics.elidedText(
+            sender_name,
+            Qt.TextElideMode.ElideRight,
+            nick_width - metrics.horizontalAdvance(":"),
+        )
         if mtype in (ChatLineType.MESSAGE, ChatLineType.NOTICE):
             elided_sender += ":"
-            text = "&nbsp;" + text
 
         return self._chatline_template.format(
             time=stamp,
+            time_width=Settings.get("chat/font/time_width", 32, type=int),
             sender=sender_name,
             elided_sender=elided_sender,
+            sender_width=nick_width,
             text=text,
             avatar=avatar,
             tags=tags,
+            padding=Settings.get("chat/font/padding", 10, type=int),
         )
 
     def _avatar(self, data):

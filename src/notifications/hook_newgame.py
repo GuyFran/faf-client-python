@@ -3,16 +3,16 @@ Settings for notifications: if a new game is hosted.
 """
 from PyQt6 import QtCore
 
-import src.notifications as ns
 from src import config
 from src import util
 from src.config import Settings
 from src.notifications.ns_hook import NsHook
+from src.notifications.ns_type import NsType
 
 
 class NsHookNewGame(NsHook):
     def __init__(self):
-        NsHook.__init__(self, ns.Notifications.NEW_GAME)
+        NsHook.__init__(self, NsType.NEW_GAME)
         self.button.setEnabled(True)
         self.dialog = NewGameDialog(self, self.eventType)
         self.button.clicked.connect(self.dialog.show)
@@ -24,6 +24,7 @@ FormClass, BaseClass = util.THEME.loadUiType("notification_system/new_game.ui")
 class NewGameDialog(FormClass, BaseClass):
     def __init__(self, parent, eventType):
         BaseClass.__init__(self)
+        self.setModal(True)
         self.parent = parent
         self.eventType = eventType
         self._settings_key = f'notifications/{eventType}'

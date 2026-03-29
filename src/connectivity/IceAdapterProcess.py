@@ -4,6 +4,7 @@ import textwrap
 from abc import ABC
 from abc import abstractmethod
 from dataclasses import dataclass
+from enum import Enum
 from typing import ClassVar
 
 from PyQt6.QtCore import QProcess
@@ -115,12 +116,26 @@ class GoProcessArguments(IceProcessArguments):
         ]
         if not Settings.get("iceadapter/force_relay", "auto") == "auto" and self.force_relay:
             args.append("--force-turn-relay")
+        if Settings.get("iceadapter/consent_log_sharing", False, type=bool):
+            args.append("--consent-log-sharing")
         return args
 
 
 @with_logger
 class IceAdapterProcess:
     _logger: ClassVar[logging.Logger]
+
+    class ForceRelay(Enum):
+        DISABLED = "disabled"
+        ENABLED = "enabled"
+        AUTO = "auto"
+
+        @classmethod
+        def preferred_value(cls, *, default: bool) -> bool:
+            setting = Settings.get("iceadapter/force_relay", "auto")
+            if cls(setting) is cls.AUTO:
+                return default
+            return cls(setting) is cls.ENABLED
 
     def __init__(
         self,

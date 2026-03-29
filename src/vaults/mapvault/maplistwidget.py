@@ -35,10 +35,7 @@ class MapListWidget(VaultListWidget[Map]):
         if not self.item_version.ranked:
             notice_label.setText("ⓘ Unranked")
 
-        width = self.item_version.size.width_km
-        height = self.item_version.size.height_km
-        size_label = QLabel(f"<b>Size (km):</b> {width} x {height}")
-
+        size_label = QLabel(f"<b>Size:</b> {self.item_version.size}")
         games_label = QLabel(f"<b>Games:</b> {self.item_data.games_played}")
         return [
             notice_label,          self.recommended_label(),

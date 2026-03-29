@@ -7,6 +7,9 @@ from PyQt6.QtCore import QObject
 from PyQt6.QtGui import QPainter
 from PyQt6.QtNetwork import QHostAddress
 from PyQt6.QtNetwork import QTcpServer
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QStyle
 from PyQt6.QtWidgets import QWidget
 
 
@@ -62,3 +65,24 @@ def tcp_server() -> Generator[QTcpServer]:
         yield server
     finally:
         server.close()
+
+
+def critical_msgbox(
+    parent: QWidget | None,
+    title: str,
+    text: str,
+    informative: str = "",
+    detailed: str = "",
+) -> None:
+    box = QMessageBox(parent)
+    box.setWindowTitle(title)
+    style = parent.style() if parent is not None else QApplication.style()
+    icon = style.standardIcon(QStyle.StandardPixmap.SP_MessageBoxCritical)
+    box.setWindowIcon(icon)
+    box.setIcon(box.Icon.Critical)
+    box.setText(text)
+    if informative:
+        box.setInformativeText(informative)
+    if detailed:
+        box.setDetailedText(detailed)
+    box.exec()

@@ -22,11 +22,11 @@ from src.replays.replaydetails.rangeslider import RangeSlider
 
 class HostGameDialogUi:
     def setupUi(self, widget: QWidget) -> None:
-        main_layout = QVBoxLayout(widget)
-        main_layout.setSpacing(12)
+        self.mainLayout = QVBoxLayout(widget)
+        self.mainLayout.setSpacing(12)
 
-        top_section = QFrame()
-        top_layout = QVBoxLayout(top_section)
+        self.topSectionFrame = QFrame()
+        top_layout = QVBoxLayout(self.topSectionFrame)
         top_layout.setContentsMargins(15, 15, 15, 15)
 
         game_name_label = QLabel("Game Title")
@@ -82,8 +82,8 @@ class HostGameDialogUi:
         top_layout.addWidget(self.titleEdit)
         top_layout.addLayout(options_layout)
 
-        middle_section = QHBoxLayout()
-        middle_section.setSpacing(6)
+        self.middleSection = QHBoxLayout()
+        self.middleSection.setSpacing(6)
 
         self.mapsGroup = QGroupBox("Maps")
         self.mapsGroup.setObjectName("mapsGroup")
@@ -141,13 +141,20 @@ class HostGameDialogUi:
         map_filters_layout.addWidget(self.resetMapFiltersButton, 6, 1, 1, 1)
         maps_layout.addWidget(self.mapFiltersWidget)
 
+        map_search_layout = QHBoxLayout()
         self.mapNameFilter = QLineEdit()
         self.mapNameFilter.setPlaceholderText("Search maps...")
-        maps_layout.addWidget(self.mapNameFilter)
+        self.showFavouritesOnlyCheck = QCheckBox("★")
+        self.showFavouritesOnlyCheck.setToolTip("Show favourites only")
+        self.showFavouritesOnlyCheck.setMinimumWidth(40)
+        map_search_layout.addWidget(self.mapNameFilter)
+        map_search_layout.addWidget(self.showFavouritesOnlyCheck)
+        maps_layout.addLayout(map_search_layout)
 
         self.mapList = QListWidget()
         self.mapList.setMinimumWidth(256)
         self.mapList.setAlternatingRowColors(True)
+        self.mapList.setVerticalScrollMode(QListWidget.ScrollMode.ScrollPerPixel)
         maps_layout.addWidget(self.mapList)
 
         maps_bottom_layout = QHBoxLayout()
@@ -175,21 +182,24 @@ class HostGameDialogUi:
         self.mapPreviewLabel.setProperty("bordered", "true")
         self.mapPreviewLabel.setText("Select a map to preview")
 
-        map_info_layout = QHBoxLayout()
-        map_info_layout.addStretch()
+        self.mapInfoLayout = QHBoxLayout()
+        self.mapInfoLayout.addStretch()
         self.mapSizeLabel = QLabel("-")
-        map_info_layout.addWidget(self.mapSizeLabel)
+        self.mapInfoLayout.addWidget(self.mapSizeLabel)
 
         self.mapPlayersLabel = QLabel("-")
-        map_info_layout.addWidget(self.mapPlayersLabel)
+        self.mapInfoLayout.addWidget(self.mapPlayersLabel)
 
         self.mapVersionLabel = QLabel("-")
-        map_info_layout.addWidget(self.mapVersionLabel)
-        map_info_layout.addStretch()
+        self.mapInfoLayout.addWidget(self.mapVersionLabel)
+        self.mapInfoLayout.addStretch()
 
-        self.mapNameLabel = QLabel("No map selected")
+        self.mapNameLabel = ClickableLabel("No map selected")
         self.mapNameLabel.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
         self.mapNameLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.toggleFavouriteButton = QPushButton("☆ Add to Favourites")
+        self.toggleFavouriteButton.setToolTip("Toggle favourite status for this map")
 
         self.mapDescription = QTextEdit("No description available")
         self.mapDescription.setReadOnly(True)
@@ -199,12 +209,13 @@ class HostGameDialogUi:
 
         preview_layout.addWidget(self.mapPreviewLabel, alignment=Qt.AlignmentFlag.AlignCenter)
         preview_layout.addWidget(self.mapNameLabel)
-        preview_layout.addLayout(map_info_layout)
+        preview_layout.addLayout(self.mapInfoLayout)
+        preview_layout.addWidget(self.toggleFavouriteButton)
         preview_layout.addWidget(self.mapDescription)
 
-        mods_group = QGroupBox("Mods")
-        mods_group.setObjectName("modsGroup")
-        mods_layout = QVBoxLayout(mods_group)
+        self.modsGroup = QGroupBox("Mods")
+        self.modsGroup.setObjectName("modsGroup")
+        mods_layout = QVBoxLayout(self.modsGroup)
         mods_layout.setContentsMargins(10, 15, 10, 10)
 
         mod_filters_layout = QGridLayout()
@@ -251,9 +262,9 @@ class HostGameDialogUi:
         mods_layout.addWidget(self.modList)
         mods_layout.addLayout(mods_controls)
 
-        middle_section.addWidget(self.mapsGroup, 1)
-        middle_section.addWidget(self.previewGroup, 0)
-        middle_section.addWidget(mods_group, 1)
+        self.middleSection.addWidget(self.mapsGroup, 1)
+        self.middleSection.addWidget(self.previewGroup, 0)
+        self.middleSection.addWidget(self.modsGroup, 1)
 
         bottom_layout = QHBoxLayout()
 
@@ -269,6 +280,6 @@ class HostGameDialogUi:
         bottom_layout.addWidget(self.saveAndCloseButton)
         bottom_layout.addWidget(self.hostButton)
 
-        main_layout.addWidget(top_section)
-        main_layout.addLayout(middle_section)
-        main_layout.addLayout(bottom_layout)
+        self.mainLayout.addWidget(self.topSectionFrame)
+        self.mainLayout.addLayout(self.middleSection)
+        self.mainLayout.addLayout(bottom_layout)

@@ -1,6 +1,5 @@
 import logging
 import os
-from stat import S_IWRITE
 
 from PyQt6 import QtCore
 from PyQt6 import QtWidgets
@@ -12,13 +11,14 @@ from src.api.models.MapVersion import MapSize
 from src.api.vaults_api import MapApiConnector
 from src.downloadManager import ImageDownloader
 from src.fa import maps
-from src.fa.maps_.map_utils import get_save_file
 from src.vaults import luaparser
 from src.vaults.mapvault.mapdetails import MapDetailsWidget
 from src.vaults.mapvault.maplistitem import MapDisplayType
 from src.vaults.mapvault.maplistitem import MapListItem
 from src.vaults.mapvault.maplistitem import MapSortType
 from src.vaults.mapvault.maplistwidget import MapListWidget
+from src.vaults.mapvault.mapsmanager import MapsManagerDialog
+from src.vaults.mapvault.uploadwidget import MapUploadDialog
 from src.vaults.vault import Vault
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,6 @@ class MapVault(Vault[Map]):
         logger.debug("Map Vault tab instantiating")
         super().setup()
         self.image_loader = ImageDownloader(util.MAP_PREVIEW_SMALL_DIR)
-        self.installed_maps = maps.getUserMaps()
 
         for sort_type in MapSortType:
             self.SortTypeList.addItem(sort_type.value)
@@ -50,6 +49,9 @@ class MapVault(Vault[Map]):
         self.mapApiConnector.data_ready.connect(self.items_info)
 
         self.apiConnector = self.mapApiConnector
+        self.manager_dialog = MapsManagerDialog(self.client)
+        self.buttonManageInstalled.clicked.connect(self.manager_dialog.run)
+        self.uploadButton.clicked.connect(self.uploadMap)
 
     def create_item_widget(self, data: Map) -> MapListWidget:
         return MapListWidget(data, self.image_loader)
@@ -97,15 +99,10 @@ class MapVault(Vault[Map]):
             self.client,
             "Select the map directory to upload",
             maps.getUserMapsFolder(),
-            QtWidgets.QFileDialog.ShowDirsOnly,
         )
         logger.debug("Uploading map from: " + mapDir)
         if mapDir != "":
             if maps.isMapFolderValid(mapDir):
-                os.chmod(mapDir, S_IWRITE)
-                mapName = os.path.basename(mapDir)
-                # zipName = mapName.lower() + ".zip"
-
                 scenariolua = luaparser.luaParser(
                     os.path.join(mapDir, maps.getScenarioFile(mapDir)),
                 )
@@ -152,46 +149,8 @@ class MapVault(Vault[Map]):
                     else:
                         uploadmap = QtWidgets.QMessageBox.StandardButton.Yes
                     if uploadmap == QtWidgets.QMessageBox.StandardButton.Yes:
-                        savelua = luaparser.luaParser(get_save_file(mapDir) or "")
-                        saveInfos = savelua.parse({
-                            'markers>mass*>position': 'mass:__parent__',
-                            'markers>hydro*>position': 'hydro:__parent__',
-                            'markers>army*>position': 'army:__parent__',
-                        })
-                        if savelua.error or savelua.warning:
-                            logger.debug(
-                                "There were %s errors and %s warnings",
-                                scenariolua.errors,
-                                scenariolua.warnings,
-                            )
-                            logger.debug(scenariolua.errorMsg)
-
-                        self.__preparePositions(
-                            saveInfos,
-                            scenarioInfos["map_size"],
-                        )
-
-                        tmpFile = maps.processMapFolderForUpload(
-                            mapDir,
-                            saveInfos,
-                        )
-                        if not tmpFile:
-                            QtWidgets.QMessageBox.critical(
-                                self.client,
-                                "Map uploading error",
-                                (
-                                    "Couldn't make previews for {}\n"
-                                    "Map uploading cancelled.".format(mapName)
-                                ),
-                            )
-                            return None
-
-                        qfile = QtCore.QFile(tmpFile.name)
-
-                        # TODO: implement uploading via API
-                        ...
-                        # removing temporary files
-                        qfile.remove()
+                        dialog = MapUploadDialog(mapDir, scenarioInfos, self.client)
+                        dialog.exec()
             else:
                 QtWidgets.QMessageBox.information(
                     self.client,

@@ -40,15 +40,15 @@ _unpersisted_settings: dict[QtCore.QByteArray | bytes | memoryview | str | None,
 CONFIG_PATH = os.path.dirname(_settings.fileName())
 
 
-class Settings:
+class SettingsCls(QtCore.QObject):
+    changed = QtCore.pyqtSignal()
     """
     This wraps QSettings, fetching default values from the
     selected configuration module if the key isn't found.
     """
 
     @contextmanager
-    @staticmethod
-    def group(name: str) -> Generator[QtCore.QSettings]:
+    def group(self, name: str) -> Generator[QtCore.QSettings]:
         try:
             _settings.beginGroup(name)
             yield _settings
@@ -169,8 +169,8 @@ class Settings:
         if _settings.contains(key):
             _settings.remove(key)
 
-    @staticmethod
     def persisted_property(
+        self,
         key,
         default_value=None,
         persist_if=lambda self: True,
@@ -187,8 +187,8 @@ class Settings:
         :return: a property suitable for a class
         """
         return property(
-            lambda s: Settings.get(key, default=default_value, type=type),
-            lambda s, v: Settings.set(key, v, persist=persist_if(s)),
+            lambda s: self.get(key, default=default_value, type=type),
+            lambda s, v: self.set(key, v, persist=persist_if(s)),
             doc='Persisted property: {}. Default: {}'.format(
                 key, default_value,
             ),
@@ -205,6 +205,12 @@ class Settings:
     @staticmethod
     def contains(key: QtCore.QByteArray | bytes | memoryview | str | None) -> bool:
         return key in _unpersisted_settings or _settings.contains(key)
+
+    def apply(self) -> None:
+        self.changed.emit()
+
+
+Settings = SettingsCls()
 
 
 def set_data_path_permissions():

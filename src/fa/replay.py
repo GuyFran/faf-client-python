@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import sys
 
 from compression import zstd
 from PyQt6.QtCore import QByteArray
@@ -150,8 +149,7 @@ def replay(source, detach=False):
             url.setScheme("gpgnet")
             url.setQuery(QUrlQuery(""))
 
-            # TODO: handle linux too
-            if sys.platform == "win32" and Settings.get("game/pipe_live_replay", True, type=bool):
+            if Settings.get("game/pipe_live_replay", True, type=bool):
                 arg_string = Settings.get("replay_stream/pipe_path", "")
             else:
                 arg_string = url.toString()

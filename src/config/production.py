@@ -1,4 +1,5 @@
 import logging
+import sys
 from os import environ
 from os.path import join
 
@@ -44,7 +45,7 @@ default_values = {
     'oauth/client_id': '95ecec08-29c1-4c48-ae0a-b000ff349cb8',
     'oauth/host': "https://hydra.{host}",
     'oauth/redirect_uri': "http://localhost",
-    'oauth/scope': ["openid", "offline", "public_profile", "lobby"],
+    'oauth/scope': ["openid", "offline", "public_profile", "lobby", "upload_map", "upload_mod"],
     'oauth/token': None,
     'oauth/auth_endpoint': '/oauth2/auth',
     'oauth/token_endpoint': '/oauth2/token',
@@ -53,9 +54,11 @@ default_values = {
     'replay_server/port': 15000,
     'relay_server/host': 'lobby.{host}',
     'relay_server/port': 8000,
-    'replay_stream/pipe_path': r'\\.\pipe\fafreplay',
+    'replay_stream/pipe_path': ('/tmp/fafreplay', r'\\.\pipe\fafreplay')[sys.platform == 'win32'],
     'vault/map_preview_url': 'https://content.{host}/maps/previews/{size}/{name}.png',
     'vault/map_download_url': "https://content.{host}/maps/{name}.zip",
+    'vault/map_validation_url': 'https://api.{host}/maps/validate',
+    'vault/rules_url': 'https://wiki.{host}/en/Development/Vault/Rules',
     'JAVA_ICE_ADAPTER_RELEASE_URL': 'https://api.github.com/repos/faforever/java-ice-adapter/releases',  # noqa: E501
     'GO_ICE_ADAPTER_RELEASE_URL': 'https://api.github.com/repos/faforever/faf-pioneer/releases',
     'FORUMS_URL': 'https://forums.faforever.com/',

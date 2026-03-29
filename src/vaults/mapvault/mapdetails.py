@@ -1,17 +1,22 @@
 import os
 import shutil
 
+from PyQt6.QtCore import QByteArray
+from PyQt6.QtNetwork import QNetworkReply
 from PyQt6.QtWidgets import QLabel
+from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtWidgets import QWidget
 
 from src import util
 from src.api.ApiAccessors import DataApiAccessor
 from src.api.ApiAccessors import ParsedDataApiResponse
 from src.api.models.Map import Map
+from src.api.models.MapVersion import MapVersion
 from src.fa import maps
 from src.fa.maps_.preview import create_largest_preview
 from src.fa.maps_.previewdialog import MapPreviewDialog
 from src.model.player import Player
+from src.qt.utils import critical_msgbox
 from src.vaults.detailswidget import DetailsWidget
 
 
@@ -29,6 +34,15 @@ class MapDetailsWidget(DetailsWidget[Map]):
         self.ui.thumbnailLabel.clicked.connect(self.preview_map_large)
 
         self.games_api = DataApiAccessor("/data/game")
+
+    def init_ui(self) -> None:
+        super().init_ui()
+        self.ui.versionLayout.addRow(self.ui.hideButton)
+        self.ui.hideButton.setVisible(
+            self.item_data.author is not None
+            and int(self.item_data.author.xd) == self.player.id,
+        )
+        self.ui.hideButton.clicked.connect(self.hide_map_version)
 
     def _ask_if_played_map(self) -> None:
         self.games_api.get_parsed(
@@ -81,11 +95,9 @@ class MapDetailsWidget(DetailsWidget[Map]):
         self.ui.additionalInfoLabel.setText(f"{self.item_data.games_played} games played")
 
     def version_info(self) -> list[tuple[str, str]]:
-        height = self.item_version.size.height_km
-        width = self.item_version.size.width_km
         return [
             ("Version:", str(self.item_version.version)),
-            ("Dimensions (km):", f"{width:g} x {height:g}"),
+            ("Dimensions:", str(self.item_version.size)),
             ("Max Players:", str(self.item_version.max_players)),
             ("Games Played:", str(self.item_version.games_played)),
             ("Ranked:", "Yes" if self.item_version.ranked else "No"),
@@ -124,3 +136,47 @@ class MapDetailsWidget(DetailsWidget[Map]):
 
     def view_folder(self) -> None:
         util.showDirInFileBrowser(maps.folderForMap(self.item_version.folder_name))
+
+    def hide_map_version(self) -> None:
+        if QMessageBox.question(
+            None,
+            "Hide map version from vault",
+            (
+                f"Are you sure you wish to hide {self.item_version.folder_name!r} from vault?"
+                "<br/><b>You won't be able to unhide it with the client</b>"
+            ),
+            QMessageBox.StandardButton.Yes,
+            QMessageBox.StandardButton.No,
+        ) is QMessageBox.StandardButton.No:
+            return
+
+        self.ui.hideButton.setEnabled(False)
+        patched = self.item_version.to_jsonapi_doc(
+            set(MapVersion.model_fields) - {"xd", "hidden"},
+            {""},
+            id=self.item_version.xd,
+            hidden=True,
+        )
+        string = str(patched).replace("'", '\"')
+        payload = QByteArray(string.encode())
+        # it doesn't matter this is 'games' api
+        self.games_api.patch(
+            f"/data/mapVersion/{self.item_version.xd}",
+            payload,
+            self.on_hide_success,
+            self.on_hide_failure,
+        )
+
+    def on_hide_success(self, reply: QNetworkReply) -> None:
+        self.ui.hideButton.hide()
+        self.item_version.hidden = True
+        self.item_hidden_changed.emit()
+
+    def on_hide_failure(self, reply: QNetworkReply) -> None:
+        self.ui.hideButton.setEnabled(True)
+        critical_msgbox(
+            None,
+            "Error",
+            "Could not hide map version",
+            reply.readAll().data().decode(),
+        )

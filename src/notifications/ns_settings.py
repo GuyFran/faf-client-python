@@ -6,10 +6,7 @@ from enum import Enum
 from typing import Any
 
 from PyQt6 import QtCore
-from PyQt6 import QtWidgets
 
-import src.notifications as ns
-from src import util
 from src.config import Settings
 from src.notifications.hook_game_launched import NsHookGameLaunchedCustom
 from src.notifications.hook_game_launched import NsHookGameLaunchedLadder
@@ -18,6 +15,7 @@ from src.notifications.hook_newgame import NsHookNewGame
 from src.notifications.hook_partyinvite import NsHookPartyInvite
 from src.notifications.hook_useronline import NsHookUserOnline
 from src.notifications.ns_hook import NsHook
+from src.notifications.ns_type import NsType
 
 
 class IngameNotification(Enum):
@@ -41,123 +39,6 @@ class NotificationPosition(Enum):
             return "bottom left"
         elif self == NotificationPosition.TOP_LEFT:
             return "top left"
-
-
-# TODO: how to register hooks?
-FormClass2, BaseClass2 = util.THEME.loadUiType(
-    "notification_system/ns_settings.ui",
-)
-
-
-class NsSettingsDialog(FormClass2, BaseClass2):
-    def __init__(self, client):
-        BaseClass2.__init__(self)
-        # BaseClass2.__init__(self, client)
-
-        self.setupUi(self)
-        self.setStyleSheet(util.THEME.stylesheet)
-        self.client = client
-
-        # remove help button
-        self.setWindowFlags(
-            self.windowFlags() & (~QtCore.Qt.WindowType.WindowContextHelpButtonHint),
-        )
-
-        # init hooks
-        self.hooks = {}
-        self.hooks[ns.Notifications.USER_ONLINE] = NsHookUserOnline()
-        self.hooks[ns.Notifications.NEW_GAME] = NsHookNewGame()
-        self.hooks[ns.Notifications.GAME_FULL] = NsHookGameFull()
-        self.hooks[ns.Notifications.PARTY_INVITE] = NsHookPartyInvite()
-        self.hooks[ns.Notifications.CUSTOM_GAME_LAUNCHED] = NsHookGameLaunchedCustom()
-        self.hooks[ns.Notifications.LADDER_GAME_LAUNCHED] = NsHookGameLaunchedLadder()
-        self.hooks[ns.Notifications.LAUNCHING_LADDER] = NsHook(ns.Notifications.LAUNCHING_LADDER)
-
-        model = NotificationHooks(self, list(self.hooks.values()))
-        self.tableView.setModel(model)
-        # stretch first column
-        self.tableView.horizontalHeader().setSectionResizeMode(
-            0, QtWidgets.QHeaderView.ResizeMode.Stretch,
-        )
-
-        for row in range(0, model.rowCount(None)):
-            self.tableView.setIndexWidget(
-                model.createIndex(row, 4),
-                model.getHook(row).settings(),
-            )
-
-        self.loadSettings()
-
-    def loadSettings(self):
-        self.enabled = Settings.get('notifications/enabled', True, type=bool)
-        self.popup_lifetime = Settings.get(
-            'notifications/popup_lifetime', 5, type=int,
-        )
-        self.popup_position = NotificationPosition(
-            Settings.get(
-                'notifications/popup_position',
-                NotificationPosition.BOTTOM_RIGHT.value,
-                type=int,
-            ),
-        )
-        self.ingame_notifications = IngameNotification(
-            Settings.get(
-                'notifications/ingame', IngameNotification.ENABLE, type=int,
-            ),
-        )
-
-        self.nsEnabled.setChecked(self.enabled)
-        self.nsPopLifetime.setValue(self.popup_lifetime)
-        self.nsPositionComboBox.setCurrentIndex(self.popup_position.value)
-        self.nsIngameComboBox.setCurrentIndex(self.ingame_notifications.value)
-
-    def saveSettings(self):
-        Settings.set('notifications/enabled', self.enabled)
-        Settings.set('notifications/popup_lifetime', self.popup_lifetime)
-        Settings.set('notifications/popup_position', self.popup_position.value)
-        Settings.set('notifications/ingame', self.ingame_notifications.value)
-
-        self.client.actionNsEnabled.setChecked(self.enabled)
-
-    @QtCore.pyqtSlot()
-    def on_btnSave_clicked(self):
-        self.enabled = self.nsEnabled.isChecked()
-        self.popup_lifetime = self.nsPopLifetime.value()
-        self.popup_position = NotificationPosition(
-            self.nsPositionComboBox.currentIndex(),
-        )
-        self.ingame_notifications = IngameNotification(
-            self.nsIngameComboBox.currentIndex(),
-        )
-
-        self.saveSettings()
-        self.hide()
-
-    @QtCore.pyqtSlot()
-    def show(self):
-        self.loadSettings()
-        super(FormClass2, self).show()
-
-    def popupEnabled(self, eventType):
-        if eventType in self.hooks:
-            return self.hooks[eventType].popupEnabled()
-        return False
-
-    def soundEnabled(self, eventType):
-        if eventType in self.hooks:
-            return self.hooks[eventType].soundEnabled()
-        return False
-
-    def ingame_allowed(self, event_type: str) -> bool:
-        if event_type in self.hooks:
-            return self.hooks[event_type].ingame_allowed()
-        return False
-
-    def getCustomSetting(self, eventType, key):
-        if eventType in self.hooks:
-            if hasattr(self.hooks[eventType], key):
-                return getattr(self.hooks[eventType], key)
-        return None
 
 
 class NotificationHooks(QtCore.QAbstractTableModel):
@@ -253,3 +134,67 @@ class NotificationHooks(QtCore.QAbstractTableModel):
         ):
             return self.headerdata[col]
         return None
+
+
+class NsSettingsCls(QtCore.QObject):
+    def __init__(self) -> None:
+        super().__init__()
+        # init hooks
+        self.hooks = {
+            NsType.USER_ONLINE: NsHookUserOnline(),
+            NsType.NEW_GAME: NsHookNewGame(),
+            NsType.GAME_FULL: NsHookGameFull(),
+            NsType.PARTY_INVITE: NsHookPartyInvite(),
+            NsType.CUSTOM_GAME_LAUNCHED: NsHookGameLaunchedCustom(),
+            NsType.LADDER_GAME_LAUNCHED: NsHookGameLaunchedLadder(),
+            NsType.LAUNCHING_LADDER: NsHook(NsType.LAUNCHING_LADDER),
+        }
+
+        self.model = NotificationHooks(self, list(self.hooks.values()))
+        self.loadSettings()
+        Settings.changed.connect(self.loadSettings)
+
+    def loadSettings(self) -> None:
+        self.enabled = Settings.get('notifications/enabled', True, type=bool)
+        self.popup_lifetime = Settings.get('notifications/popup_lifetime', 5, type=int)
+        self.popup_position = NotificationPosition(
+            Settings.get(
+                'notifications/popup_position',
+                NotificationPosition.BOTTOM_RIGHT.value,
+                type=int,
+            ),
+        )
+        self.ingame_notifications = IngameNotification(
+            Settings.get('notifications/ingame', IngameNotification.ENABLE, type=int),
+        )
+
+    def saveSettings(self):
+        with Settings.group("notifications") as group:
+            group.setValue('enabled', self.enabled)
+            group.setValue('popup_lifetime', self.popup_lifetime)
+            group.setValue('popup_position', self.popup_position.value)
+            group.setValue('ingame', self.ingame_notifications.value)
+
+    def popupEnabled(self, eventType: NsType) -> bool:
+        if eventType in self.hooks:
+            return self.hooks[eventType].popupEnabled()
+        return False
+
+    def soundEnabled(self, eventType: NsType) -> bool:
+        if eventType in self.hooks:
+            return self.hooks[eventType].soundEnabled()
+        return False
+
+    def ingame_allowed(self, event_type: str) -> bool:
+        if event_type in self.hooks:
+            return self.hooks[event_type].ingame_allowed()
+        return False
+
+    def getCustomSetting(self, eventType, key):
+        if eventType in self.hooks:
+            if hasattr(self.hooks[eventType], key):
+                return getattr(self.hooks[eventType], key)
+        return None
+
+
+NsSettings = NsSettingsCls()

@@ -354,6 +354,10 @@ QTableView::item:selected
     border:none;
 }
 
+QTableView::item:disabled {
+    color: gray;
+}
+
 /* Text controls */
 QTextEdit, QPlainTextEdit, QLineEdit, QListWidget, QListView, QTableWidget, QTreeWidget, QFrame#rankedFrame, #teamFaction, #teamSearch, #partyInfo
 {
@@ -467,18 +471,24 @@ QHeaderView::section
     color: white;
     background-color: #4b4b4b;
     font: bold;
-    border-left: 1 solid;
 
 }
 
-QHeaderView::down-arrow
-{
-    image: url('%THEMEPATH%/client/arrowDown.png');
+QHeaderView::up-arrow {
+    border: 4px solid #4b4b4b;
+    width: 0px;
+    height: 0px;
+    border-bottom-color: yellow;
+    subcontrol-origin: margin;
 }
 
-QHeaderView::up-arrow
-{
-    image: url('%THEMEPATH%/client/arrowUp.png');
+QHeaderView::down-arrow {
+    border: 4px solid #4b4b4b;
+    width: 0px;
+    height: 0px;
+    border-top-color: yellow;
+    subcontrol-origin: margin;
+    right: 4px;
 }
 
 QHeaderView#VerticalHeader::section {
@@ -506,6 +516,10 @@ QHeaderView#VerticalHeader::section:hover
     border-bottom: 1px solid;
     border-color: #202025;
     width: auto;
+}
+
+QHeaderView::section:disabled {
+    color: gray;
 }
 
 /* Nicklist controls */
@@ -599,6 +613,10 @@ QListWidget::item:selected
     color: orange;
     background-color: #505050;
     border: none;
+}
+
+QListView::item:disabled {
+    color: gray;
 }
 
 QListWidget#newsList::item:selected
@@ -824,6 +842,24 @@ QGroupBox
     padding-top: 15px;
 }
 
+QGroupBox::indicator:unchecked
+{
+    background: #303035;
+}
+
+QGroupBox::indicator:checked
+{
+    image: url('%THEMEPATH%/client/chboxChecked.png');
+}
+
+QGroupBox::indicator:disabled {
+    border-color: #202025;
+}
+
+QGroupBox::indicator:hover {
+    border-color: gray;
+}
+
 QGroupBox#mapsGroup,#previewGroup,#modsGroup {
     font-size: 10pt;
     font-weight: bold;
@@ -849,6 +885,10 @@ QDialog#MapGenOptionsDialog
 {
     background-color:#202025;
     alternate-background-color: #303035;
+}
+
+QDialog#ModUploadDialog,QDialog#MapUploadDialog {
+    background: #2f2f2f;
 }
 
 QCheckBox::enabled
@@ -972,23 +1012,29 @@ QPushButton:disabled
 
 QPushButton:hover
 {
-    border: 1px solid #888;
+    background: #808080;
 }
 
 QPushButton#refreshButton, #nextButton, #previousButton, #goToPageButton, #firstButton, #lastButton,
-#resetButton, #searchPlayerButton, #UIButton, #uploadButton, #kickButton, #leaveButton
+#resetButton, #searchPlayerButton, #UIButton, #uploadButton, #kickButton, #leaveButton,
+QPushButton#buttonManageInstalled
 {
     color: silver;
     background: #202025;
     border: 1 solid #555450;
     border-radius: 2;
+    padding-left: 2px;
+    padding-right: 2px;
 }
 
 QPushButton#refreshButton:hover, #nextButton::hover, #previousButton::hover, #goToPageButton::hover,
 #firstButton:hover, #lastButton::hover, #resetButton::hover, #searchPlayerButton::hover,
-#UIButton:hover, #uploadButton::hover,  #kickButton::hover, #leaveButton::hover
+#UIButton:hover, #uploadButton::hover,  #kickButton::hover, #leaveButton::hover,
+QPushButton#buttonManageInstalled:hover
 {
     background-color: #808080;
+    padding-left: 2px;
+    padding-right: 2px;
 }
 
 QPushButton#searchButton, QPushButton#advSearchButton, QPushButton#fafDbButton,
@@ -1150,6 +1196,16 @@ QFrame#settingsFrame {
     background-color: #202025;
 }
 
+QProgressBar {
+    color: silver;
+    border: none;
+    background: #1f1f1f;
+}
+
+QProgressBar::chunk {
+    background: green;
+}
+
 QProgressBar#achievementBar
 {
     background-color: gray;
@@ -1168,7 +1224,14 @@ QStatusBar
     color: yellow;
 }
 
-QWidget#tech_widget,#overview_content,#overview_widget
+QWidget#tech_widget,#overview_content,#overview_widget,
+QWidget#scrollAreaWidgetContents,
+QWidget#scrollAreaWidgetContents_1,
+QWidget#scrollAreaWidgetContents_2,
+QWidget#scrollAreaWidgetContents_3,
+QWidget#scrollAreaWidgetContents_4,
+QWidget#scrollAreaWidgetContents_5,
+QWidget#scrollAreaWidgetContents_6
 {
     background: #202025;
     padding: 0px;
@@ -1505,6 +1568,10 @@ QGroupBox#vaultSearchParams {
     background: #202025;
 }
 
+QMessageBox {
+    background: #2f2f2f;
+    messagebox-text-interaction-flags: 1;
+}
 
 /* CUSTOM RULES */
 QTextBrowser::custom {
@@ -1569,6 +1636,7 @@ RatingPlotCrosshairs::custom {
 
 RatingPlotWidget::custom {
     color: orange;
+    max-rating-color: #A78BFA;
     background-color: #202025;
 }
 
@@ -1646,4 +1714,8 @@ PlayerColors::custom {
   mod: white;
   chatterbox: darkgoldenrod;
   game_host: gold;
+}
+
+SpecialListWidgetColors::custom {
+    background: #1A7BFF;
 }
