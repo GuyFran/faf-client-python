@@ -1,6 +1,16 @@
 0.x.x
 =====
 
+0.27.0
+* Make one Settings dialog instead of having them in context menus
+* Implement map and mod upload
+* Add managing installed maps and mods
+* Highlight new maps in map list on generating many for hosting
+* Add favourite maps for hosting functionality
+* Enrich live replay tab
+* Show max rating line in rating plots
+* Fix not handling 'enemies' in replay's chat
+
 0.26.3
 * Add more filter options to vaults
 * Fix broken notification sound playback
