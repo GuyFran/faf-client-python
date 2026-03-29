@@ -548,7 +548,7 @@ class _FavouriteMaps:
     def __init__(self) -> None:
         self._favourites: set[str] = set()
         self._loaded = False
-        self._path = os.path.join(util.CACHE_DIR, "maps", "favourites")
+        self._path = os.path.join(util.MAP_CACHE_DIR, "favourites")
 
     def load_from_cache(self) -> None:
         if self._loaded:
@@ -569,7 +569,6 @@ class _FavouriteMaps:
             self.save_to_cache()
 
     def save_to_cache(self) -> None:
-        os.makedirs(os.path.dirname(self._path), exist_ok=True)
         with open(self._path, "w") as f:
             f.write("\n".join(self._favourites))
 
@@ -586,12 +585,10 @@ class _FavouriteMaps:
 
     def toggle(self, value: str) -> bool:
         if value in self._favourites:
-            self._favourites.discard(value)
-            self.save_to_cache()
+            self.discard(value)
             return False
         else:
-            self._favourites.add(value)
-            self.save_to_cache()
+            self.add(value)
             return True
 
 
@@ -602,7 +599,7 @@ def clear_generated_maps() -> None:
     if not Settings.get("maps/autodelete_generated", True, type=bool):
         return
 
-    map_dir = os.path.join(util.VAULTS_BASE_DIR, "maps")
+    map_dir = getUserMapsFolder()
     if not os.path.exists(map_dir):
         return
     FavouriteMaps.load_from_cache()

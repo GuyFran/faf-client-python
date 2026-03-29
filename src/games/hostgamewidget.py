@@ -667,7 +667,7 @@ class _UnseenMapgenNames:
     def __init__(self) -> None:
         self._unseen: set[str] = set()
         self._loaded = False
-        self._path = os.path.join(util.CACHE_DIR, "maps", "unseen_generated")
+        self._path = os.path.join(util.MAP_CACHE_DIR, "unseen_generated")
 
     def load_from_cache(self) -> None:
         if self._loaded:
