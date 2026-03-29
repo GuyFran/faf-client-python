@@ -10,6 +10,7 @@ from typing import cast
 
 from PyQt6 import QtCore
 from PyQt6.QtCore import QThread
+from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QBrush
 from PyQt6.QtGui import QColor
 from PyQt6.QtGui import QIcon
@@ -171,6 +172,10 @@ class HostGameWidget(QDialog):
         )
         self._unseen_mapgen_brush = QBrush(QColor(unseen_mapgen_color))
 
+        self._filter_timer = QTimer()
+        self._filter_timer.setSingleShot(True)
+        self._filter_timer.timeout.connect(self._do_apply_map_filters)
+
     def connect_signals(self) -> None:
         self.ui.mapList.currentRowChanged.connect(self.map_changed)
         self.ui.hostButton.released.connect(self.hosting)
@@ -315,6 +320,12 @@ class HostGameWidget(QDialog):
             self.ui.mapList.scrollToItem(item)
 
     def apply_map_filters(self) -> None:
+        if self.ui.mapList.count() >= 1500:  # why 1500? it felt like it
+            self._filter_timer.start(100)
+        else:
+            self._do_apply_map_filters()
+
+    def _do_apply_map_filters(self) -> None:
         w_min, w_max = self.ui.mapWidthMinimum.value(), self.ui.mapWidthMaximum.value()
         h_min, h_max = self.ui.mapHeightMinimum.value(), self.ui.mapHeightMaximum.value()
         p_min, p_max = self.ui.mapPlayersMinimum.value(), self.ui.mapPlayersMaximum.value()
