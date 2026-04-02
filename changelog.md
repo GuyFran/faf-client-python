@@ -1,6 +1,11 @@
 0.x.x
 =====
 
+0.27.1
+* Fix displaying live replays prematurely
+* Host widget: fix inconsistent filtering and mapgen names
+* Update dependencies
+
 0.27.0
 * Make one Settings dialog instead of having them in context menus
 * Implement map and mod upload
