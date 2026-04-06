@@ -2,11 +2,11 @@ import json
 import logging
 import os
 import time
+from compression import zstd
 from enum import Enum
 from typing import TYPE_CHECKING
 from typing import Any
 
-from compression import zstd
 from PyQt6 import QtCore
 from PyQt6 import QtNetwork
 from PyQt6 import QtWidgets
@@ -195,7 +195,7 @@ class ReplayRecorder(QtCore.QObject):
 
     def close_relay(self) -> None:
         self._close_intended = True
-        self.relay_socket.close()
+        self.relay_socket.abort()
 
     def write_replay_file(self) -> None:
         # Update info block if possible.
