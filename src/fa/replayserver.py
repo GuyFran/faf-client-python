@@ -195,7 +195,7 @@ class ReplayRecorder(QtCore.QObject):
 
     def close_relay(self) -> None:
         self._close_intended = True
-        self.relay_socket.abort()
+        self.relay_socket.close()
 
     def write_replay_file(self) -> None:
         # Update info block if possible.
