@@ -16,7 +16,9 @@ from src import fafpath
 from src import util
 from src.api.models.MapVersion import MapSize
 from src.decorators import with_logger
+from src.games.mapgenoptions import CheckableComboBoxOption
 from src.games.mapgenoptions import ComboBoxOption
+from src.games.mapgenoptions import DoubleSpinBoxOption
 from src.games.mapgenoptions import RangeOption
 from src.games.mapgenoptions import SpinBoxOption
 from src.games.mapgenoptionsvalues import GenerationType
@@ -159,43 +161,43 @@ class MapGenDialog(FormClass, BaseClass):
 
         self.options_path = os.path.join(util.MAPGEN_DIR, "mapgen_options.json")
 
-    def get_dynamic_options(self) -> dict[str, ComboBoxOption]:
+    def get_dynamic_options(self) -> dict[str, CheckableComboBoxOption]:
         return {
-            "symmetries": ComboBoxOption(
+            "symmetries": CheckableComboBoxOption(
                 "terrain-symmetry",
                 self.terrainSymmetry,
                 Sentinel.RANDOM.value,
-                Sentinel.values() + TerrainSymmetry.values(),
+                TerrainSymmetry.values(),
             ),
-            "styles": ComboBoxOption(
+            "styles": CheckableComboBoxOption(
                 "style",
                 self.mapStyle,
                 Sentinel.RANDOM.value,
-                Sentinel.values() + MapStyle.values(),
+                MapStyle.values(),
             ),
-            "terrain-styles": ComboBoxOption(
+            "terrain-styles": CheckableComboBoxOption(
                 "terrain-style",
                 self.terrainStyle,
                 Sentinel.RANDOM.value,
-                Sentinel.values() + TerrainStyle.values(),
+                TerrainStyle.values(),
             ),
-            "texture-styles": ComboBoxOption(
+            "texture-styles": CheckableComboBoxOption(
                 "texture-style",
                 self.textureStyle,
                 Sentinel.RANDOM.value,
-                Sentinel.values() + TextureStyle.values(),
+                TextureStyle.values(),
             ),
-            "resource-styles": ComboBoxOption(
+            "resource-styles": CheckableComboBoxOption(
                 "resource-style",
                 self.resourceGenerator,
                 Sentinel.RANDOM.value,
-                Sentinel.values() + ResourceStyle.values(),
+                ResourceStyle.values(),
             ),
-            "prop-styles": ComboBoxOption(
+            "prop-styles": CheckableComboBoxOption(
                 "prop-style",
                 self.propGenerator,
                 Sentinel.RANDOM.value,
-                Sentinel.values() + PropStyle.values(),
+                PropStyle.values(),
             ),
         }
 
@@ -254,10 +256,12 @@ class MapGenDialog(FormClass, BaseClass):
     def set_cmd_options(self, dynamic_options: dict[str, list[str]]) -> None:
         self.statusBar.showMessage("")
         for key, mapgen_option in self.dynamic_options.items():
-            if key in dynamic_options:
-                mapgen_option.set_opts(Sentinel.values() + dynamic_options[key])
+            try:
+                mapgen_option.set_opts(dynamic_options[key])
+            except KeyError:
+                pass
 
-        self.cmd_options: list[ComboBoxOption | SpinBoxOption | RangeOption] = [
+        self.cmd_options = [
             ComboBoxOption(
                 "visibility",
                 self.generationType,
@@ -268,7 +272,7 @@ class MapGenDialog(FormClass, BaseClass):
             SpinBoxOption("spawn-count", self.numberOfSpawns, int, 2),
             SpinBoxOption("num-teams", self.numberOfTeams, int, 2),
             SpinBoxOption("num-to-generate", self.numberOfMaps, int, 1),
-            SpinBoxOption("map-size", self.mapSize, float, 5),
+            DoubleSpinBoxOption("map-size", self.mapSize, float, 5),
             RangeOption(
                 "resource-density",
                 SpinBoxOption("", self.minResourceDensity, int, 0),

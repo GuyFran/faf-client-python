@@ -921,6 +921,30 @@ QCheckBox::indicator:hover {
     border-color: gray;
 }
 
+QAbstractItemView::indicator
+{
+    width: 13px;
+    height: 13px;
+    border: 1px solid black;
+}
+
+QAbstractItemView::indicator:hover {
+    border-color: gray;
+}
+
+QAbstractItemView::indicator:disabled {
+    border-color: #202025;
+}
+
+QAbstractItemView::indicator:checked {
+    image: url('%THEMEPATH%/client/chboxChecked.png');
+}
+
+QAbstractItemView::indicator:unchecked
+{
+    background: #303035;
+}
+
 /* Used for Ranked Buttons only at the moment*/
 QToolButton#rankedPlay
 {

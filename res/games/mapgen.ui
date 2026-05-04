@@ -277,7 +277,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QComboBox" name="terrainSymmetry">
+              <widget class="CheckableComboBox" name="terrainSymmetry">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -346,7 +346,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QComboBox" name="mapStyle">
+              <widget class="CheckableComboBox" name="mapStyle">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -408,7 +408,7 @@
            </property>
            <layout class="QGridLayout" name="gridLayout_2">
             <item row="0" column="2">
-             <widget class="QComboBox" name="terrainStyle">
+             <widget class="CheckableComboBox" name="terrainStyle">
               <property name="font">
                <font>
                 <pointsize>10</pointsize>
@@ -510,7 +510,7 @@
              </widget>
             </item>
             <item row="2" column="2">
-             <widget class="QComboBox" name="textureStyle">
+             <widget class="CheckableComboBox" name="textureStyle">
               <property name="font">
                <font>
                 <pointsize>10</pointsize>
@@ -532,7 +532,7 @@
              </widget>
             </item>
             <item row="5" column="2">
-             <widget class="QComboBox" name="propGenerator">
+             <widget class="CheckableComboBox" name="propGenerator">
               <property name="font">
                <font>
                 <pointsize>10</pointsize>
@@ -580,7 +580,7 @@
              </widget>
             </item>
             <item row="3" column="2">
-             <widget class="QComboBox" name="resourceGenerator"/>
+             <widget class="CheckableComboBox" name="resourceGenerator"/>
             </item>
             <item row="4" column="2">
              <layout class="QHBoxLayout" name="resourceDensity">
@@ -867,6 +867,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>CheckableComboBox</class>
+   <extends>QComboBox</extends>
+   <header location="global">src/qt/widgets/checkablecombobox</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

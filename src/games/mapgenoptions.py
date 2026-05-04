@@ -3,9 +3,12 @@ from typing import Any
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QComboBox
+from PyQt6.QtWidgets import QDoubleSpinBox
 from PyQt6.QtWidgets import QSpinBox
+from PyQt6.QtWidgets import QWidget
 
 from src import config
+from src.qt.widgets.checkablecombobox import CheckableComboBox
 
 
 class OptionMixin:
@@ -31,13 +34,13 @@ class OptionMixin:
         raise NotImplementedError
 
 
-class MapGenOption(OptionMixin):
+class MapGenOption[T: QWidget](OptionMixin):
     def __init__(
-            self,
-            name: str,
-            ui_elem: QComboBox | QSpinBox,
-            typ: type = str,
-            default: Any = None,
+        self,
+        name: str,
+        ui_elem: T,
+        typ: type = str,
+        default: Any | None = None,
     ) -> None:
         self.name = name
         self.ui_elem = ui_elem
@@ -67,15 +70,15 @@ class MapGenOption(OptionMixin):
         return [f"--{self.name}", str(self.value())]
 
 
-class ComboBoxOption(MapGenOption):
+class _ComboBoxOption[T: QComboBox](MapGenOption[T]):
     def __init__(
-            self,
-            name: str,
-            ui_elem: QComboBox,
-            default: str | None = None,
-            opts: list[str] | None = None,
+        self,
+        name: str,
+        ui_elem: T,
+        default: str | None = None,
+        opts: list[str] | None = None,
     ) -> None:
-        MapGenOption.__init__(self, name, ui_elem, str, default)
+        super().__init__(name, ui_elem, str, default)
         self.opts = opts
 
     def set_opts(self, opts: list[str] | None) -> None:
@@ -99,23 +102,50 @@ class ComboBoxOption(MapGenOption):
 
     def load(self) -> None:
         self.populate()
-        MapGenOption.load(self)
+        super().load()
 
 
-class SpinBoxOption(MapGenOption):
+class ComboBoxOption(_ComboBoxOption[QComboBox]):
+    ...
+
+
+class CheckableComboBoxOption(_ComboBoxOption[CheckableComboBox]):
     def __init__(
-            self,
-            name: str,
-            ui_elem: QSpinBox,
-            typ: type,
-            default: int | float | None = None,
+        self,
+        name: str,
+        ui_elem: CheckableComboBox,
+        default: str,
+        opts: list[str] | None = None,
     ) -> None:
-        MapGenOption.__init__(self, name, ui_elem, typ, default)
+        ui_elem.setNoChoiceText(default)
+        super().__init__(name, ui_elem, default, opts)
 
-    def set_value(self, value: int | float) -> None:
+    def save(self) -> None:
+        config.Settings.set(
+            f"mapGenerator/{self.ui_elem.objectName()}",
+            self.ui_elem.delimiter().join(self.ui_elem.currentData()),
+        )
+
+    def as_cmd_arg(self) -> list[str]:
+        return [f"--{self.name}", random.choice(self.ui_elem.currentData())]
+
+
+class SpinBoxOption(MapGenOption[QSpinBox]):
+    def set_value(self, value: int) -> None:
         self.ui_elem.setValue(value)
 
-    def value(self) -> int | float:
+    def value(self) -> int:
+        return self.ui_elem.value()
+
+    def active(self) -> bool:
+        return self.ui_elem.isEnabled()
+
+
+class DoubleSpinBoxOption(MapGenOption[QDoubleSpinBox]):
+    def set_value(self, value: float) -> None:
+        self.ui_elem.setValue(value)
+
+    def value(self) -> float:
         return self.ui_elem.value()
 
     def active(self) -> bool:
