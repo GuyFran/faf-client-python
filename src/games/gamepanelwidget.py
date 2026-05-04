@@ -92,7 +92,8 @@ class TeamWidget(QWidget):
         self.ui.numPlayersLabel.setText(f"({num})")
 
     def add_player(self, player: Player, color: QColor) -> None:
-        player_item = QListWidgetItem(f"{player.login} ({player.rating_estimate()})")
+        clan_tag = f"[{player.clan}]" if player.clan is not None else ""
+        player_item = QListWidgetItem(f"{clan_tag}{player.login} ({player.rating_estimate()})")
         if player.country is not None:
             country_icon = util.THEME.icon(f"chat/countries/{player.country.lower()}.png")
             player_item.setIcon(country_icon)
