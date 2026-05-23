@@ -78,12 +78,20 @@ class JsonApiBase(QObject):
         query_or_path: QueryOptions | str,
         response_handler: Callable[[dict[str, Any]], None],
         error_handler: Callable[[QNetworkReply], None] = _do_nothing,
+        *,
+        authorize: bool = True,
     ) -> QNetworkReply:
         if isinstance(query_or_path, str):
             url = self._url_from_endpoint(query_or_path)
         else:
             url = self.build_query_url(query_or_path)
-        return self.api.get(url, self._decode_and_handle(response_handler), error_handler)
+
+        return self.api.get(
+            url,
+            self._decode_and_handle(response_handler),
+            error_handler,
+            authorize=authorize,
+        )
 
     def post(
         self,
@@ -146,9 +154,16 @@ class ApiAccessManager(QObject):
         url: QUrl,
         response_handler: Callable[[QNetworkReply], None],
         error_handler: Callable[[QNetworkReply], None] = _do_nothing,
+        *,
+        authorize: bool = True,
     ) -> QNetworkReply:
-        logger.debug("Sending GET API request with URL: %s", url.toString())
-        reply = self.manager.get(self.prepare_request(url))
+        auth_status = "" if authorize else "unauthorized"
+        logger.debug("Sending %s GET API request with URL: %s", auth_status, url.toString())
+        if authorize:
+            reply = self.manager.get(self.prepare_request(url))
+        else:
+            reply = self.manager.get(QNetworkRequest(url))
+
         if reply is None:
             logger.error("Error sending GET request to: '%s'", url.toString())
             raise RuntimeError("QNetworkAccessManager failed to create a QNetworkReply instance!")

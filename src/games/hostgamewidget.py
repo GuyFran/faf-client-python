@@ -616,7 +616,7 @@ class HostGameWidget(QDialog):
     def generateMap(self) -> None:
         dialog = MapGenDialog(self.client, self.client.map_generator)
         dialog.map_generated.connect(self.set_maps)
-        dialog.load_cmd_options()
+        dialog.setup()
         dialog.exec()
         dialog.deleteLater()
 

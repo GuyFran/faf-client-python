@@ -14,6 +14,7 @@ default_values = {
     'display_name': 'Main Server (recommended)',
     'api': 'https://api.{host}',
     'user_api': 'https://user.{host}',
+    'github_api': 'https://api.github.com',
     'chat/host': 'chat.{host}',
     'chat/port': 443,
     'client/data_path': APPDATA_DIR,

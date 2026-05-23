@@ -392,6 +392,14 @@ QLineEdit#uploaderInput
     background-color: #353535;
 }
 
+QLineEdit#mapNameEdit, QLineEdit#cliArgsEdit {
+    background-color: #18181D;
+}
+
+QLineEdit#mapNameEdit:disabled, QLineEdit#cliArgsEdit:disabled {
+    background-color:#202025;
+}
+
 QFrame#rankedFrame
 {
     border-style:solid;
@@ -840,6 +848,13 @@ QGroupBox
     background-color: rgb(32, 32, 37);
     color: silver;
     padding-top: 15px;
+}
+
+QGroupBox::indicator
+{
+    width: 13px;
+    height: 13px;
+    border: 1px solid black;
 }
 
 QGroupBox::indicator:unchecked

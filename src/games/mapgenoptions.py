@@ -96,6 +96,7 @@ class _ComboBoxOption[T: QComboBox](MapGenOption[T]):
     def populate(self) -> None:
         if self.opts is None:
             return
+        self.ui_elem.clear()
         for index, opt in enumerate(sorted(self.opts)):
             self.ui_elem.addItem(opt)
             self.ui_elem.setItemData(index, opt, Qt.ItemDataRole.ToolTipRole)
