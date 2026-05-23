@@ -1,6 +1,13 @@
 0.x.x
 =====
 
+0.27.2
+* Allow multiple choices in some of mapgen options
+* Allow switching mapgen versions
+* Show clan tags in game panel
+* Add 'Copy Link' action to online replays
+* Update dependencies
+
 0.27.1
 * Fix displaying live replays prematurely
 * Host widget: fix inconsistent filtering and mapgen names
