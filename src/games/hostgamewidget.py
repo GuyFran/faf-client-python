@@ -489,7 +489,8 @@ class HostGameWidget(QDialog):
         for name in reversed(mapnames):
             item = QListWidgetItem(maps.getDisplayName(name))
             item.setData(QtCore.Qt.ItemDataRole.UserRole, allmaps[name])
-            item.setForeground(self._unseen_mapgen_brush)
+            if len(mapnames) > 1:
+                item.setForeground(self._unseen_mapgen_brush)
             self.ui.mapList.addItem(item)
         self.ui.mapList.sortItems()
         self.ui.mapList.setCurrentItem(item)
