@@ -16,6 +16,7 @@ from PyQt6 import QtWidgets
 from PyQt6.QtGui import QAction
 from PyQt6.QtGui import QFont
 from PyQt6.QtGui import QFontMetrics
+from PyQt6.QtWidgets import QApplication
 
 from src import util
 from src.api.models.Game import Game
@@ -416,12 +417,19 @@ class ReplayItem(QtWidgets.QTreeWidgetItem):
 
     def pressed(self) -> None:
         menu = QtWidgets.QMenu(self.parent_widget)
+
         action_watched = QAction(f"Mark as {'unwatched' if self.watched() else 'watched'}", menu)
-        action_watched.triggered.connect(self.change_watched_status)
+        actionLink = QAction("Copy Link", menu)
         actionDownload = QAction("Download replay", menu)
+
+        action_watched.triggered.connect(self.change_watched_status)
+        actionLink.triggered.connect(lambda: QApplication.clipboard().setText(self.url))
         actionDownload.triggered.connect(self.downloadReplay)
+
         menu.addAction(action_watched)
+        menu.addAction(actionLink)
         menu.addAction(actionDownload)
+
         menu.popup(QtGui.QCursor.pos())
 
     def downloadReplay(self):
