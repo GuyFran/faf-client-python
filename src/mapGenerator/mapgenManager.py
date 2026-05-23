@@ -31,7 +31,7 @@ class MapGeneratorManager(QObject):
 
     def __init__(self) -> None:
         super().__init__()
-        self.latestVersion = Settings.get("mapGenerator/latest_version", "")
+        self.latestVersion = Settings.get("mapGenerator/latest_version", "0.0.0")
 
         self.currentVersion = Settings.get('mapGenerator/version', "0", str)
 
