@@ -10,6 +10,7 @@ var threaded: std.Io.Threaded = .init_single_threaded;
 const io = threaded.io();
 
 fn parse_replaydata(_: [*c]py.PyObject, args: [*c]py.PyObject) callconv(.c) [*c]py.PyObject {
+    @setRuntimeSafety(true);
     var buf: py.Py_buffer = undefined;
     if (py.PyArg_ParseTuple(args, "y*", &buf) == 0) {
         return null;
@@ -36,6 +37,7 @@ fn parse_replaydata(_: [*c]py.PyObject, args: [*c]py.PyObject) callconv(.c) [*c]
 }
 
 fn parse_compressed(_: [*c]py.PyObject, args: [*c]py.PyObject) callconv(.c) [*c]py.PyObject {
+    @setRuntimeSafety(true);
     var buf: py.Py_buffer = undefined;
     if (py.PyArg_ParseTuple(args, "y*", &buf) == 0) {
         return null;
@@ -66,6 +68,7 @@ fn parse_compressed(_: [*c]py.PyObject, args: [*c]py.PyObject) callconv(.c) [*c]
 }
 
 fn parse_file(_: [*c]py.PyObject, args: [*c]py.PyObject) callconv(.c) [*c]py.PyObject {
+    @setRuntimeSafety(true);
     var buf: py.Py_buffer = undefined;
     if (py.PyArg_ParseTuple(args, "s*", &buf) == 0) {
         return null;
@@ -96,6 +99,7 @@ fn parse_file(_: [*c]py.PyObject, args: [*c]py.PyObject) callconv(.c) [*c]py.PyO
 }
 
 fn chart_rolling_window(_: [*c]py.PyObject, args: [*c]py.PyObject) callconv(.c) [*c]py.PyObject {
+    @setRuntimeSafety(true);
     var chart_data: *py.PyObject = undefined;
     var ticks: c_long = undefined;
     if (py.PyArg_ParseTuple(args, "Ol", &chart_data, &ticks) == 0) {
