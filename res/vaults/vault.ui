@@ -298,7 +298,7 @@
                  <string>Search</string>
                 </property>
                 <property name="alignment">
-                 <set>Qt::AlignmentFlag::AlignCenter</set>
+                 <set>Qt::AlignmentFlag::AlignHCenter|Qt::AlignmentFlag::AlignTop</set>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_3">
                  <item>
