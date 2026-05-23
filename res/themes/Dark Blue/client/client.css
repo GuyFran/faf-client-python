@@ -983,6 +983,36 @@ QCheckBox::indicator:checked:hover {
     background: darkorange;
 }
 
+QAbstractItemView::indicator
+{
+    width: 11px;
+    height: 11px;
+    border: 1px solid #374151;
+}
+
+QAbstractItemView::indicator:disabled {
+    border-color: #1A1B2C;
+}
+
+QAbstractItemView::indicator:unchecked
+{
+    background: #23253C;
+}
+
+QAbstractItemView::indicator:checked
+{
+    background: orange;
+    border-color: black;
+}
+
+QAbstractItemView::indicator:hover {
+    border-color: #6B7280;
+}
+
+QAbstractItemView::indicator:checked:hover {
+    background: darkorange;
+}
+
 /* Used for Ranked Buttons only at the moment*/
 QToolButton#rankedPlay
 {

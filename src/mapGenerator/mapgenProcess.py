@@ -43,17 +43,19 @@ class MapGeneratorProcess:
         self.map_generator_process.setWorkingDirectory(out_path)
         self.map_generator_process.readyReadStandardOutput.connect(self.on_log_ready)
         self.map_generator_process.readyReadStandardError.connect(self.on_error_ready)
+        self.stdout = ""
         self._error_msgs_received = 0
 
         self.map_generator_process.finished.connect(self.on_exit)
         self.map_name = None
-        self.map_names: list[str] = []
+        self.map_names: set[str] = set()
 
         self.java_path = fafpath.get_java_path()
         self.args = ["-jar", gen_path]
         self.args.extend(args)
 
     def run(self) -> None:
+        self.stdout = ""
 
         logger.info("Starting map generator with %s", " ".join((self.java_path, *self.args)))
         generatorLogger.info(">>> --------------------- MapGenerator Launch")
@@ -81,14 +83,15 @@ class MapGeneratorProcess:
 
     def on_log_ready(self) -> None:
         standard_output = self.map_generator_process.readAllStandardOutput()
-        data = standard_output.data().strip().decode().split(os.linesep)
-        for line in data:
+        data = standard_output.data().decode()
+        self.stdout += data
+        for line in data.split(os.linesep):
             if line == "":
                 continue
-            if re.match(mapgenUtils.generatedMapPattern, line):
+            if m := re.search(mapgenUtils.generatedMapPattern, line):
                 if self.map_name is None:
-                    self.map_name = line.strip()
-                self.map_names.append(line.strip())
+                    self.map_name = m[0].strip().lower()
+                self.map_names.add(m[0].strip().lower())
             generatorLogger.info(line.strip())
             # Kinda fake progress bar. Better than nothing :)
             # some 'lines' have multiple lines in them, display only the first

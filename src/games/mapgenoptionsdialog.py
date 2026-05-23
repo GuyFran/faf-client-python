@@ -1,22 +1,31 @@
 import json
 import logging
 import os
+import re
+import shlex
 from enum import Enum
 from enum import auto
 from typing import TYPE_CHECKING
+from typing import Any
 from typing import ClassVar
-from typing import TypedDict
 
 from PyQt6 import QtCore
 from PyQt6 import QtGui
 from PyQt6 import QtWidgets
+from PyQt6.QtNetwork import QNetworkReply
+from PyQt6.QtWidgets import QMessageBox
+from semantic_version import Version
 
 from src import config
 from src import fafpath
 from src import util
+from src.api.ApiBase import JsonApiBase
 from src.api.models.MapVersion import MapSize
 from src.decorators import with_logger
+from src.fa.maps import getUserMapsFolder
+from src.games.mapgenoptions import CheckableComboBoxOption
 from src.games.mapgenoptions import ComboBoxOption
+from src.games.mapgenoptions import DoubleSpinBoxOption
 from src.games.mapgenoptions import RangeOption
 from src.games.mapgenoptions import SpinBoxOption
 from src.games.mapgenoptionsvalues import GenerationType
@@ -29,16 +38,17 @@ from src.games.mapgenoptionsvalues import TerrainSymmetry
 from src.games.mapgenoptionsvalues import TextureStyle
 from src.mapGenerator.mapgenManager import MapGeneratorManager
 from src.qt.utils import block_signals
+from src.ui.information_dialog import message_dialog
 
 if TYPE_CHECKING:
     from src.client import ClientWindow
 
+GITHUB_NEXT_PAGE = re.compile(r"(?<=<)([\S]*)(?=>; rel=\"next\")")
+
 FormClass, BaseClass = util.THEME.loadUiType("games/mapgen.ui")
 
 
-class MapGenDynamicConfig(TypedDict):
-    gen_version: str
-    options: dict[str, list[str]]
+type MapGenDynamicConfig = dict[str, dict[str, list[str]]]
 
 
 @with_logger
@@ -130,6 +140,7 @@ class MapGenDialog(FormClass, BaseClass):
         self.setupUi(self)
 
         self.mapgen_manager = mapgen_manager
+        self.mapgen_manager.new_available.connect(self.update_version)
         self.setWindowTitle(f"Map Generator Options - {self.mapgen_manager.currentVersion}")
 
         self.generationType.setMinimumWidth(80)
@@ -139,7 +150,7 @@ class MapGenDialog(FormClass, BaseClass):
         self.statusBar.setSizeGripEnabled(False)
         self.statusBarLayout.addWidget(self.statusBar)
 
-        self.mapNamePlainTextEdit.textChanged.connect(self.user_mapname_changed)
+        self.mapNameEdit.textChanged.connect(self.user_mapname_changed)
         self.useCustomStyleCheckBox.checkStateChanged.connect(self.on_custom_style)
         self.generationType.currentTextChanged.connect(self.gen_type_changed)
         self.mapSize.valueChanged.connect(self.map_size_changed)
@@ -158,44 +169,57 @@ class MapGenDialog(FormClass, BaseClass):
         )
 
         self.options_path = os.path.join(util.MAPGEN_DIR, "mapgen_options.json")
+        self.release_tags = os.path.join(util.MAPGEN_DIR, "release_tags")
 
-    def get_dynamic_options(self) -> dict[str, ComboBoxOption]:
+        self.api = JsonApiBase()
+        self.api.host_config_key = "github_api"
+        self.api_reply: QNetworkReply | None = None
+        self.releases: set[Version] = set()
+
+        self.buttonFetchVersions.clicked.connect(self.get_all_versions)
+        self.buttonSwitchVersion.clicked.connect(self.switch_version)
+        self.buttonHelp.clicked.connect(self.run_help)
+        self.groupCLI.toggled.connect(self.on_cli_toggled)
+        self.checkCLIMapFolder.toggled.connect(self.on_cli_map_folder_toggled)
+        self.comboVersion.currentTextChanged.connect(self.on_version_selection_changed)
+
+    def get_dynamic_options(self) -> dict[str, CheckableComboBoxOption]:
         return {
-            "symmetries": ComboBoxOption(
+            "symmetries": CheckableComboBoxOption(
                 "terrain-symmetry",
                 self.terrainSymmetry,
                 Sentinel.RANDOM.value,
-                Sentinel.values() + TerrainSymmetry.values(),
+                TerrainSymmetry.values(),
             ),
-            "styles": ComboBoxOption(
+            "styles": CheckableComboBoxOption(
                 "style",
                 self.mapStyle,
                 Sentinel.RANDOM.value,
-                Sentinel.values() + MapStyle.values(),
+                MapStyle.values(),
             ),
-            "terrain-styles": ComboBoxOption(
+            "terrain-styles": CheckableComboBoxOption(
                 "terrain-style",
                 self.terrainStyle,
                 Sentinel.RANDOM.value,
-                Sentinel.values() + TerrainStyle.values(),
+                TerrainStyle.values(),
             ),
-            "texture-styles": ComboBoxOption(
+            "texture-styles": CheckableComboBoxOption(
                 "texture-style",
                 self.textureStyle,
                 Sentinel.RANDOM.value,
-                Sentinel.values() + TextureStyle.values(),
+                TextureStyle.values(),
             ),
-            "resource-styles": ComboBoxOption(
+            "resource-styles": CheckableComboBoxOption(
                 "resource-style",
                 self.resourceGenerator,
                 Sentinel.RANDOM.value,
-                Sentinel.values() + ResourceStyle.values(),
+                ResourceStyle.values(),
             ),
-            "prop-styles": ComboBoxOption(
+            "prop-styles": CheckableComboBoxOption(
                 "prop-style",
                 self.propGenerator,
                 Sentinel.RANDOM.value,
-                Sentinel.values() + PropStyle.values(),
+                PropStyle.values(),
             ),
         }
 
@@ -211,10 +235,14 @@ class MapGenDialog(FormClass, BaseClass):
             super().closeEvent(event)
 
     def on_options_extracted(self, options: dict[str, list[str]]) -> None:
-        to_save = {
-            "gen_version": self.mapgen_manager.currentVersion,
-            "options": options,
-        }
+        try:
+            with open(self.options_path) as f:
+                to_save = json.load(f)
+            if "gen_version" in to_save:  # XXX: remove backward compatibility
+                to_save |= {to_save["gen_version"]: to_save["options"]}
+        except FileNotFoundError:
+            to_save = {}
+        to_save |= {self.mapgen_manager.currentVersion: options}
         with open(self.options_path, "w") as f:
             json.dump(to_save, f, indent=2)
 
@@ -225,39 +253,154 @@ class MapGenDialog(FormClass, BaseClass):
     def on_options_extraction_error(self) -> None:
         self.setWindowTitle("Map Generator Options")
         self.setEnabled(True)
-        try:
-            os.unlink(self.options_path)
-        except FileNotFoundError:
-            pass
         self.set_cmd_options({})
 
     def _load_dynamic_options(self) -> MapGenDynamicConfig:
         if not os.path.exists(self.options_path):
-            return {"gen_version": "-1", "options": {}}
+            return {}
         with open(self.options_path) as f:
-            return json.load(f)
+            options = json.load(f)
+        if "gen_version" in options:  # XXX: remove backward compatibility
+            return options | {options["gen_version"]: options["options"]}
+        else:
+            return options
+
+    def switch_version(self) -> None:
+        version = self.comboVersion.currentText()
+        if not version or version == self.mapgen_manager.currentVersion:
+            return
+        if version == "latest":
+            version = self.mapgen_manager.latestVersion
+        if self.mapgen_manager.get_generator(version):
+            self.mapgen_manager.set_current_version_number(version)
+            self.load_cmd_options()
+            self.setWindowTitle(f"Map Generator Options - {self.mapgen_manager.currentVersion}")
+            self.buttonSwitchVersion.setEnabled(False)
+
+    def on_version_selection_changed(self, text: str) -> None:
+        if text == "latest":
+            enabled = self.mapgen_manager.currentVersion != self.mapgen_manager.latestVersion
+        else:
+            enabled = text != self.mapgen_manager.currentVersion
+        self.buttonSwitchVersion.setEnabled(enabled)
+
+    def get_all_versions(self) -> None:
+        self.buttonFetchVersions.setEnabled(False)
+        self.api_reply = self.api.get(
+            "/repos/faforever/neroxis-map-generator/releases?per_page=100",
+            self.process_releases,  # type: ignore[argument]
+            self.on_api_error,
+            authorize=False,
+        )
+
+    def _get_page(self, full_url: str) -> None:
+        path = QtCore.QUrl(full_url).adjusted(
+            QtCore.QUrl.UrlFormattingOption.RemoveScheme
+            | QtCore.QUrl.UrlFormattingOption.RemoveAuthority,
+        ).toString()
+        self.api_reply = self.api.get(
+            path,
+            self.process_releases,  # type: ignore[argument]
+            self.on_api_error,
+            authorize=False,
+        )
+
+    def process_releases(self, message: list[dict[str, Any]]) -> None:
+        for release in message:
+            for asset in release["assets"]:
+                if asset["name"].endswith(".jar"):
+                    self.releases.add(Version(release["tag_name"]))
+                    break
+        assert self.api_reply is not None
+        link = self.api_reply.rawHeader("link")
+        if not link or (next_url := GITHUB_NEXT_PAGE.search(link.data().decode())) is None:
+            self.populate_versions_combo()
+            self.buttonFetchVersions.setEnabled(True)
+            self.save_release_tags()
+            return
+        self._get_page(next_url[0])
+
+    def on_api_error(self, reply: QNetworkReply) -> None:
+        QMessageBox.critical(
+            self, "Error", f"Could not get releases from GitHub API: {reply.error()}",
+        )
+        self.buttonFetchVersions.setEnabled(True)
+
+    def populate_versions_combo(self) -> None:
+        self.comboVersion.clear()
+        self.comboVersion.addItem("latest")
+        self.comboVersion.addItems(map(str, sorted(self.releases, reverse=True)))
+        self.comboVersion.setCurrentText(self.mapgen_manager.currentVersion)
+
+    def update_version(self) -> None:
+        if (
+            self.comboVersion.currentText() == "latest"
+            or QtWidgets.QMessageBox.question(
+                self,
+                "New version",
+                f"A new generator version is available: {self.mapgen_manager.latestVersion}.\n"
+                "Do you wish to update?",
+            ) == QtWidgets.QMessageBox.StandardButton.Yes
+        ):
+            self.mapgen_manager.get_generator(self.mapgen_manager.latestVersion)
+            self.mapgen_manager.set_current_version_number(self.mapgen_manager.latestVersion)
+        self.releases.add(Version(self.mapgen_manager.latestVersion))
+        self.comboVersion.insertItem(1, self.mapgen_manager.latestVersion)
+        self.save_release_tags()
+
+    def load_release_tags(self) -> None:
+        try:
+            with open(self.release_tags) as f:
+                self.releases = {Version(line) for line in f.readlines()}
+        except FileNotFoundError:
+            pass
+        try:
+            self.releases.add(Version(self.mapgen_manager.currentVersion))
+        except ValueError:
+            pass
+
+    def save_release_tags(self) -> None:
+        with open(self.release_tags, "w") as f:
+            f.write("\n".join(map(str, sorted(self.releases, reverse=True))))
+
+    def setup(self) -> None:
+        self.load_release_tags()
+        self.populate_versions_combo()
+        self.mapgen_manager.check_updates()
+        self.load_cmd_options()
+        self.groupCLI.setChecked(config.Settings.get("mapGenerator/cli", False, type=bool))
+        self.cliArgsEdit.setText(config.Settings.get("mapGenerator/cliArgs", ""))
+        self.checkCLIMapFolder.setChecked(
+            config.Settings.get("mapGenerator/cliMapFolder", False, type=bool),
+        )
+        self.buttonSwitchVersion.setEnabled(False)
+        if self.mapgen_manager.latestVersion == self.mapgen_manager.currentVersion:
+            self.comboVersion.setCurrentText("latest")
 
     def load_cmd_options(self) -> None:
+        if Version(self.mapgen_manager.currentVersion) < Version("1.12.0"):
+            self.set_cmd_options({})
+            return
         dynamic_options = self._load_dynamic_options()
-        version = dynamic_options["gen_version"]
-        if not self.mapgen_manager.latestVersion:
-            self.mapgen_manager.update_version_number()
-        if version != self.mapgen_manager.currentVersion:
+        if self.mapgen_manager.currentVersion not in dynamic_options:
+            self.mapgen_manager.update_current_if_needed()
             self.setWindowTitle("Loading Mapgen Options...")
             self.setEnabled(False)
-            gen_path = self.mapgen_manager.get_generator(self.mapgen_manager.latestVersion)
+            gen_path = self.mapgen_manager.get_generator(self.mapgen_manager.currentVersion)
             self.options_extractor.extract_all(gen_path)
         else:
-            self.setWindowTitle(f"Map Generator Options - {version}")
-            self.set_cmd_options(dynamic_options["options"])
+            self.setWindowTitle(f"Map Generator Options - {self.mapgen_manager.currentVersion}")
+            self.set_cmd_options(dynamic_options[self.mapgen_manager.currentVersion])
 
     def set_cmd_options(self, dynamic_options: dict[str, list[str]]) -> None:
         self.statusBar.showMessage("")
         for key, mapgen_option in self.dynamic_options.items():
-            if key in dynamic_options:
-                mapgen_option.set_opts(Sentinel.values() + dynamic_options[key])
+            try:
+                mapgen_option.set_opts(dynamic_options[key])
+            except KeyError:
+                pass
 
-        self.cmd_options: list[ComboBoxOption | SpinBoxOption | RangeOption] = [
+        self.cmd_options = [
             ComboBoxOption(
                 "visibility",
                 self.generationType,
@@ -268,7 +411,7 @@ class MapGenDialog(FormClass, BaseClass):
             SpinBoxOption("spawn-count", self.numberOfSpawns, int, 2),
             SpinBoxOption("num-teams", self.numberOfTeams, int, 2),
             SpinBoxOption("num-to-generate", self.numberOfMaps, int, 1),
-            SpinBoxOption("map-size", self.mapSize, float, 5),
+            DoubleSpinBoxOption("map-size", self.mapSize, float, 5),
             RangeOption(
                 "resource-density",
                 SpinBoxOption("", self.minResourceDensity, int, 0),
@@ -284,8 +427,7 @@ class MapGenDialog(FormClass, BaseClass):
 
     @QtCore.pyqtSlot()
     def user_mapname_changed(self) -> None:
-        mapname = self.mapNamePlainTextEdit.toPlainText()
-        self.optionsFrame.setEnabled(mapname.strip() == "")
+        self.optionsFrame.setEnabled(self.mapNameEdit.text().strip() == "")
 
     @QtCore.pyqtSlot(QtCore.Qt.CheckState)
     def on_custom_style(self, state: QtCore.Qt.CheckState) -> None:
@@ -346,6 +488,9 @@ class MapGenDialog(FormClass, BaseClass):
             "mapGenerator/useCustomStyle",
             self.useCustomStyleCheckBox.isChecked(),
         )
+        config.Settings.set("mapGenerator/cli", self.groupCLI.isChecked())
+        config.Settings.set("mapGenerator/cliMapFolder", self.checkCLIMapFolder.isChecked())
+        config.Settings.set("mapGenerator/cliArgs", self.cliArgsEdit.text().strip())
 
     @QtCore.pyqtSlot()
     def save_preferences_and_quit(self) -> None:
@@ -364,12 +509,15 @@ class MapGenDialog(FormClass, BaseClass):
             self.save_preferences_and_quit()
         else:
             self.save_preferences()
+            message_dialog(self, "Error", "Process output:", self.mapgen_manager.process_stdout)
 
     def set_arguments(self) -> list[str]:
-        args: list[str] = []
-        if mapname := self.mapNamePlainTextEdit.toPlainText().strip():
-            args.extend(["--map-name", mapname])
+        if self.groupCLI.isChecked():
+            return shlex.split(self.cliArgsEdit.text().strip())
+        elif mapname := self.mapNameEdit.text().strip():
+            return ["--map-name", mapname]
         else:
+            args: list[str] = []
             for option in self.cmd_options:
                 if option.name == "map-size":
                     args.append("--map-size")
@@ -377,4 +525,23 @@ class MapGenDialog(FormClass, BaseClass):
                     args.append(str(size_px))
                 elif option.active():
                     args.extend(option.as_cmd_arg())
-        return args
+            return args
+
+    def run_help(self) -> None:
+        self.mapgen_manager.run_help()
+        message_dialog(self, "Usage", "", self.mapgen_manager.process_stdout)
+
+    def on_cli_toggled(self, on: bool) -> None:
+        self.optionsFrame.setEnabled(not on)
+        self.mapNameEdit.setEnabled(not on)
+
+    def on_cli_map_folder_toggled(self, on: bool) -> None:
+        cli_args = shlex.split(self.cliArgsEdit.text().strip())
+
+        if cli_args and cli_args[0] in ["--folder-path", "--out-path"]:
+            if not on:
+                cli_args = cli_args[2:]
+        elif on:
+            cli_args = ["--folder-path", getUserMapsFolder()] + cli_args
+
+        self.cliArgsEdit.setText(shlex.join(cli_args))

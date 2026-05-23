@@ -6,9 +6,11 @@ from PyQt6.QtCore import QEventLoop
 from PyQt6.QtCore import QObject
 from PyQt6.QtCore import Qt
 from PyQt6.QtCore import QUrl
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtNetwork import QNetworkAccessManager
 from PyQt6.QtNetwork import QNetworkReply
 from PyQt6.QtNetwork import QNetworkRequest
+from semantic_version import Version
 
 from src import util
 from src.config import Settings
@@ -25,9 +27,11 @@ GENERATOR_JAR_NAME = "MapGenerator_{}.jar"
 
 
 class MapGeneratorManager(QObject):
+    new_available = pyqtSignal()
+
     def __init__(self) -> None:
         super().__init__()
-        self.latestVersion = ""
+        self.latestVersion = Settings.get("mapGenerator/latest_version", "")
 
         self.currentVersion = Settings.get('mapGenerator/version', "0", str)
 
@@ -35,28 +39,36 @@ class MapGeneratorManager(QObject):
         self.manager.finished.connect(self.on_request_finished)
 
         self._update_waiter = QEventLoop()
+        self._updates_checked = False
+        self.process_stdout = ""
 
     def set_current_version_number(self, version: str) -> None:
         self.currentVersion = version
         Settings.set("mapGenerator/version", version)
 
-    def update_version_number(self) -> None:
+    def set_latest_version(self, version: str) -> None:
+        new = Version(version) > Version(self.latestVersion)
+        self.latestVersion = version
+        Settings.set("mapGenerator/latest_version", version)
+        if new:
+            self.new_available.emit()
+
+    def update_current_if_needed(self) -> None:
+        if self.currentVersion != "0":
+            return
         self.check_updates()
         self.set_current_version_number(self.latestVersion)
 
     def generateMap(self, mapname: str | None = None, args: list[str] | None = None) -> list[str]:
         if mapname is None:
             # Requests latest version once per session
-            if self.currentVersion == "0" or not self.latestVersion:
-                self.update_version_number()
+            self.update_current_if_needed()
             version = self.currentVersion
         else:
             matcher = generatedMapPattern.match(mapname)
             assert matcher is not None
             version = matcher[1]
             args = ['--map-name', mapname]
-            if version > self.currentVersion:
-                self.set_current_version_number(version)
 
         generator_path = self.get_generator(version)
         if not generator_path:
@@ -93,6 +105,7 @@ class MapGeneratorManager(QObject):
         # Start generator with progress bar
         process = MapGeneratorProcess(generator_path, maps_folder, args or [])
         process.run()
+        self.process_stdout = process.stdout
 
         # Check if map exists or generator failed
         for name in process.mapnames:
@@ -125,6 +138,9 @@ class MapGeneratorManager(QObject):
         Not downloading anything here.
         Just requesting latest version and return the number
         '''
+        if self._updates_checked:
+            return
+
         request = QNetworkRequest(QUrl(RELEASE_URL).resolved(QUrl("latest")))
         self.manager.get(request)
 
@@ -142,9 +158,17 @@ class MapGeneratorManager(QObject):
 
         self._update_waiter.exec()
         progress.close()
+        self._updates_checked = True
 
     def on_request_finished(self, reply: QNetworkReply) -> None:
         redirect_url = reply.url()
         if "releases/tag/" in redirect_url.toString():
-            self.latestVersion = redirect_url.fileName()
+            self.set_latest_version(redirect_url.fileName())
         self._update_waiter.quit()
+
+    def run_help(self) -> None:
+        self.update_current_if_needed()
+        generator_path = self.get_generator(self.currentVersion)
+        process = MapGeneratorProcess(generator_path, ".", ["--help"])
+        process.run()
+        self.process_stdout = process.stdout
