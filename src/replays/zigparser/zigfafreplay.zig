@@ -6,6 +6,9 @@ const decompressor = @import("decompressor.zig");
 const parser = @import("parser.zig");
 const structs = @import("structs.zig");
 
+var threaded: std.Io.Threaded = .init_single_threaded;
+const io = threaded.io();
+
 fn parse_replaydata(_: [*c]py.PyObject, args: [*c]py.PyObject) callconv(.c) [*c]py.PyObject {
     var buf: py.Py_buffer = undefined;
     if (py.PyArg_ParseTuple(args, "y*", &buf) == 0) {
@@ -74,7 +77,7 @@ fn parse_file(_: [*c]py.PyObject, args: [*c]py.PyObject) callconv(.c) [*c]py.PyO
     const size: usize = @intCast(buf.len);
     const path: []u8 = @as([*]u8, @ptrCast(buf.buf))[0..size];
 
-    const preprocessed = decompressor.decompress_file(path, allocator) catch return py.Py_BuildValue("");
+    const preprocessed = decompressor.decompress_file(io, path, allocator) catch return py.Py_BuildValue("");
     defer preprocessed.deinit(allocator);
 
     var replay_parser = parser.parse(preprocessed.data, allocator) catch |err| {

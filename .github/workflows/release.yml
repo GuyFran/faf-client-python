@@ -11,7 +11,7 @@ env:
   ICE_ADAPTER_VERSION: 3.3.12
   BUILD_VERSION: ${{ github.event.inputs.version }}
   PYTHON_VERSION: 3.14
-  ZIG_VERSION: 0.15.2
+  ZIG_VERSION: 0.16.0
   JAVA_DISTRIBUTION: "oracle"
   JAVA_VERSION: 25
 
@@ -67,7 +67,7 @@ jobs:
           Write-Host "LIBPY=$LIBPY"
           $INCLUDEPY = $(python -c "import sysconfig; print(sysconfig.get_config_var('INCLUDEPY'))")
           Write-Host "INCLUDEPY=$INCLUDEPY"
-          zig build-lib -dynamic -lc -lpython3 -I"$INCLUDEPY" -L"$LIBPY" -O ReleaseSafe --name zigfafreplay src/replays/zigparser/zigfafreplay.zig
+          zig build-lib -dynamic -lc -lpython3 -I"$INCLUDEPY" -L"$LIBPY" -O ReleaseFast --name zigfafreplay src/replays/zigparser/zigfafreplay.zig
           move zigfafreplay.dll zigfafreplay.pyd
 
 
@@ -167,7 +167,7 @@ jobs:
           echo "LIBPY=$LIBPY"
           INCLUDEPY=$(python3 -c "import sysconfig; print(sysconfig.get_config_var('INCLUDEPY'))")
           echo "INCLUDEPY=$INCLUDEPY"
-          zig build-lib -dynamic -lc -lpython$PYTHON_VERSION -I$INCLUDEPY -L$LIBPY -O ReleaseSafe --name zigfafreplay src/replays/zigparser/zigfafreplay.zig
+          zig build-lib -dynamic -lc -lpython$PYTHON_VERSION -I$INCLUDEPY -L$LIBPY -O ReleaseFast --name zigfafreplay src/replays/zigparser/zigfafreplay.zig
           mv libzigfafreplay.so zigfafreplay.so
 
       - name: Shrink scipy dependency

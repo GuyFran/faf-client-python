@@ -33,8 +33,8 @@ pub fn decompress(compressed: []u8, allocator: Allocator) !structs.Preprocessed 
     return .{ .metadata = metadata, .data = data };
 }
 
-pub fn decompress_file(path: []const u8, allocator: Allocator) !structs.Preprocessed {
-    const replay = try std.fs.cwd().readFileAlloc(allocator, path, 0x20000000);
+pub fn decompress_file(io: std.Io, path: []const u8, allocator: Allocator) !structs.Preprocessed {
+    const replay = try std.Io.Dir.cwd().readFileAlloc(io, path, allocator, .limited(0x20000000));
     defer allocator.free(replay);
     return try decompress(replay, allocator);
 }
