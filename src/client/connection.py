@@ -14,13 +14,11 @@ from PyQt6.QtCore import QUrl
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtCore import pyqtSlot
 from PyQt6.QtNetwork import QAbstractSocket
-from PyQt6.QtNetwork import QHostInfo
 from PyQt6.QtNetwork import QNetworkReply
 from PyQt6.QtNetwork import QTcpSocket
 from PyQt6.QtWebSockets import QWebSocket
 
 from src.api.ApiAccessors import UserApiAccessor
-from src.client.workaround_websocket import Websocket
 from src.config import Settings
 from src.model.game import Game
 from src.model.game import message_to_game_args
@@ -174,17 +172,7 @@ class ServerConnection(QObject):
     def __init__(self, host: str, port: int, dispatch: Dispatcher) -> None:
         super().__init__()
 
-        host_addresses = QHostInfo.fromName(host).addresses()
-        IPv4_addresses = [
-            address for address in host_addresses
-            if address.protocol() is QAbstractSocket.NetworkLayerProtocol.IPv4Protocol
-        ]
-        has_ipv6 = len(host_addresses) != len(IPv4_addresses)
-        if has_ipv6 and sys.platform == "win32":
-            self.socket = Websocket(IPv4_addresses)
-        else:
-            self.socket = QWebSocket()
-
+        self.socket = QWebSocket()
         self.socket.binaryMessageReceived.connect(self.on_binary_message_received)
         self.socket.textMessageReceived.connect(self.on_text_message_received)
         self.socket.binaryMessageReceived.connect(lambda: self.message_received.emit())
