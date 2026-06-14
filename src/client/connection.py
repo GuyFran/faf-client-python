@@ -175,7 +175,8 @@ class ServerConnection(QObject):
         self.socket = QWebSocket()
         self.socket.binaryMessageReceived.connect(self.on_binary_message_received)
         self.socket.textMessageReceived.connect(self.on_text_message_received)
-        self.socket.binaryMessageReceived.connect(lambda: self.message_received.emit())
+        self.socket.binaryMessageReceived.connect(self.message_received.emit)
+        self.socket.textMessageReceived.connect(self.message_received.emit)
         self.socket.errorOccurred.connect(self.socketError)
         self.socket.stateChanged.connect(self.on_socket_state_change)
 
