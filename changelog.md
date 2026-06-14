@@ -1,6 +1,12 @@
 0.x.x
 =====
 
+0.27.4
+* Fix compatibility with server
+
+0.27.3
+* Hotfix semantic versioning of map generators
+
 0.27.2
 * Allow multiple choices in some of mapgen options
 * Allow switching mapgen versions
