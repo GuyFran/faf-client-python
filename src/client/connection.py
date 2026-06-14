@@ -186,6 +186,7 @@ class ServerConnection(QObject):
             self.socket = QWebSocket()
 
         self.socket.binaryMessageReceived.connect(self.on_binary_message_received)
+        self.socket.textMessageReceived.connect(self.on_text_message_received)
         self.socket.binaryMessageReceived.connect(lambda: self.message_received.emit())
         self.socket.errorOccurred.connect(self.socketError)
         self.socket.stateChanged.connect(self.on_socket_state_change)
@@ -313,8 +314,14 @@ class ServerConnection(QObject):
     @pyqtSlot(QByteArray)
     def on_binary_message_received(self, message: QByteArray) -> None:
         data = message.data().decode()
-        logger.debug("Server: '%s'", data)
+        logger.debug("Server (binary): '%s'", data)
         self._data += data
+        if self._data.endswith("\n"):
+            self.processDataFromServer(self._data)
+
+    def on_text_message_received(self, message: str) -> None:
+        logger.debug("Server (text): '%s'", message)
+        self._data += message
         if self._data.endswith("\n"):
             self.processDataFromServer(self._data)
 
