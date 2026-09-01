@@ -111,6 +111,8 @@ class CompanionRelay(QObject):
             _noexcept(self._server.close)
             self._server = None
             return
+        # Cap Qt's own pre-allocation boundaries, not just our application-level lists.
+        _noexcept(self._server.setMaxPendingConnections, MAX_PENDING)
         self._server.newConnection.connect(self._safe(self._on_new_connection))
         self._write_pairing_file()
         logger.info(
@@ -190,11 +192,17 @@ class CompanionRelay(QObject):
         try:
             if str(action.get("command", "")).lower() not in FORWARDED_COMMANDS:
                 return
-            was_batch = self._record_game_info(action, json)
-            self._source_ready = True
-            if was_batch:
-                # A full authoritative batch = desktop (re)synced with FAF. Resync every phone,
-                # which also moves any WAITING phone to CONNECTED.
+            is_batch = isinstance(action.get("games"), list)
+            # Readiness comes ONLY from an authoritative full batch. Incremental updates that
+            # arrive before the first batch have no baseline to apply to — ignore them, and never
+            # let one flip us to "ready".
+            if not is_batch and not self._source_ready:
+                return
+            self._record_game_info(action, json)
+            if is_batch:
+                self._source_ready = True
+                # Full batch = desktop (re)synced with FAF. Resync every phone, moving any
+                # WAITING phone to CONNECTED.
                 self._broadcast_snapshot_all()
             else:
                 self._broadcast(line if line.endswith("\n") else line + "\n")
@@ -230,6 +238,9 @@ class CompanionRelay(QObject):
         if len(self._pending) >= MAX_PENDING or len(self._clients) >= MAX_CLIENTS:
             _noexcept(sock.close)
             return
+        # Bound the incoming message size at the Qt allocation boundary too (a phone only ever
+        # sends a tiny hello).
+        _noexcept(sock.setMaxAllowedIncomingMessageSize, MAX_HELLO_BYTES)
         self._pending.append(sock)
         sock.textMessageReceived.connect(self._safe(lambda msg, s=sock: self._on_client_message(s, msg)))
         sock.disconnected.connect(self._safe(lambda s=sock: self._drop(s)))
