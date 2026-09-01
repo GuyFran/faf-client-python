@@ -19,6 +19,7 @@ from PyQt6.QtNetwork import QTcpSocket
 from PyQt6.QtWebSockets import QWebSocket
 
 from src.api.ApiAccessors import UserApiAccessor
+from src.companion.relay import CompanionRelay
 from src.config import Settings
 from src.model.game import Game
 from src.model.game import message_to_game_args
@@ -190,6 +191,10 @@ class ServerConnection(QObject):
 
         self.api_accessor = UserApiAccessor()
 
+        # Companion relay: mirror lobby messages to the FAF Mobile app on the LAN.
+        self.companion_relay = CompanionRelay(self)
+        self.companion_relay.start()
+
     def on_socket_state_change(self, state):
         states = QAbstractSocket.SocketState
         my_state = None
@@ -284,6 +289,7 @@ class ServerConnection(QObject):
     def processDataFromServer(self, data: str) -> None:
         self._data = ""
         for line in data.splitlines():
+            self.companion_relay.on_server_line(line)
             action = json.loads(line)
             command = action.get("command", "").lower()
             if command == "ping":
