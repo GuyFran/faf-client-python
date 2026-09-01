@@ -19,7 +19,6 @@ from PyQt6.QtNetwork import QTcpSocket
 from PyQt6.QtWebSockets import QWebSocket
 
 from src.api.ApiAccessors import UserApiAccessor
-from src.companion.relay import CompanionRelay
 from src.config import Settings
 from src.model.game import Game
 from src.model.game import message_to_game_args
@@ -28,6 +27,13 @@ from src.model.playerset import Playerset
 from src.protocol.lobbyprotocol import ServerMessage
 
 logger = logging.getLogger(__name__)
+
+# Guarded import: a broken companion module must never stop the client from starting.
+try:
+    from src.companion.relay import CompanionRelay
+except Exception:
+    CompanionRelay = None
+    logger.exception("Companion relay unavailable (import failed); disabled")
 
 
 class ConnectionState(IntEnum):
@@ -193,7 +199,12 @@ class ServerConnection(QObject):
 
         # Companion relay: mirror lobby messages to the FAF Mobile app on the LAN.
         # create_safe() swallows every failure — a broken relay must never affect the client.
-        self.companion_relay = CompanionRelay.create_safe(self)
+        self.companion_relay = (
+            CompanionRelay.create_safe(self) if CompanionRelay is not None else None
+        )
+        if self.companion_relay is not None:
+            # Clear stale lobbies on the phone when we lose our FAF lobby link.
+            self.disconnected.connect(self._companion_source_offline)
 
     def on_socket_state_change(self, state):
         states = QAbstractSocket.SocketState
@@ -286,6 +297,14 @@ class ServerConnection(QObject):
     def disconnect_(self):
         self.socket.close()
 
+    def _companion_source_offline(self) -> None:
+        if self.companion_relay is not None:
+            try:
+                self.companion_relay.on_source_offline()
+            except Exception:
+                logger.exception("Companion relay error on disconnect (ignored)")
+                self.companion_relay = None
+
     def processDataFromServer(self, data: str) -> None:
         self._data = ""
         for line in data.splitlines():
@@ -305,9 +324,14 @@ class ServerConnection(QObject):
                         exc_info=sys.exc_info(),
                     )
             # Mirror to the companion phone AFTER the real client has handled the line.
-            # on_server_line is fully self-guarded, so this can never disturb dispatch.
+            # on_server_line is fully self-guarded; the outer try is belt-and-suspenders so a
+            # relay defect can never break the loop over the real lobby batch.
             if self.companion_relay is not None:
-                self.companion_relay.on_server_line(line)
+                try:
+                    self.companion_relay.on_server_line(line)
+                except Exception:
+                    logger.exception("Companion relay error (ignored)")
+                    self.companion_relay = None
 
     @pyqtSlot(QByteArray)
     def on_binary_message_received(self, message: QByteArray) -> None:
