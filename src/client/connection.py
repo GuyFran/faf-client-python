@@ -192,8 +192,8 @@ class ServerConnection(QObject):
         self.api_accessor = UserApiAccessor()
 
         # Companion relay: mirror lobby messages to the FAF Mobile app on the LAN.
-        self.companion_relay = CompanionRelay(self)
-        self.companion_relay.start()
+        # create_safe() swallows every failure — a broken relay must never affect the client.
+        self.companion_relay = CompanionRelay.create_safe(self)
 
     def on_socket_state_change(self, state):
         states = QAbstractSocket.SocketState
@@ -289,7 +289,6 @@ class ServerConnection(QObject):
     def processDataFromServer(self, data: str) -> None:
         self._data = ""
         for line in data.splitlines():
-            self.companion_relay.on_server_line(line)
             action = json.loads(line)
             command = action.get("command", "").lower()
             if command == "ping":
@@ -305,6 +304,10 @@ class ServerConnection(QObject):
                         "Error dispatching JSON: " + line,
                         exc_info=sys.exc_info(),
                     )
+            # Mirror to the companion phone AFTER the real client has handled the line.
+            # on_server_line is fully self-guarded, so this can never disturb dispatch.
+            if self.companion_relay is not None:
+                self.companion_relay.on_server_line(line)
 
     @pyqtSlot(QByteArray)
     def on_binary_message_received(self, message: QByteArray) -> None:
