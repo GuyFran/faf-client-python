@@ -64,13 +64,13 @@ def test_snapshot_entries_carry_command_envelope(relay):
     assert json.loads(relay._games[7])["command"] == "game_info"
 
 
-def test_bad_json_is_ignored(relay):
-    relay.on_server_line("this is not json")  # must not raise
+def test_bad_json_is_ignored_without_disabling(relay):
+    relay.on_server_line("this is not json")  # unparseable → skipped, relay stays up
     assert relay.enabled is True
 
 
 def test_relay_defect_self_disables_without_raising(relay):
-    def boom(_action):
+    def boom(*_a, **_k):
         raise RuntimeError("injected failure")
     relay._record_game_info = boom
     # Must NOT raise — the client's dispatch loop must survive a broken relay.
@@ -78,8 +78,23 @@ def test_relay_defect_self_disables_without_raising(relay):
     assert relay.enabled is False
 
 
-def test_source_offline_clears_snapshot(relay):
+def test_source_ready_starts_false(relay):
+    assert relay._source_ready is False
+
+
+def test_batch_sets_source_ready(relay):
+    relay.on_server_line(gi(games=[{"uid": 1, "state": "open"}]))
+    assert relay._source_ready is True
+
+
+def test_single_update_sets_source_ready(relay):
     relay.on_server_line(gi(uid=1, state="open"))
-    relay._clients = []          # no phones, just checking cache is cleared
+    assert relay._source_ready is True
+
+
+def test_source_offline_clears_snapshot_and_ready(relay):
+    relay.on_server_line(gi(uid=1, state="open"))
+    relay._clients = []          # no phones; just checking cache + flag reset
     relay.on_source_offline()
     assert relay._games == {}
+    assert relay._source_ready is False
