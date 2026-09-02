@@ -76,10 +76,11 @@ Write-Host "Dependencies ready." -ForegroundColor Green
 # Running from source has no natives\ dir; without it login fails with "Failed to
 # calculate UID". Same version the release workflow ships (UID_VERSION in release.yml).
 $uidVersion = "v4.0.6"
-$uidExe = ".\src\natives\faf-uid.exe"
+# NOTE: the client resolves natives\ at the REPO ROOT (fafpath.get_libdir), not src\natives.
+$uidExe = ".\natives\faf-uid.exe"
 if (-not (Test-Path $uidExe)) {
     Write-Host "Downloading faf-uid.exe $uidVersion (anti-smurf check)..." -ForegroundColor Cyan
-    New-Item -ItemType Directory -Force ".\src\natives" | Out-Null
+    New-Item -ItemType Directory -Force ".\natives" | Out-Null
     Invoke-WebRequest -Uri "https://github.com/FAForever/uid/releases/download/$uidVersion/faf-uid.exe" -OutFile $uidExe
     Write-Host "If it later vanishes, your antivirus quarantined it - add an exception for $uidExe." -ForegroundColor Yellow
 }
