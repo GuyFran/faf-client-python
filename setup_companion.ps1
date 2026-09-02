@@ -72,7 +72,20 @@ if (-not (Test-Path $venvPy)) {
 }
 Write-Host "Dependencies ready." -ForegroundColor Green
 
-# -- 3) Launch with the companion relay enabled ----------------------------------------
+# -- 3) faf-uid.exe (anti-smurf UID calculator) -----------------------------------------
+# Running from source has no natives\ dir; without it login fails with "Failed to
+# calculate UID". Same version the release workflow ships (UID_VERSION in release.yml).
+$uidVersion = "v4.0.6"
+$uidExe = ".\src\natives\faf-uid.exe"
+if (-not (Test-Path $uidExe)) {
+    Write-Host "Downloading faf-uid.exe $uidVersion (anti-smurf check)..." -ForegroundColor Cyan
+    New-Item -ItemType Directory -Force ".\src\natives" | Out-Null
+    Invoke-WebRequest -Uri "https://github.com/FAForever/uid/releases/download/$uidVersion/faf-uid.exe" -OutFile $uidExe
+    Write-Host "If it later vanishes, your antivirus quarantined it - add an exception for $uidExe." -ForegroundColor Yellow
+}
+Write-Host "faf-uid.exe ready." -ForegroundColor Green
+
+# -- 4) Launch with the companion relay enabled ----------------------------------------
 $env:FAF_COMPANION_ENABLED = "1"
 Write-Host ""
 Write-Host "Launching the FAF client (companion relay enabled)..." -ForegroundColor Cyan
