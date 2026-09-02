@@ -1,0 +1,48 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "FAF Client: Setup & Run (companion relay)",
+      "detail": "First run: installs Python 3.14 + deps, then launches with the relay enabled. Run on your PHYSICAL computer, not a VM (anti-smurf).",
+      "type": "shell",
+      "command": "powershell",
+      "args": ["-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\setup_companion.ps1"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "FAF Client: Run (companion relay)",
+      "detail": "Quick launch once setup has been done (uses the existing .venv).",
+      "type": "shell",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "src"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "FAF_COMPANION_ENABLED": "1" }
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "FAF Client: Show pairing info",
+      "detail": "Prints the IP/port/token to enter on the phone (Play tab, gear icon).",
+      "type": "shell",
+      "command": "powershell",
+      "args": ["-Command", "Get-Content \"$HOME\\faf_companion_pairing.txt\""],
+      "problemMatcher": []
+    },
+    {
+      "label": "FAF Client: Companion tests",
+      "detail": "Relay unit tests under the venv's Python.",
+      "type": "shell",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "pytest", "tests/companion/test_relay.py", "-q"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}
