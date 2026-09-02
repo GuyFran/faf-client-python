@@ -13,30 +13,66 @@
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
-# 1) Python 3.14
-$py = "$env:LOCALAPPDATA\Programs\Python\Python314\python.exe"
-if (-not (Test-Path $py)) {
-    $sys = Get-Command python3.14 -ErrorAction SilentlyContinue
-    if ($sys) { $py = $sys.Source }
+# -- 1) Find a WORKING Python 3.14 ------------------------------------------------------
+# Broken shims exist in the wild (e.g. a stale chocolatey python3.14.exe pointing at a
+# deleted install), so every candidate must be verified by actually executing it.
+function Test-Python($exe) {
+    if (-not $exe) { return $false }
+    try {
+        $v = & $exe --version 2>&1
+        return ($LASTEXITCODE -eq 0 -and "$v" -match "3\.14")
+    } catch { return $false }
 }
-if (-not (Test-Path $py)) {
-    Write-Host "Installing Python 3.14 via winget..." -ForegroundColor Cyan
+
+function Find-Python {
+    $candidates = @(
+        "$env:LOCALAPPDATA\Programs\Python\Python314\python.exe",
+        "C:\Program Files\Python314\python.exe",
+        "C:\Python314\python.exe"
+    )
+    foreach ($c in $candidates) {
+        if ((Test-Path $c) -and (Test-Python $c)) { return $c }
+    }
+    # py launcher
+    try {
+        $v = & py -3.14 --version 2>&1
+        if ($LASTEXITCODE -eq 0 -and "$v" -match "3\.14") {
+            return (& py -3.14 -c "import sys; print(sys.executable)").Trim()
+        }
+    } catch {}
+    # PATH entries (shims included) — only accepted if they actually run
+    foreach ($name in @("python3.14", "python3", "python")) {
+        $cmd = Get-Command $name -ErrorAction SilentlyContinue
+        if ($cmd -and (Test-Python $cmd.Source)) { return $cmd.Source }
+    }
+    return $null
+}
+
+$py = Find-Python
+if (-not $py) {
+    Write-Host "No working Python 3.14 found - installing via winget..." -ForegroundColor Cyan
     winget install --id Python.Python.3.14 --accept-package-agreements --accept-source-agreements --silent
-    $py = "$env:LOCALAPPDATA\Programs\Python\Python314\python.exe"
-    if (-not (Test-Path $py)) { throw "Python 3.14 install failed - install it manually from python.org, then re-run." }
+    $py = Find-Python
+    if (-not $py) {
+        throw "Python 3.14 still not found after install. Install it from python.org, then re-run. (Tip: a broken 'python3.14' shim in chocolatey\bin can shadow real installs - remove the shim or run: choco uninstall python314.)"
+    }
 }
 Write-Host "Python: $py" -ForegroundColor Green
 
-# 2) venv + dependencies
-if (-not (Test-Path ".\.venv\Scripts\python.exe")) {
+# -- 2) venv + dependencies -------------------------------------------------------------
+$venvPy = ".\.venv\Scripts\python.exe"
+if (-not (Test-Path $venvPy)) {
+    if (Test-Path ".\.venv") { Remove-Item -Recurse -Force ".\.venv" }  # clear a broken half-venv
     Write-Host "Creating venv + installing dependencies (PyQt6 etc. - takes a few minutes)..." -ForegroundColor Cyan
     & $py -m venv .venv
-    & .\.venv\Scripts\python.exe -m pip install --quiet --upgrade pip
-    & .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+    if (-not (Test-Path $venvPy)) { throw "venv creation failed (using $py). See errors above." }
+    & $venvPy -m pip install --quiet --upgrade pip
+    & $venvPy -m pip install -r requirements.txt
+    if ($LASTEXITCODE -ne 0) { throw "pip install failed. See errors above." }
 }
 Write-Host "Dependencies ready." -ForegroundColor Green
 
-# 3) Launch with the companion relay enabled
+# -- 3) Launch with the companion relay enabled ----------------------------------------
 $env:FAF_COMPANION_ENABLED = "1"
 Write-Host ""
 Write-Host "Launching the FAF client (companion relay enabled)..." -ForegroundColor Cyan
@@ -44,4 +80,4 @@ Write-Host "  1. Log into FAF in the client window."
 Write-Host "  2. Pairing values for the phone are in:  $HOME\faf_companion_pairing.txt"
 Write-Host "  3. If Windows Firewall asks about python/port 6900: Allow (private networks)."
 Write-Host ""
-& .\.venv\Scripts\python.exe -m src
+& $venvPy -m src
