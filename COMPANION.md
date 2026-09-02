@@ -9,6 +9,23 @@ your home network. Chat and ratings on the phone talk to FAF directly and don't 
 which protects against casual access but NOT against a malicious device on the same Wi-Fi.
 Don't enable it on networks you don't trust. (Pinned `wss://` is planned before wider sharing.)
 
+> ⚠️ **Run this client on your PHYSICAL computer, not a VM.** FAF's anti-smurf check
+> fingerprints the machine at login, and VM hardware fingerprints can flag (even auto-ban)
+> an account. The relay itself is harmless anywhere — it's the FAF *login* that must come
+> from real hardware.
+
+## Quick start (Windows)
+
+```powershell
+git clone -b companion-relay https://github.com/GuyFran/client.git faf-client
+cd faf-client
+.\setup_companion.ps1
+```
+
+The script installs Python 3.14 + dependencies on first run, then launches the client with
+the relay enabled. Log into FAF, then pair the phone with the values from
+`$HOME\faf_companion_pairing.txt`.
+
 ## Enable it (off by default)
 
 Pick either:
