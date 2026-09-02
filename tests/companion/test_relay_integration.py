@@ -8,16 +8,12 @@ import json
 from unittest import mock
 
 import pytest
-from PyQt6.QtCore import QCoreApplication
 
 import src.client.connection as conn
 from src.client.connection import ServerConnection
 from src.config import Settings
 
-
-@pytest.fixture(scope="module")
-def qapp():
-    return QCoreApplication.instance() or QCoreApplication([])
+# NOTE: `qapp` below is pytest-qt's built-in fixture (a real QApplication) — see test_relay.py.
 
 
 @pytest.fixture

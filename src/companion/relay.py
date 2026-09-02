@@ -84,7 +84,10 @@ class CompanionRelay(QObject):
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
-        self.enabled = Settings.get("companion/enabled", False, type=bool)
+        self.enabled = (
+            Settings.get("companion/enabled", False, type=bool)
+            or os.environ.get("FAF_COMPANION_ENABLED", "").lower() in ("1", "true", "yes")
+        )
         self.port = Settings.get("companion/port", DEFAULT_PORT, type=int)
         self.token = Settings.get("companion/token", "", type=str)
         if not self.token or len(self.token) < 32:
@@ -100,25 +103,48 @@ class CompanionRelay(QObject):
 
     # -- lifecycle ---------------------------------------------------------
     def start(self) -> None:
-        if not self.enabled or self._server is not None:
+        if not self.enabled:
+            logger.info(
+                "Companion relay disabled — set companion/enabled=true (or env "
+                "FAF_COMPANION_ENABLED=1) and restart. See COMPANION.md.",
+            )
+            return
+        if self._server is not None:
             return
         self._server = QWebSocketServer(
             "FAF Companion", QWebSocketServer.SslMode.NonSecureMode, self,
         )
+        # Resolve the LAN address ONCE and use it consistently for bind/log/pairing —
+        # re-evaluating it can record a different IP than the one actually bound.
+        ip = _local_ip()
         # Fail closed: bind to the LAN interface only; do NOT fall back to all interfaces.
-        if not self._server.listen(QHostAddress(_local_ip()), self.port):
-            logger.error("Companion relay failed to bind %s:%s; disabled", _local_ip(), self.port)
+        if not self._server.listen(QHostAddress(ip), self.port):
+            logger.error("Companion relay failed to bind %s:%s; disabled", ip, self.port)
             _noexcept(self._server.close)
             self._server = None
             return
+        if ip == "127.0.0.1":
+            logger.warning(
+                "Companion relay bound to 127.0.0.1 (no LAN address yet?) — the phone will "
+                "NOT be able to reach it. Restart the client once the network is up.",
+            )
         # Cap Qt's own pre-allocation boundaries, not just our application-level lists.
         _noexcept(self._server.setMaxPendingConnections, MAX_PENDING)
         self._server.newConnection.connect(self._safe(self._on_new_connection))
-        self._write_pairing_file()
+        bound = self._server.serverAddress().toString()
+        self._write_pairing_file(bound)
         logger.info(
             "Companion relay (trusted-LAN) listening on %s:%s — pairing info written to %s",
-            _local_ip(), self.port, self._pairing_path(),
+            bound, self.port, self._pairing_path(),
         )
+        # Explicitly stop on application teardown (frees the port, closes phone sockets).
+        try:
+            from PyQt6.QtCore import QCoreApplication
+            app = QCoreApplication.instance()
+            if app is not None:
+                app.aboutToQuit.connect(self._safe(self.stop))
+        except Exception:
+            pass
 
     def stop(self) -> None:
         for c in list(self._clients) + list(self._pending):
@@ -150,20 +176,32 @@ class CompanionRelay(QObject):
     def _pairing_path(self) -> str:
         return os.path.join(os.path.expanduser("~"), "faf_companion_pairing.txt")
 
-    def _write_pairing_file(self) -> None:
+    def _write_pairing_file(self, bound_ip: str) -> None:
         # Keep the token out of the rolling app log; write it to a file the user opens.
         path = self._pairing_path()
         try:
             with open(path, "w", encoding="utf-8") as f:
                 f.write(
                     "FAF Mobile companion pairing\n"
-                    f"IP:    {_local_ip()}\n"
+                    f"IP:    {bound_ip}\n"
                     f"PORT:  {self.port}\n"
                     f"TOKEN: {self.token}\n",
                 )
             _noexcept(os.chmod, path, 0o600)  # owner-only where the OS honours it
         except Exception:
             pass
+
+    def regenerate_token(self) -> str:
+        """Mint a new pairing token, persist it, rewrite the pairing file, and drop every
+        currently-paired phone (their old pairing must die). For the future settings UI."""
+        self.token = secrets.token_hex(16)
+        Settings.set("companion/token", self.token)
+        if self._server is not None:
+            self._write_pairing_file(self._server.serverAddress().toString())
+        for sock in list(self._clients):
+            _noexcept(sock.close)
+            self._drop(sock)
+        return self.token
 
     # -- source (FAF) lifecycle -------------------------------------------
     def on_source_offline(self) -> None:
@@ -269,9 +307,19 @@ class CompanionRelay(QObject):
                 data = json.loads(line)
             except Exception:
                 continue
+            # Untrusted pre-auth input must NEVER reach the internal-fault kill switch:
+            # valid-JSON-non-object (e.g. `5`, `[1]`) is just a bad hello, not a relay error.
+            if not isinstance(data, dict):
+                continue
             if data.get("type") == "hello":
                 token = str(data.get("token", ""))
-                if secrets.compare_digest(token, self.token):
+                # Compare as bytes: compare_digest raises TypeError on non-ASCII str input,
+                # which a hostile/buggy peer could otherwise use to trip _disable via _safe.
+                ok = secrets.compare_digest(
+                    token.encode("utf-8", "replace"),
+                    self.token.encode("utf-8"),
+                )
+                if ok:
                     self._authenticate(sock)
                 else:
                     logger.warning("Companion: bad pairing token — closing")
@@ -280,6 +328,12 @@ class CompanionRelay(QObject):
                 return  # one hello per pending socket
 
     def _authenticate(self, sock) -> None:
+        # Enforce the phone cap at auth time too — MAX_PENDING sockets could all present the
+        # valid token, which must not grow _clients past MAX_CLIENTS.
+        if len(self._clients) >= MAX_CLIENTS:
+            _noexcept(sock.close)
+            self._drop(sock)
+            return
         if sock in self._pending:
             self._pending.remove(sock)
         if sock not in self._clients:
@@ -322,6 +376,11 @@ class CompanionRelay(QObject):
                 self._drop(sock)
 
     def _drop(self, sock) -> None:
+        # Tear the connection down, not just forget it — a socket dropped after a send failure
+        # must actually close so the phone's reconnect logic kicks in (closing an already
+        # closed socket is a no-op).
+        _noexcept(sock.close)
+        _noexcept(sock.deleteLater)
         if sock in self._clients:
             self._clients.remove(sock)
         if sock in self._pending:

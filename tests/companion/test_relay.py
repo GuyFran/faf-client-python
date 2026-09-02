@@ -9,15 +9,13 @@ dispatch is never disturbed. Readiness is authoritative-batch-only (Q3).
 import json
 
 import pytest
-from PyQt6.QtCore import QCoreApplication
 
 from src.companion.relay import CompanionRelay
 from src.config import Settings
 
-
-@pytest.fixture(scope="module")
-def qapp():
-    return QCoreApplication.instance() or QCoreApplication([])
+# NOTE: `qapp` below is pytest-qt's built-in fixture (a real QApplication). Defining our own
+# module-scoped QCoreApplication here would poison the process-wide Qt singleton for every
+# later widget/qtbot test in a full-suite CI run.
 
 
 @pytest.fixture
@@ -112,3 +110,47 @@ def test_source_offline_clears_snapshot_and_ready(relay):
     relay.on_source_offline()
     assert relay._games == {}
     assert relay._source_ready is False
+
+
+# -- pre-auth input must never trip the kill switch --------------------------
+class _FakeSock:
+    def __init__(self):
+        self.closed = False
+
+    def close(self):
+        self.closed = True
+
+    def deleteLater(self):
+        pass
+
+    def sendTextMessage(self, _line):
+        pass
+
+
+def test_non_dict_hello_json_does_not_disable(relay):
+    sock = _FakeSock()
+    relay._pending = [sock]
+    relay._on_client_message(sock, "5\n")     # valid JSON, not an object
+    relay._on_client_message(sock, "[1]\n")   # valid JSON, not an object
+    assert relay.enabled is True              # relay must stay up
+    assert sock in relay._pending             # socket just ignored, not punished
+
+
+def test_non_ascii_token_closes_socket_not_relay(relay):
+    sock = _FakeSock()
+    relay._pending = [sock]
+    relay._on_client_message(sock, json.dumps({"type": "hello", "token": "über-secret"}) + "\n")
+    assert relay.enabled is True              # bytes-compare: no TypeError, no _disable
+    assert sock.closed is True                # bad token → that socket closed
+    assert sock not in relay._pending
+
+
+def test_auth_respects_client_cap(relay, monkeypatch):
+    import src.companion.relay as relay_mod
+    monkeypatch.setattr(relay_mod, "MAX_CLIENTS", 1)
+    first, second = _FakeSock(), _FakeSock()
+    relay._pending = [first, second]
+    relay._authenticate(first)
+    relay._authenticate(second)               # over the cap → refused
+    assert relay._clients == [first]
+    assert second.closed is True
