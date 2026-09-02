@@ -17,8 +17,8 @@ Don't enable it on networks you don't trust. (Pinned `wss://` is planned before 
 ## Quick start (Windows)
 
 ```powershell
-git clone -b companion-relay https://github.com/GuyFran/client.git faf-client
-cd faf-client
+git clone -b companion-relay https://github.com/GuyFran/faf-client-python.git faf-client-python
+cd faf-client-python
 .\setup_companion.ps1
 ```
 
