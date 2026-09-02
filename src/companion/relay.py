@@ -49,8 +49,18 @@ MAX_PENDING = 8          # sockets awaiting auth
 MAX_HELLO_BYTES = 4096   # a hello is tiny; anything larger is junk/abuse
 
 
-def _local_ip() -> str:
-    """Best-effort LAN IP of this machine."""
+# Adapters the phone can never reach: VPN tunnels and host-only virtual switches.
+# With a VPN up, the default route goes through the tunnel, so the route-based
+# detection below would happily return the VPN IP — filter these out by name.
+_VIRTUAL_IFACE_MARKERS = (
+    "wireguard", "openvpn", "cyberghost", "nordlynx", "tailscale", "zerotier",
+    "hamachi", "tap-", "tun", "vpn", "vmware", "vmnet", "virtualbox", "vbox",
+    "hyper-v", "vethernet", "wsl", "loopback", "docker",
+)
+
+
+def _default_route_ip() -> str | None:
+    """IP of the interface holding the default route (may be a VPN tunnel)."""
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
@@ -59,7 +69,57 @@ def _local_ip() -> str:
         finally:
             s.close()
     except Exception:
-        return "127.0.0.1"
+        return None
+
+
+def _lan_candidates() -> list[str]:
+    """IPv4 addresses of real, up, non-virtual interfaces (best first)."""
+    from PyQt6.QtNetwork import QAbstractSocket, QNetworkInterface
+    addrs = []
+    for iface in QNetworkInterface.allInterfaces():
+        flags = iface.flags()
+        if not (flags & QNetworkInterface.InterfaceFlag.IsUp):
+            continue
+        if flags & QNetworkInterface.InterfaceFlag.IsLoopBack:
+            continue
+        name = (iface.humanReadableName() + " " + iface.name()).lower()
+        if any(marker in name for marker in _VIRTUAL_IFACE_MARKERS):
+            continue
+        for entry in iface.addressEntries():
+            ip = entry.ip()
+            if ip.protocol() != QAbstractSocket.NetworkLayerProtocol.IPv4Protocol:
+                continue
+            text = ip.toString()
+            if text.startswith("169.254.") or text == "127.0.0.1":
+                continue
+            addrs.append(text)
+    # Home LANs are overwhelmingly 192.168.x; VPNs favour 10.x — prefer accordingly.
+    addrs.sort(key=lambda a: (not a.startswith("192.168."), a))
+    return addrs
+
+
+def _local_ip() -> str:
+    """Best-effort LAN IP of this machine — the address a phone on the same
+    Wi-Fi can actually reach. FAF_COMPANION_BIND_IP overrides all detection."""
+    override = os.environ.get("FAF_COMPANION_BIND_IP", "").strip()
+    if override:
+        return override
+    route_ip = _default_route_ip()
+    try:
+        candidates = _lan_candidates()
+    except Exception:
+        candidates = []
+    if route_ip in candidates:
+        return route_ip  # default route already goes out a real LAN adapter
+    if candidates:
+        # Default route is a VPN/virtual adapter (or detection failed) — bind
+        # the first real LAN address instead so the phone can reach us.
+        logger.info(
+            "Companion relay: default-route IP %s looks unreachable from the "
+            "LAN; using %s instead", route_ip, candidates[0],
+        )
+        return candidates[0]
+    return route_ip or "127.0.0.1"
 
 
 def _noexcept(fn, *args) -> None:
