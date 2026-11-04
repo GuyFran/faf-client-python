@@ -102,6 +102,6 @@ diverge from upstream and bypass `src/config/version.py`. So commits here carry 
 5. `readme.md` — upstream legacy-client build/run notes (Windows/Linux)
 6. Consumer (separate repo, **not cloned on FILESERVER1** as of 2026-11-04): `faf-mobile-client`
    (`RelayClient.kt`, `SnapshotAssembler.kt`) + its `COLLAB_PLAYTAB.md` §9–§10. Expected next to this
-   repo (`..af-mobile-client`) when present.
+   repo (`..\faf-mobile-client`) when present.
 
 Upstream's own docs (`readme.md`, `changelog.md`, `.github/*.md`) describe the legacy client and are not edited here.
