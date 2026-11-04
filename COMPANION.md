@@ -1,6 +1,6 @@
 # FAF Mobile Companion Relay
 
-This fork adds a small **LAN relay** to the desktop client so the [FAF Mobile companion app]
+This fork adds a small **LAN relay** to the desktop client so the FAF Mobile companion app
 can show the live open-lobby list on your phone. The phone never logs into FAF — this client
 (already authenticated, already receiving `game_info`) mirrors the lobby list to the phone over
 your home network. Chat and ratings on the phone talk to FAF directly and don't involve this.
