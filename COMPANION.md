@@ -42,7 +42,8 @@ A restart is required either way — the relay starts with the client.
 
 1. Start the (enabled) client and log into FAF.
 2. Open **`faf_companion_pairing.txt` in your home folder** — the relay writes your
-   `IP`, `PORT` (default 6900) and 128-bit `TOKEN` there (file is chmod 600 where supported).
+   `IP`, `PORT` (default 6900) and 128-bit `TOKEN` there. Treat this file as private: on Windows
+   it is protected only by your user profile's permissions.
 3. On the phone: **Play tab → enter that IP / port / token → Save & Connect.**
 
 The phone shows *Waiting for PC* until the client is logged into the FAF lobby, then the
@@ -52,17 +53,21 @@ open-lobby list appears and live-updates.
 
 - **Phone says "Can't reach PC relay"** — same Wi-Fi? Client running and enabled? Windows
   Firewall may prompt for port 6900 on first run. If the log says the relay bound `127.0.0.1`,
-  the PC had no LAN address when the client started — restart it with the network up.
+  the PC had no LAN address when the client started — restart it with the network up. The address
+  is picked once at start, so restart the client after changing network.
+- **Wrong IP in the pairing file** (VPN, several adapters) — set `FAF_COMPANION_BIND_IP` to the
+  PC's LAN address before launching the client.
+- **A phone is refused** — the relay accepts 4 paired phones at once.
 - **Phone stuck "pairing"** — token mismatch. Re-open the pairing file (the token changes only
   if regenerated) and re-enter it via the Play tab's *Edit connection* (gear icon).
-- **Regenerate the token**: from a Python console inside the client process (or a future
-  settings UI): `relay.regenerate_token()` — this rewrites the pairing file and disconnects
-  all paired phones.
-- The relay **cannot break the client**: any internal relay error disables the relay only;
-  your normal FAF session is untouched (this is covered by tests in `tests/companion/`).
+- **Regenerate the token**: close the client, delete the `token=` line under `[companion]` in
+  `%APPDATA%\ForgedAllianceForever\FA Lobby.ini`, and start the client with the relay enabled. It
+  creates a new token and rewrites the pairing file. Phones must then be paired again.
+- The relay is built so it **cannot break the client**: any internal relay error disables the
+  relay only, and your normal FAF session continues.
 
 ## What goes over the wire
 
 Only lobby `game_info` (open games + player names per team). No chat, no private messages,
 no tokens beyond the pairing handshake. Protocol details are documented at the top of
-`src/companion/relay.py`.
+`src/companion/relay.py`, the design in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
